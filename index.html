@@ -738,17 +738,47 @@ function applyLumpiness(geom) {
   geom.computeVertexNormals();
 }
 
+// Build the capsule from one continuous lathe profile (cap arc → straight cylinder
+// → cap arc). Three.js's built-in CapsuleGeometry stitches three separate
+// pieces; even after mergeVertices, the seam ring averages two very different
+// surface tangents, leaving a faint shading band. A single lathe profile has
+// matching tangents at the cap↔cylinder transition by construction, and lets us
+// match cylinder ring density to cap-arc density so noise displacement reads
+// uniformly along the whole length.
+function buildCapsuleGeometry() {
+  const halfL      = LENGTH / 2;
+  const capSegs    = 24;
+  const radialSegs = 64;
+  const arcStep    = (RADIUS * Math.PI / 2) / capSegs;
+  const cylRings   = Math.max(2, Math.round(LENGTH / arcStep));
+  const profile    = [];
+  // Top hemisphere: apex → top seam
+  for (let i = 0; i <= capSegs; i++) {
+    const t = (i / capSegs) * Math.PI / 2;
+    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), halfL + RADIUS * Math.cos(t)));
+  }
+  // Cylinder interior (skip both seams — already in cap arrays)
+  for (let i = 1; i < cylRings; i++) {
+    profile.push(new THREE.Vector2(RADIUS, halfL - (i / cylRings) * LENGTH));
+  }
+  // Bottom hemisphere: bottom seam → apex
+  for (let i = 0; i <= capSegs; i++) {
+    const t = Math.PI / 2 + (i / capSegs) * Math.PI / 2;
+    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), -halfL + RADIUS * Math.cos(t)));
+  }
+  let g = new THREE.LatheGeometry(profile, radialSegs);
+  // Weld coincident vertices at poles + the seam where the lathe revolves back to phi=0.
+  g = mergeVertices(g);
+  g.computeVertexNormals();
+  return g;
+}
+
 function rebuildGeometry() {
   if (mesh) {
     tiltGroup.remove(mesh);
     mesh.geometry.dispose();
   }
-  // Weld the coincident vertices on the cap↔cylinder seam ring so
-  // computeVertexNormals can average face normals ACROSS the seam — otherwise
-  // each side keeps its own ring of vertices and the shading shows a hard crease.
-  let geom = new THREE.CapsuleGeometry(RADIUS, LENGTH, 24, 64);
-  geom = mergeVertices(geom);
-  geom.computeVertexNormals();
+  const geom = buildCapsuleGeometry();
   applyLumpiness(geom);
   applyTipNotches(geom);
   mesh = new THREE.Mesh(geom, material);
