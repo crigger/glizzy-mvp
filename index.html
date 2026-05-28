@@ -215,14 +215,14 @@
         <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.50">
         <output id="out-rough">0.50</output></label>
       <label><span>lumpiness</span>
-        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.30">
-        <output id="out-lump">0.300</output></label>
+        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.08">
+        <output id="out-lump">0.080</output></label>
       <label><span>lump scale</span>
-        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.4">
-        <output id="out-lumpfreq">0.4</output></label>
+        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.5">
+        <output id="out-lumpfreq">0.5</output></label>
       <label><span>tip notch depth</span>
-        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.07">
-        <output id="out-notch">0.070</output></label>
+        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.05">
+        <output id="out-notch">0.050</output></label>
       <label><span>notch spokes (1=dimple)</span>
         <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
         <output id="out-notchpts">6</output></label>
@@ -230,8 +230,8 @@
         <input id="ctrl-notchsharp" type="range" min="1" max="20" step="1" value="15">
         <output id="out-notchsharp">15</output></label>
       <label><span>cap fullness</span>
-        <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="0.7">
-        <output id="out-capfull">0.70</output></label>
+        <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
+        <output id="out-capfull">1.00</output></label>
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
@@ -606,14 +606,14 @@ let TILT_X    = THREE.MathUtils.degToRad(15);
 let TILT_Z    = THREE.MathUtils.degToRad(-25);
 let SPIN      = 0.8;
 let ROUGH     = 0.5;
-let LUMP_AMP    = 0.30;
-let LUMP_FREQ   = 0.4;
+let LUMP_AMP    = 0.08;
+let LUMP_FREQ   = 0.5;
 let LUMP_SEED   = 0;
-let NOTCH_AMP    = 0.07;
+let NOTCH_AMP    = 0.05;
 let NOTCH_POINTS = 6;
 let NOTCH_SHARP  = 15;
 const NOTCH_SIZE = 0.45;
-let CAP_FULL     = 0.7;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
+let CAP_FULL     = 1.0;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
 const COLOR   = 0xdc512a;
 
 // ───── 3D value noise ─────
