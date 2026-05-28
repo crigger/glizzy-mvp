@@ -268,6 +268,37 @@ const STROKE_VW_DESKTOP = 0.5;
 const STROKE_VW_MOBILE  = 0.5;
 
 let currentBreakpoint = null;
+
+// Aspect-ratio presets. Landscape (wider-than-tall) needs a tighter top margin
+// and shorter stubs/margins than portrait, otherwise the dog has too much air.
+const ASPECT_PRESETS = {
+  portrait:  { topMargin: 50, dogHeight: 120, trigger: 100, endStub: 75, endMargin: 100 },
+  landscape: { topMargin: 25, dogHeight: 125, trigger: 125, endStub: 50, endMargin:  50 },
+};
+let currentAspect = null;
+
+function applyAspectPreset(aspect) {
+  const p = ASPECT_PRESETS[aspect];
+  TOP_MARGIN_VMIN     = p.topMargin;
+  DOG_HEIGHT_VMIN     = p.dogHeight;
+  SCROLL_TRIGGER_VMIN = p.trigger;
+  END_STUB_VMIN       = p.endStub;
+  END_MARGIN_VMIN     = p.endMargin;
+  // Sync sliders + outputs so the GUI mirrors the active preset.
+  const pairs = [
+    ['ctrl-topmargin',     'out-topmargin',     p.topMargin],
+    ['ctrl-dogheight',     'out-dogheight',     p.dogHeight],
+    ['ctrl-scrolltrigger', 'out-scrolltrigger', p.trigger],
+    ['ctrl-endstub',       'out-endstub',       p.endStub],
+    ['ctrl-endmargin',     'out-endmargin',     p.endMargin],
+  ];
+  for (const [ctrl, out, val] of pairs) {
+    const slider = document.getElementById(ctrl);
+    const o      = document.getElementById(out);
+    if (slider) slider.value     = val;
+    if (o)      o.textContent    = val;
+  }
+}
 // ---------------------------------------------------------
 
 const svg = document.getElementById('glizzy');
@@ -290,6 +321,13 @@ function buildPath() {
     if (slider) slider.value = Math.round(STROKE_VW * 100);
     if (out)    out.textContent = Math.round(STROKE_VW * 100);
     currentBreakpoint = newBp;
+  }
+
+  // Auto-swap layout preset when the viewport crosses portrait ↔ landscape.
+  const newAspect = vw >= vh ? 'landscape' : 'portrait';
+  if (newAspect !== currentAspect) {
+    applyAspectPreset(newAspect);
+    currentAspect = newAspect;
   }
 
   // Stroke takes up half the viewport (both desktop and mobile).
@@ -534,7 +572,8 @@ window.addEventListener('resize', () => {
     const h = window.innerHeight;
     const widthChanged  = Math.abs(w - lastBuildVW) > 4;
     const heightJumped  = Math.abs(h - lastBuildVH) > 200; // bigger than URL bar height
-    if (widthChanged || heightJumped) {
+    const aspectFlipped = (w >= h) !== (lastBuildVW >= lastBuildVH);
+    if (widthChanged || heightJumped || aspectFlipped) {
       lastBuildVW = w;
       lastBuildVH = h;
       rebuild();
