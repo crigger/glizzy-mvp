@@ -720,6 +720,9 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
                                // Blend gives a thicker apex with some narrowing.
   const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
   const vEdgeFrac    = 0.32;   // long bottom taper for soft pressed-in feel
+  const BASELINE     = 0.10;   // baseline depression between spokes — the twist
+                               // pulls the casing inward everywhere in the imprint
+                               // zone, not just along the spoke lines.
   // Precompute per-spoke depth multipliers so each line presses differently.
   const spokeDepthMul = new Array(Math.max(1, spokes));
   for (let s = 0; s < spokeDepthMul.length; s++) {
@@ -752,7 +755,7 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           v * 50 + (onTop ? 0 : 99),
           3
         ) * 2 - 1;
-        halfAng *= 1 + wNoise * 0.45;
+        halfAng *= 1 + wNoise * 0.25;
         // Clamp so spokes never bleed into each other (60% of the gap is max).
         halfAng = Math.min(Math.max(halfAng, halfAngular * 0.25), segmentAngle * 0.30);
 
@@ -785,7 +788,8 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           const tt = (tV - (1 - vEdgeFrac)) / vEdgeFrac;
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
-        depth = angular * fall * spokeDepthMul[spokeIdx];
+        // Baseline pinch fills the asterisk region; spokes press deeper on top.
+        depth = (BASELINE + (1 - BASELINE) * angular * spokeDepthMul[spokeIdx]) * fall;
         // Organic imperfection along the line: jitter + low-freq breathing.
         if (depth > 0) {
           const a = u * 2 * Math.PI;
@@ -951,10 +955,10 @@ function updateBumpMap() {
   // same relative spot on the cap regardless of CAP_FULL. NOTCH_SIZE=0.5 →
   // lines start at the halfway-mark of the dome.
   const capH    = CAP_FULL * RADIUS;
-  const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
+  const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.75);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.35;
+  const darken  = 0.22;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
@@ -982,7 +986,7 @@ function updateBumpMap() {
 // Multiplier reduced (12 → 6) so wall normals perturb less aggressively, which
 // tones down the specular highlight in the valley without losing depth.
 function updateBumpScale() {
-  material.bumpScale = NOTCH_AMP * 6;
+  material.bumpScale = NOTCH_AMP * 5;
 }
 
 function rebuildGeometry() {
