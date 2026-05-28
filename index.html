@@ -711,8 +711,8 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
   // tapers to 0 at the apex — that's what gives the radial-converging look.
   const halfAngular  = (lineDeg * Math.PI / 180) / 2;
   const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
-  const angularEdge  = 0.0025;
-  const vEdgeFrac    = 0.10;
+  const angularEdge  = Math.min(halfAngular * 0.6, 0.012); // soft side walls
+  const vEdgeFrac    = 0.25;                               // long bottom taper
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const u = px / (size - 1);
@@ -745,16 +745,17 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
         depth = angular * fall;
-        // Organic imperfection: high-freq variation along the line + a
-        // lower-freq breathing modulation so different lines press deeper
-        // than others (matches the body lumpiness vibe).
+        // Organic imperfection: high-freq jitter along the line + lower-freq
+        // breathing across lines. Total swing > 100% so the line can briefly
+        // break (depth clamps to 0) — gives the press an irregular, hand-made
+        // quality instead of machine-perfect grooves.
         if (depth > 0) {
           const a = u * 2 * Math.PI;
           const nHi = fractal3(
-            Math.cos(a) * 4,
-            Math.sin(a) * 4,
-            v * 35,
-            3
+            Math.cos(a) * 7,
+            Math.sin(a) * 7,
+            v * 80,
+            4
           ) * 2 - 1;
           const nLo = fractal3(
             Math.cos(a) * 1.4,
@@ -762,7 +763,7 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
             v * 8 + 13,
             2
           ) * 2 - 1;
-          const wobble = nHi * 0.35 + nLo * 0.25;   // ±60% combined
+          const wobble = nHi * 0.55 + nLo * 0.35;   // up to ±90% combined
           depth *= 1 + wobble;
           if (depth < 0) depth = 0;
           else if (depth > 1) depth = 1;
@@ -914,7 +915,7 @@ function updateBumpMap() {
   const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.55;
+  const darken  = 0.25;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
