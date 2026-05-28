@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glizzy MVP — GSAP</title>
+<style>
+  :root {
+    --bg-top: #23aed5;
+    --bg-bottom: #1f88a8;
+    --dog-color: #dc512a;
+    --dog-highlight: #f4a685;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html {
+    background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom)) fixed;
+    min-height: 100%;
+    /* prevent iOS/Android rubber-band at scroll boundaries from re-firing the ScrollTrigger */
+    overscroll-behavior-y: none;
+  }
+  body {
+    color: #fff;
+    font: 16px/1.6 system-ui, -apple-system, sans-serif;
+    background: transparent;
+    min-height: 400svh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* SVG sits in normal flow but absolutely positioned to overlay the full page.
+     Behind content via z-index, no pointer events. */
+  #glizzy {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    z-index: 0;
+    overflow: visible;
+  }
+
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16svh 24px 30svh;
+  }
+  section {
+    margin: 18svh 0;
+    padding: 28px 32px;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  }
+  h1 { font-size: 2.8rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.4rem; margin: 0 0 12px; opacity: 0.9; }
+  p  { margin: 0 0 10px; opacity: 0.92; }
+
+  /* debug panel */
+  #debug-panel {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.78);
+    color: #fff;
+    font: 11px/1.4 monospace;
+    z-index: 99;
+    border-radius: 8px;
+    min-width: 320px;
+    max-width: 380px;
+    overflow: hidden;
+  }
+  #debug-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(255,255,255,0.06);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  #debug-head .chev { font-family: monospace; opacity: 0.7; }
+  #debug-body { padding: 10px 12px; }
+  #debug-panel.collapsed #debug-body { display: none; }
+  #debug-panel.collapsed { min-width: 0; }
+  #debug-panel pre { margin: 0 0 8px; white-space: pre-wrap; }
+  #debug-panel label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  #debug-panel label span { width: 140px; }
+  #debug-panel label input { flex: 1; }
+  #debug-panel label output { width: 48px; text-align: right; }
+  #debug-panel #copy-stats {
+    width: 100%; padding: 6px;
+    background: var(--dog-color); color: #fff; border: 0;
+    border-radius: 4px; font: inherit; cursor: pointer;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- The dog. Built procedurally in JS. -->
+<svg id="glizzy" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+
+<main>
+  <section>
+    <h1>Glizzy MVP</h1>
+    <h2>GSAP edition — procedural switchback dog</h2>
+    <p>Scroll. The vertical stub on the right is visible at load. After you scroll past it, the dog continues with left/right switchbacks that ink in as you scroll.</p>
+    <p>The path is regenerated on resize and adapts to the page height. Try the body-height slider to see how it fills.</p>
+  </section>
+  <section><h2>Section 2</h2><p>Filler content for scrolling through.</p></section>
+  <section><h2>Section 3</h2><p>Filler content for scrolling through.</p></section>
+  <section><h2>Section 4</h2><p>Filler content for scrolling through.</p></section>
+  <section><h2>Section 5</h2><p>Filler content for scrolling through.</p></section>
+  <section><h2>Section 6</h2><p>Filler content for scrolling through.</p></section>
+  <section><h2>The end</h2><p>By now you've scrolled past the entire dog.</p></section>
+</main>
+
+<div id="debug-panel">
+  <div id="debug-head">
+    <span>GLIZZY DEBUG</span>
+    <span class="chev">−</span>
+  </div>
+  <div id="debug-body">
+    <pre id="debug"></pre>
+    <label><span>top margin (vmin)</span>
+      <input id="ctrl-topmargin" type="range" min="0" max="100" step="5" value="50">
+      <output id="out-topmargin">50</output></label>
+    <label><span>dog height (vmin)</span>
+      <input id="ctrl-dogheight" type="range" min="50" max="200" step="5" value="120">
+      <output id="out-dogheight">120</output></label>
+    <label><span>scroll trigger (vmin)</span>
+      <input id="ctrl-scrolltrigger" type="range" min="0" max="300" step="5" value="100">
+      <output id="out-scrolltrigger">100</output></label>
+    <label><span>end stub (vmin)</span>
+      <input id="ctrl-endstub" type="range" min="0" max="150" step="5" value="75">
+      <output id="out-endstub">75</output></label>
+    <label><span>end margin (vmin)</span>
+      <input id="ctrl-endmargin" type="range" min="0" max="200" step="5" value="100">
+      <output id="out-endmargin">100</output></label>
+    <label><span>stroke (% vw)</span>
+      <input id="ctrl-stroke" type="range" min="10" max="70" step="1" value="50">
+      <output id="out-stroke">50</output></label>
+    <label><span>U-turn (× stroke)</span>
+      <input id="ctrl-uturn" type="range" min="0.5" max="1.5" step="0.05" value="0.75">
+      <output id="out-uturn">0.75</output></label>
+    <label><span>body min-height (svh)</span>
+      <input id="ctrl-body" type="range" min="200" max="1200" step="25" value="800">
+      <output id="out-body">800</output></label>
+    <button id="copy-stats">copy stats</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+gsap.registerPlugin(ScrollTrigger);
+// Prevent mobile URL-bar show/hide from re-triggering the path animation.
+ScrollTrigger.config({ ignoreMobileResize: true });
+
+// Linear interpolation between two hex colors (#rrggbb) at t in [0, 1].
+function lerpColor(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ar = (pa >> 16) & 0xff, ag = (pa >> 8) & 0xff, ab = pa & 0xff;
+  const br = (pb >> 16) & 0xff, bg = (pb >> 8) & 0xff, bb = pb & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const b2 = Math.round(ab + (bb - ab) * t);
+  return '#' + [r, g, b2].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+// ---------- tuning knobs (live via debug panel) ----------
+let TOP_MARGIN_VMIN     = 50;    // empty space above the top of the dog cap (in vmin)
+let DOG_HEIGHT_VMIN     = 120;   // visible top dog at load: cap + stub stroke (in vmin)
+let SCROLL_TRIGGER_VMIN = 100;   // scrollY (in vmin) before draw fires
+let END_STUB_VMIN       = 75;    // height of the bottom vertical stub: end cap + stroke (in vmin)
+let END_MARGIN_VMIN     = 100;   // empty space below the end cap (in vmin)
+let STROKE_VW           = 0.5;   // stroke as fraction of VIEWPORT WIDTH
+let UTURN_RATIO         = 0.75;  // U-turn radius as multiple of stroke width (≥0.5 = no self-intersection)
+let BODY_VH             = 800;   // desired body min-height in svh (page extends past this if needed)
+
+// Breakpoint defaults for stroke width — both desktop and mobile use 50vw now.
+const DESKTOP_BREAK     = 768;
+const STROKE_VW_DESKTOP = 0.5;
+const STROKE_VW_MOBILE  = 0.5;
+
+let currentBreakpoint = null;
+// ---------------------------------------------------------
+
+const svg = document.getElementById('glizzy');
+let mainPath = null;
+let pathLen = 0;
+let stubPathLen = 0;
+let st = null;            // current ScrollTrigger
+let state = {};           // last-built dimensions
+
+function buildPath() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Auto-reset STROKE_VW when crossing the desktop/mobile breakpoint.
+  const newBp = vw >= DESKTOP_BREAK ? 'desktop' : 'mobile';
+  if (newBp !== currentBreakpoint) {
+    STROKE_VW = newBp === 'desktop' ? STROKE_VW_DESKTOP : STROKE_VW_MOBILE;
+    const slider = document.getElementById('ctrl-stroke');
+    const out    = document.getElementById('out-stroke');
+    if (slider) slider.value = Math.round(STROKE_VW * 100);
+    if (out)    out.textContent = Math.round(STROKE_VW * 100);
+    currentBreakpoint = newBp;
+  }
+
+  // Stroke takes up half the viewport (both desktop and mobile).
+  const strokeWidth = vw * STROKE_VW;
+  const R           = strokeWidth * UTURN_RATIO;
+  const halfStroke  = strokeWidth / 2;
+  const vmin        = Math.min(vw, vh);
+
+  // Dimensions in vmin units
+  const topMargin   = (TOP_MARGIN_VMIN     / 100) * vmin;
+  const dogHeight   = (DOG_HEIGHT_VMIN     / 100) * vmin; // total top dog (cap + stroke)
+  const endStubH    = (END_STUB_VMIN       / 100) * vmin; // total end stub (cap + stroke)
+  const endMargin   = (END_MARGIN_VMIN     / 100) * vmin; // empty space below end cap
+
+  // Stub Y coords. Cap occupies (stubStartY - halfStroke) → stubStartY, so for cap top at y=topMargin:
+  //   stubStartY = topMargin + halfStroke
+  // The "dog height" is measured from cap top to stroke end, so:
+  //   stubEndY = topMargin + dogHeight
+  const stubStartY = topMargin + halfStroke;
+  const stubEndY   = topMargin + dogHeight;
+  const stubLength = stubEndY - stubStartY;
+  // End stub stroke length (excludes end cap, which auto-extends below by halfStroke)
+  const endStubStrokeLen = endStubH - halfStroke;
+
+  // Stub centerline at vw - halfStroke so the stroke hugs the right edge fully visible.
+  const stubX  = vw - halfStroke;
+  // Allow centerline to extend past viewport edges if U-turn radius needs more room.
+  // First H length = (vw - halfStroke - R) - (leftX + R) = vw - halfStroke - 2R - leftX
+  const overflow = Math.max(0, 2 * R + halfStroke - vw);
+  const leftX  = -overflow;
+  const rightX = vw + overflow;
+
+  // Page-height math. Total page = (top dog) + 2R (top trans arc + closing arc) + (N rows × 2R)
+  //                                + endStubStrokeLen + halfStroke (end cap) + endMargin
+  // Solve for N to fit the user's desired body height (page extends past it if N rounds up).
+  const desiredPageH = (BODY_VH / 100) * vh;
+  const fixed = stubEndY + 2 * R + endStubStrokeLen + halfStroke + endMargin;
+  const switchbackArea = desiredPageH - fixed;
+  let numRows = Math.floor(switchbackArea / (2 * R));
+  if (numRows < 1) numRows = 1;
+  // Force ODD number of rows so we exit the loop going RIGHT (matches closing arc + right-side end stub).
+  if (numRows % 2 === 0) numRows += 1;
+
+  // Compute the actual page height we need, then apply it (may exceed desiredPageH).
+  const pageH = stubEndY + 2 * R + numRows * 2 * R + endStubStrokeLen + halfStroke + endMargin;
+  document.body.style.minHeight = `${pageH}px`;
+
+  // Build path:
+  //   1) Top stub (vertical down the right side)
+  //   2) 90° transition arc into first horizontal
+  //   3) N switchback rows (alternating H + U-turn)
+  //   4) Final H going RIGHT
+  //   5) 90° closing arc into vertical-down
+  //   6) End stub (vertical down)
+  let d = `M ${stubX} ${stubStartY} V ${stubEndY}`;
+  d += ` a ${R} ${R} 0 0 1 -${R} ${R}`;
+  let y = stubEndY + R;
+  let goingLeft = true;
+
+  for (let i = 0; i < numRows; i++) {
+    if (goingLeft) {
+      d += ` H ${leftX + R}`;
+      d += ` a ${R} ${R} 0 0 0 0 ${2 * R}`;
+    } else {
+      d += ` H ${rightX - R}`;
+      d += ` a ${R} ${R} 0 0 1 0 ${2 * R}`;
+    }
+    y += 2 * R;
+    goingLeft = !goingLeft;
+  }
+  // After ODD rows, goingLeft = false (heading RIGHT). Final H ends at (vw - halfStroke - R).
+  d += ` H ${vw - halfStroke - R}`;
+  // Closing 90° arc: RIGHT → DOWN, ending at (vw - halfStroke, y + R) i.e. same x as top stub.
+  d += ` a ${R} ${R} 0 0 1 ${R} ${R}`;
+  y += R;
+  // End stub vertical (the round end cap auto-extends halfStroke below this final V).
+  const endStubStartY = y;
+  const endStubEndY = y + endStubStrokeLen;
+  d += ` V ${endStubEndY}`;
+
+  state = { vw, vh, vmin, pageH, strokeWidth, R, stubLength, stubStartY, topMargin, leftX, rightX, numRows, endStubStrokeLen, endStubStartY, endStubEndY, breakpoint: newBp };
+  return { d, strokeWidth, stubLength, pageH, vw };
+}
+
+function rebuild() {
+  const { d, strokeWidth, stubLength, pageH, vw } = buildPath();
+
+  // Size the SVG to match the page
+  svg.setAttribute('viewBox', `0 0 ${vw} ${pageH}`);
+  svg.setAttribute('width',  vw);
+  svg.setAttribute('height', pageH);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.style.height = `${pageH}px`;
+
+  // Rebuild the SVG contents.
+  svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+
+  const dogColor     = getComputedStyle(document.documentElement).getPropertyValue('--dog-color').trim()     || '#dc512a';
+  const highlightCol = getComputedStyle(document.documentElement).getPropertyValue('--dog-highlight').trim() || '#f4a685';
+
+  // Stack N stroked paths with interpolated width AND color from outer→inner.
+  // Each successive path covers the previous one with a narrower, lighter ring,
+  // creating a smooth banded gradient without any raster filter cost.
+  const STEPS = 24;
+  const allPaths = [];
+  for (let i = 0; i < STEPS; i++) {
+    const t = i / (STEPS - 1);                    // 0 at outer, 1 at center
+    const w = strokeWidth * (1 - t * 0.92);       // 100% → 8% of stroke
+    const stroke = lerpColor(dogColor, highlightCol, t);
+
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('stroke', stroke);
+    p.setAttribute('stroke-width', w);
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('stroke-linejoin', 'round');
+    p.setAttribute('fill', 'none');
+    svg.appendChild(p);
+    allPaths.push(p);
+  }
+  const main = allPaths[0];        // outer-most reference for length/debug
+
+  mainPath = main; // primary reference for path length / debug
+  pathLen = main.getTotalLength();
+  stubPathLen = stubLength;
+
+  // Initial dasharray/offset on every stacked path so the whole gradient draws together.
+  for (const p of allPaths) {
+    p.style.strokeDasharray  = pathLen;
+    p.style.strokeDashoffset = pathLen - stubPathLen;
+  }
+
+  // ScrollTrigger: fire after the user has scrolled `SCROLL_TRIGGER_VMIN` of vmin.
+  // End is anchored to the PATH's end (not body bottom), so the animation completes at a
+  // scroll position reachable in BOTH URL-bar-visible AND URL-bar-hidden states on mobile.
+  if (st) st.kill();
+  const tween = gsap.fromTo(allPaths,
+    { strokeDashoffset: pathLen - stubPathLen },
+    {
+      strokeDashoffset: 0,
+      ease: 'none',
+      scrollTrigger: {
+        start: () => (SCROLL_TRIGGER_VMIN / 100) * Math.min(window.innerWidth, window.innerHeight),
+        // End when the path's last point (end of end-stub stroke) reaches the viewport
+        // bottom. By the time the user gets to the page bottom, the animation is already
+        // at 100% in either viewport size.
+        end:   () => state.endStubEndY - window.innerHeight,
+        scrub: 0.5,
+        invalidateOnRefresh: true,
+      }
+    }
+  );
+  st = tween.scrollTrigger;
+
+  updateDebug();
+}
+
+function updateDebug() {
+  const dbg = document.getElementById('debug');
+  if (!dbg) return;
+  const docH = document.documentElement.scrollHeight;
+  const maxScroll = docH - window.innerHeight;
+  const offset = parseFloat(mainPath?.style.strokeDashoffset || 0);
+  const drawn = pathLen - offset;
+  const pct = pathLen ? (drawn / pathLen * 100).toFixed(1) : '0.0';
+  const mode = state.breakpoint === 'desktop' ? 'desktop' : 'mobile';
+  const hLen = (state.rightX - state.leftX) - 2 * state.R;
+  const triggerPx = (SCROLL_TRIGGER_VMIN / 100) * (state.vmin || 0);
+  dbg.textContent =
+`viewport     ${state.vw} x ${state.vh}   vmin=${state.vmin?.toFixed(0)}  (${mode})
+docHeight    ${docH}  (maxScroll=${maxScroll})
+scrollY      ${window.scrollY}  (trigger=${triggerPx.toFixed(0)})
+stroke       ${state.strokeWidth?.toFixed(0)}   R=${state.R?.toFixed(0)}
+top margin   ${state.topMargin?.toFixed(0)}  stub y: ${state.stubStartY?.toFixed(0)}
+centerline   x: ${state.leftX?.toFixed(0)} → ${state.rightX?.toFixed(0)}  H-length: ${hLen.toFixed(0)}
+top stub     ${state.stubLength?.toFixed(0)}px  end stub: ${state.endStubStrokeLen?.toFixed(0)}px
+rows         ${state.numRows}  path: ${pathLen.toFixed(0)}
+stub pathlen ${stubPathLen.toFixed(0)} (${pathLen ? (stubPathLen/pathLen*100).toFixed(1) : 0}% of path)
+dashoffset   ${offset.toFixed(0)}  →  drawn ${drawn.toFixed(0)} (${pct}%)
+TOP_MARGIN=${TOP_MARGIN_VMIN}vmin  DOG_HEIGHT=${DOG_HEIGHT_VMIN}vmin  TRIGGER=${SCROLL_TRIGGER_VMIN}vmin
+END_STUB=${END_STUB_VMIN}vmin  END_MARGIN=${END_MARGIN_VMIN}vmin
+STROKE_VW=${STROKE_VW.toFixed(3)}  UTURN_RATIO=${UTURN_RATIO}  BODY_VH=${BODY_VH}`;
+}
+
+// Wire up sliders
+function wire(id, outId, parse, setter) {
+  const el  = document.getElementById(id);
+  const out = document.getElementById(outId);
+  out.textContent = el.value;
+  el.addEventListener('input', () => {
+    setter(parse(el.value));
+    out.textContent = el.value;
+    rebuild();
+    // Refresh all ScrollTriggers so start/end functions re-evaluate with new values.
+    ScrollTrigger.refresh();
+  });
+}
+wire('ctrl-topmargin',     'out-topmargin',     parseFloat, v => TOP_MARGIN_VMIN     = v);
+wire('ctrl-dogheight',     'out-dogheight',     parseFloat, v => DOG_HEIGHT_VMIN     = v);
+wire('ctrl-scrolltrigger', 'out-scrolltrigger', parseFloat, v => SCROLL_TRIGGER_VMIN = v);
+wire('ctrl-endstub',       'out-endstub',       parseFloat, v => END_STUB_VMIN       = v);
+wire('ctrl-endmargin',     'out-endmargin',     parseFloat, v => END_MARGIN_VMIN     = v);
+wire('ctrl-stroke',        'out-stroke',        parseFloat, v => STROKE_VW           = v / 100);
+wire('ctrl-uturn',         'out-uturn',         parseFloat, v => UTURN_RATIO         = v);
+wire('ctrl-body',          'out-body',          parseFloat, v => BODY_VH             = v);
+
+// Collapsible debug panel
+document.getElementById('debug-head').addEventListener('click', () => {
+  const panel = document.getElementById('debug-panel');
+  panel.classList.toggle('collapsed');
+  const chev = panel.querySelector('.chev');
+  chev.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+});
+
+document.getElementById('copy-stats').addEventListener('click', () => {
+  navigator.clipboard?.writeText(document.getElementById('debug').textContent);
+});
+
+// Initial build (run after GSAP is loaded; both scripts above run synchronously before this)
+rebuild();
+window.addEventListener('scroll', updateDebug, { passive: true });
+
+// Rebuild on resize, but ignore mobile URL-bar height changes — only width changes
+// (or sufficiently large height changes) trigger a rebuild.
+let resizeTimer;
+let lastBuildVW = window.innerWidth;
+let lastBuildVH = window.innerHeight;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const widthChanged  = Math.abs(w - lastBuildVW) > 4;
+    const heightJumped  = Math.abs(h - lastBuildVH) > 200; // bigger than URL bar height
+    if (widthChanged || heightJumped) {
+      lastBuildVW = w;
+      lastBuildVH = h;
+      rebuild();
+    }
+  }, 200);
+});
+</script>
+</body>
+</html>
