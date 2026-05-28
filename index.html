@@ -727,7 +727,11 @@ function applyLumpiness(geom) {
       (z + off * 2.3)   * LUMP_FREQ,
       4
     ) * 2 - 1;
-    const d = n * amp;
+    // INWARD ONLY: the base capsule (R cylinder + hemisphere caps) is the
+    // outer envelope. The body never bulges past R, so the cap's seam ring
+    // (= R) ties for widest with any undisplaced body ring — the cap is never
+    // narrower than the widest point on the dog.
+    const d = Math.min(0, n) * amp;
     pos.setXYZ(i,
       x + norm.getX(i) * d,
       y + norm.getY(i) * d,
@@ -749,9 +753,10 @@ function buildCapsuleGeometry() {
   const halfL      = LENGTH / 2;
   const capSegs    = 24;
   const radialSegs = 64;
-  // Keep cylinder body relatively sparsely sampled — dense rings amplify the
-  // noise lumps on the body and make the capsule read as lopsided.
-  const cylRings   = Math.max(2, Math.round(LENGTH * 0.8));
+  // Match cylinder ring spacing to cap-arc spacing so inward lumps sample
+  // uniformly along the whole body — safe now that lumps only push inward.
+  const arcStep    = (RADIUS * Math.PI / 2) / capSegs;
+  const cylRings   = Math.max(2, Math.round(LENGTH / arcStep));
   const profile    = [];
   // Top hemisphere: apex → top seam
   for (let i = 0; i <= capSegs; i++) {
