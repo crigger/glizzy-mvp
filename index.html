@@ -685,7 +685,6 @@ let mesh = null;
 function applyTipNotches(geom) {
   if (NOTCH_AMP <= 0) return;
   const pos  = geom.attributes.position;
-  const norm = geom.attributes.normal;
   const halfL = LENGTH / 2;
   const capH  = CAP_FULL * RADIUS;
   const tips  = [halfL + capH, -(halfL + capH)];
@@ -695,7 +694,12 @@ function applyTipNotches(geom) {
   const asterisk = NOTCH_POINTS >= 2;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    let depress = 0;
+    // Press along the cap's long axis (Y) only — NOT along the local surface
+    // normal. A normal-direction push has a radial component on the cap that
+    // visibly pinches the cap inward; an axial push is what a flat-edged stamp
+    // pressing down on the tip actually does, leaving an imprint without
+    // collapsing the surrounding cap silhouette.
+    let dyOffset = 0;
     for (const tipY of tips) {
       const dy = Math.abs(y - tipY);
       if (dy >= reach) continue;
@@ -708,14 +712,12 @@ function applyTipNotches(geom) {
       }
       const t    = dy / reach;
       const fall = 1 - (t * t * (3 - 2 * t));
-      depress += angular * fall * NOTCH_AMP * RADIUS;
+      const depress = angular * fall * NOTCH_AMP * RADIUS;
+      // Top tip (y > 0) presses toward -Y; bottom tip toward +Y.
+      dyOffset += depress * (tipY > 0 ? -1 : 1);
     }
-    if (depress > 0) {
-      pos.setXYZ(i,
-        x - norm.getX(i) * depress,
-        y - norm.getY(i) * depress,
-        z - norm.getZ(i) * depress,
-      );
+    if (dyOffset !== 0) {
+      pos.setY(i, y + dyOffset);
     }
   }
   pos.needsUpdate = true;
