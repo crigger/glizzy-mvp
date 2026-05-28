@@ -227,8 +227,8 @@
         <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
         <output id="out-notchpts">6</output></label>
       <label><span>line thickness (°)</span>
-        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="2">
-        <output id="out-notchsharp">2.0</output></label>
+        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="7">
+        <output id="out-notchsharp">7.0</output></label>
       <label><span>cap fullness</span>
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
@@ -611,7 +611,7 @@ let LUMP_FREQ   = 0.5;
 let LUMP_SEED   = 0;
 let NOTCH_AMP    = 0.05;
 let NOTCH_POINTS = 6;
-let NOTCH_SHARP  = 2.0;      // line thickness in degrees (was: cos^k exponent)
+let NOTCH_SHARP  = 7.0;      // line thickness in degrees (was: cos^k exponent)
 const NOTCH_SIZE = 0.5;      // fraction of CAP HEIGHT covered by each line (apex → halfway down)
 let CAP_FULL     = 1.0;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
 const COLOR   = 0xdc512a;
@@ -719,7 +719,7 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
                                // 1 = constant physical (extruded look).
                                // Blend gives a thicker apex with some narrowing.
   const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
-  const vEdgeFrac    = 0.22;   // long bottom taper for soft pressed-in feel
+  const vEdgeFrac    = 0.32;   // long bottom taper for soft pressed-in feel
   // Precompute per-spoke depth multipliers so each line presses differently.
   const spokeDepthMul = new Array(Math.max(1, spokes));
   for (let s = 0; s < spokeDepthMul.length; s++) {
@@ -755,8 +755,10 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
         halfAng *= 1 + wNoise * 0.45;
         // Clamp so spokes never bleed into each other (60% of the gap is max).
         halfAng = Math.min(Math.max(halfAng, halfAngular * 0.25), segmentAngle * 0.30);
-        const angularEdge = Math.min(halfAng * 0.5, 0.012);
 
+        // Smooth bell-curve cross-section (smoothstep falloff over the entire
+        // half-width) — gives rounded walls instead of near-vertical sides, so
+        // the wall highlights don't read as a raised ridge.
         let angular;
         let spokeIdx = 0;
         if (spokes < 2) {
@@ -768,11 +770,11 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           if (spokeIdx < 0) spokeIdx += spokes;
           const wrapped = ((theta % segmentAngle) + segmentAngle) % segmentAngle;
           const distFromSpoke = Math.min(wrapped, segmentAngle - wrapped);
-          if (distFromSpoke <= halfAng - angularEdge)      angular = 1;
-          else if (distFromSpoke >= halfAng + angularEdge) angular = 0;
-          else {
-            const t = (distFromSpoke - (halfAng - angularEdge)) / (2 * angularEdge);
-            angular = 1 - (t * t * (3 - 2 * t));
+          if (distFromSpoke >= halfAng) {
+            angular = 0;
+          } else {
+            const t = distFromSpoke / halfAng;
+            angular = 1 - (t * t * (3 - 2 * t));    // bowl-shaped, no sharp walls
           }
         }
         // v-direction falloff (long soft tail at the bottom; flat near apex).
