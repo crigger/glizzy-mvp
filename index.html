@@ -653,7 +653,9 @@ function fractal3(x, y, z, octaves = 4) {
 
 const heroCanvas = document.getElementById('hero-stage');
 const heroScene  = new THREE.Scene();
-const heroCamera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+// Narrow FOV ("telephoto") so a tilted capsule doesn't read as cone-shaped due to
+// near-end foreshortening. fitCamera() pulls the camera farther back to compensate.
+const heroCamera = new THREE.PerspectiveCamera(20, 1, 0.1, 100);
 heroCamera.position.set(0, 0, 10);
 
 const heroRenderer = new THREE.WebGLRenderer({ canvas: heroCanvas, antialias: true, alpha: true });
