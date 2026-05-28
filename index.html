@@ -62,6 +62,22 @@
   h2 { font-size: 1.4rem; margin: 0 0 12px; opacity: 0.9; }
   p  { margin: 0 0 10px; opacity: 0.92; }
 
+  /* hero 3D capsule canvas */
+  .hero-canvas-wrap {
+    display: flex;
+    justify-content: center;
+    margin: -8px auto 16px;
+  }
+  #hero-stage {
+    width: 75vmin;
+    height: 75vmin;
+    max-width: 100%;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+  #hero-stage:active { cursor: grabbing; }
+
   /* debug panel */
   #debug-panel {
     position: fixed;
@@ -93,13 +109,26 @@
   #debug-panel label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   #debug-panel label span { width: 140px; }
   #debug-panel label input { flex: 1; }
-  #debug-panel label output { width: 48px; text-align: right; }
-  #debug-panel #copy-stats {
+  #debug-panel label output { width: 56px; text-align: right; }
+  #debug-panel .action-btn {
     width: 100%; padding: 6px;
     background: var(--dog-color); color: #fff; border: 0;
     border-radius: 4px; font: inherit; cursor: pointer;
     margin-top: 4px;
   }
+  #debug-panel .tabs {
+    display: flex; gap: 4px; margin-bottom: 10px;
+  }
+  #debug-panel .tab {
+    flex: 1; padding: 6px;
+    background: rgba(255,255,255,0.08); color: #fff;
+    border: 0; border-radius: 4px;
+    font: inherit; cursor: pointer; letter-spacing: 0.05em;
+  }
+  #debug-panel .tab.active {
+    background: var(--dog-color);
+  }
+  #debug-panel .tab-content.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -109,6 +138,9 @@
 
 <main>
   <section>
+    <div class="hero-canvas-wrap">
+      <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>
+    </div>
     <h1>Glizzy MVP</h1>
     <h2>GSAP edition — procedural switchback dog</h2>
     <p>Scroll. The vertical stub on the right is visible at load. After you scroll past it, the dog continues with left/right switchbacks that ink in as you scroll.</p>
@@ -122,38 +154,83 @@
   <section><h2>The end</h2><p>By now you've scrolled past the entire dog.</p></section>
 </main>
 
-<div id="debug-panel">
+<div id="debug-panel" class="collapsed">
   <div id="debug-head">
     <span>GLIZZY DEBUG</span>
-    <span class="chev">−</span>
+    <span class="chev">+</span>
   </div>
   <div id="debug-body">
-    <pre id="debug"></pre>
-    <label><span>top margin (vmin)</span>
-      <input id="ctrl-topmargin" type="range" min="0" max="100" step="5" value="50">
-      <output id="out-topmargin">50</output></label>
-    <label><span>dog height (vmin)</span>
-      <input id="ctrl-dogheight" type="range" min="50" max="200" step="5" value="120">
-      <output id="out-dogheight">120</output></label>
-    <label><span>scroll trigger (vmin)</span>
-      <input id="ctrl-scrolltrigger" type="range" min="0" max="300" step="5" value="100">
-      <output id="out-scrolltrigger">100</output></label>
-    <label><span>end stub (vmin)</span>
-      <input id="ctrl-endstub" type="range" min="0" max="150" step="5" value="75">
-      <output id="out-endstub">75</output></label>
-    <label><span>end margin (vmin)</span>
-      <input id="ctrl-endmargin" type="range" min="0" max="200" step="5" value="100">
-      <output id="out-endmargin">100</output></label>
-    <label><span>stroke (% vw)</span>
-      <input id="ctrl-stroke" type="range" min="10" max="70" step="1" value="50">
-      <output id="out-stroke">50</output></label>
-    <label><span>U-turn (× stroke)</span>
-      <input id="ctrl-uturn" type="range" min="0.5" max="1.5" step="0.05" value="0.75">
-      <output id="out-uturn">0.75</output></label>
-    <label><span>body min-height (svh)</span>
-      <input id="ctrl-body" type="range" min="200" max="1200" step="25" value="800">
-      <output id="out-body">800</output></label>
-    <button id="copy-stats">copy stats</button>
+    <div class="tabs">
+      <button class="tab active" data-tab="svg">SVG</button>
+      <button class="tab" data-tab="3d">3D</button>
+    </div>
+
+    <div class="tab-content" data-tab="svg">
+      <pre id="debug"></pre>
+      <label><span>top margin (vmin)</span>
+        <input id="ctrl-topmargin" type="range" min="0" max="100" step="5" value="50">
+        <output id="out-topmargin">50</output></label>
+      <label><span>dog height (vmin)</span>
+        <input id="ctrl-dogheight" type="range" min="50" max="200" step="5" value="120">
+        <output id="out-dogheight">120</output></label>
+      <label><span>scroll trigger (vmin)</span>
+        <input id="ctrl-scrolltrigger" type="range" min="0" max="300" step="5" value="100">
+        <output id="out-scrolltrigger">100</output></label>
+      <label><span>end stub (vmin)</span>
+        <input id="ctrl-endstub" type="range" min="0" max="150" step="5" value="75">
+        <output id="out-endstub">75</output></label>
+      <label><span>end margin (vmin)</span>
+        <input id="ctrl-endmargin" type="range" min="0" max="200" step="5" value="100">
+        <output id="out-endmargin">100</output></label>
+      <label><span>stroke (% vw)</span>
+        <input id="ctrl-stroke" type="range" min="10" max="70" step="1" value="50">
+        <output id="out-stroke">50</output></label>
+      <label><span>U-turn (× stroke)</span>
+        <input id="ctrl-uturn" type="range" min="0.5" max="1.5" step="0.05" value="0.75">
+        <output id="out-uturn">0.75</output></label>
+      <label><span>body min-height (svh)</span>
+        <input id="ctrl-body" type="range" min="200" max="1200" step="25" value="800">
+        <output id="out-body">800</output></label>
+      <button id="copy-stats" class="action-btn">copy stats</button>
+    </div>
+
+    <div class="tab-content hidden" data-tab="3d">
+      <label><span>capsule width</span>
+        <input id="ctrl-radius" type="range" min="0.3" max="2.5" step="0.05" value="1.0">
+        <output id="out-radius">1.00</output></label>
+      <label><span>capsule length</span>
+        <input id="ctrl-length"  type="range" min="0.5" max="8"   step="0.1" value="5.0">
+        <output id="out-length">5.0</output></label>
+      <label><span>tilt X (°)</span>
+        <input id="ctrl-tiltx"  type="range" min="-90" max="90" step="1" value="15">
+        <output id="out-tiltx">15</output></label>
+      <label><span>tilt Z (°)</span>
+        <input id="ctrl-tiltz"  type="range" min="-90" max="90" step="1" value="-25">
+        <output id="out-tiltz">-25</output></label>
+      <label><span>spin speed (rad/s)</span>
+        <input id="ctrl-speed"  type="range" min="0" max="3" step="0.05" value="0.8">
+        <output id="out-speed">0.80</output></label>
+      <label><span>roughness</span>
+        <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.50">
+        <output id="out-rough">0.50</output></label>
+      <label><span>lumpiness</span>
+        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.30">
+        <output id="out-lump">0.300</output></label>
+      <label><span>lump scale</span>
+        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.4">
+        <output id="out-lumpfreq">0.4</output></label>
+      <label><span>tip notch depth</span>
+        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.07">
+        <output id="out-notch">0.070</output></label>
+      <label><span>notch spokes (1=dimple)</span>
+        <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
+        <output id="out-notchpts">6</output></label>
+      <label><span>line sharpness</span>
+        <input id="ctrl-notchsharp" type="range" min="1" max="20" step="1" value="15">
+        <output id="out-notchsharp">15</output></label>
+      <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
+      <button id="reset-drag"  class="action-btn">reset drag tilt</button>
+    </div>
   </div>
 </div>
 
@@ -420,12 +497,21 @@ wire('ctrl-stroke',        'out-stroke',        parseFloat, v => STROKE_VW      
 wire('ctrl-uturn',         'out-uturn',         parseFloat, v => UTURN_RATIO         = v);
 wire('ctrl-body',          'out-body',          parseFloat, v => BODY_VH             = v);
 
-// Collapsible debug panel
+// Collapsible debug panel (collapsed on load — see <div class="collapsed"> on the panel)
 document.getElementById('debug-head').addEventListener('click', () => {
   const panel = document.getElementById('debug-panel');
   panel.classList.toggle('collapsed');
   const chev = panel.querySelector('.chev');
   chev.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+});
+
+// Tabbed panel switcher
+document.querySelectorAll('#debug-panel .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('#debug-panel .tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('#debug-panel .tab-content').forEach(c => c.classList.toggle('hidden', c.dataset.tab !== target));
+  });
 });
 
 document.getElementById('copy-stats').addEventListener('click', () => {
@@ -454,6 +540,265 @@ window.addEventListener('resize', () => {
       rebuild();
     }
   }, 200);
+});
+</script>
+
+<!-- ───── 3D HERO CAPSULE (Three.js) ───── -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ───── tuning knobs (live-edited via debug panel "3D" tab) ─────
+let RADIUS    = 1.0;
+let LENGTH    = 5.0;
+let TILT_X    = THREE.MathUtils.degToRad(15);
+let TILT_Z    = THREE.MathUtils.degToRad(-25);
+let SPIN      = 0.8;
+let ROUGH     = 0.5;
+let LUMP_AMP    = 0.30;
+let LUMP_FREQ   = 0.4;
+let LUMP_SEED   = 0;
+let NOTCH_AMP    = 0.07;
+let NOTCH_POINTS = 6;
+let NOTCH_SHARP  = 15;
+const NOTCH_SIZE = 0.45;
+const COLOR   = 0xdc512a;
+
+// ───── 3D value noise ─────
+function hash3(xi, yi, zi) {
+  let h = Math.imul(xi | 0, 374761393) ^ Math.imul(yi | 0, 668265263) ^ Math.imul(zi | 0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+function noise3(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf);
+  const v = yf * yf * (3 - 2 * yf);
+  const w = zf * zf * (3 - 2 * zf);
+  const n000 = hash3(xi,     yi,     zi);
+  const n100 = hash3(xi + 1, yi,     zi);
+  const n010 = hash3(xi,     yi + 1, zi);
+  const n110 = hash3(xi + 1, yi + 1, zi);
+  const n001 = hash3(xi,     yi,     zi + 1);
+  const n101 = hash3(xi + 1, yi,     zi + 1);
+  const n011 = hash3(xi,     yi + 1, zi + 1);
+  const n111 = hash3(xi + 1, yi + 1, zi + 1);
+  const nx00 = n000 + (n100 - n000) * u;
+  const nx10 = n010 + (n110 - n010) * u;
+  const nx01 = n001 + (n101 - n001) * u;
+  const nx11 = n011 + (n111 - n011) * u;
+  const nxy0 = nx00 + (nx10 - nx00) * v;
+  const nxy1 = nx01 + (nx11 - nx01) * v;
+  return nxy0 + (nxy1 - nxy0) * w;
+}
+function fractal3(x, y, z, octaves = 4) {
+  let v = 0, amp = 1, total = 0, freq = 1;
+  for (let i = 0; i < octaves; i++) {
+    v += noise3(x * freq, y * freq, z * freq) * amp;
+    total += amp;
+    amp *= 0.5;
+    freq *= 2;
+  }
+  return v / total;
+}
+
+const heroCanvas = document.getElementById('hero-stage');
+const heroScene  = new THREE.Scene();
+const heroCamera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+heroCamera.position.set(0, 0, 10);
+
+const heroRenderer = new THREE.WebGLRenderer({ canvas: heroCanvas, antialias: true, alpha: true });
+heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
+
+// ───── lighting ─────
+heroScene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+keyLight.position.set(4, 5, 3);
+heroScene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.4);
+rimLight.position.set(-3, -1, -2);
+heroScene.add(rimLight);
+
+// ───── nested rotation groups ─────
+const spinGroup = new THREE.Group(); heroScene.add(spinGroup);
+const tiltGroup = new THREE.Group(); spinGroup.add(tiltGroup);
+
+const material = new THREE.MeshStandardMaterial({ color: COLOR, roughness: ROUGH, metalness: 0 });
+let mesh = null;
+
+function applyTipNotches(geom) {
+  if (NOTCH_AMP <= 0) return;
+  const pos  = geom.attributes.position;
+  const norm = geom.attributes.normal;
+  const halfL = LENGTH / 2;
+  const tips  = [halfL + RADIUS, -(halfL + RADIUS)];
+  const reach = NOTCH_SIZE * RADIUS;
+  const asterisk = NOTCH_POINTS >= 2;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    let depress = 0;
+    for (const tipY of tips) {
+      const dy = Math.abs(y - tipY);
+      if (dy >= reach) continue;
+      let angular;
+      if (!asterisk) {
+        angular = 1;
+      } else {
+        const base = (1 + Math.cos(NOTCH_POINTS * Math.atan2(z, x))) / 2;
+        angular = Math.pow(base, NOTCH_SHARP);
+      }
+      const t    = dy / reach;
+      const fall = 1 - (t * t * (3 - 2 * t));
+      depress += angular * fall * NOTCH_AMP * RADIUS;
+    }
+    if (depress > 0) {
+      pos.setXYZ(i,
+        x - norm.getX(i) * depress,
+        y - norm.getY(i) * depress,
+        z - norm.getZ(i) * depress,
+      );
+    }
+  }
+  pos.needsUpdate = true;
+  geom.computeVertexNormals();
+}
+
+function applyLumpiness(geom) {
+  if (LUMP_AMP <= 0) return;
+  const pos  = geom.attributes.position;
+  const norm = geom.attributes.normal;
+  const amp  = LUMP_AMP * RADIUS;
+  const off  = LUMP_SEED * 100;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const n = fractal3(
+      (x + off)         * LUMP_FREQ,
+      (y + off * 1.7)   * LUMP_FREQ,
+      (z + off * 2.3)   * LUMP_FREQ,
+      4
+    ) * 2 - 1;
+    const d = n * amp;
+    pos.setXYZ(i,
+      x + norm.getX(i) * d,
+      y + norm.getY(i) * d,
+      z + norm.getZ(i) * d
+    );
+  }
+  pos.needsUpdate = true;
+  geom.computeVertexNormals();
+}
+
+function rebuildGeometry() {
+  if (mesh) {
+    tiltGroup.remove(mesh);
+    mesh.geometry.dispose();
+  }
+  const geom = new THREE.CapsuleGeometry(RADIUS, LENGTH, 24, 64);
+  applyLumpiness(geom);
+  applyTipNotches(geom);
+  mesh = new THREE.Mesh(geom, material);
+  tiltGroup.add(mesh);
+  fitCamera();
+}
+
+function fitCamera() {
+  const totalLength = LENGTH + 2 * RADIUS;
+  const fov = THREE.MathUtils.degToRad(heroCamera.fov);
+  const padding = 1.35;
+  heroCamera.position.z = (totalLength * padding) / (2 * Math.tan(fov / 2));
+}
+
+function heroResize() {
+  const cssSize = heroCanvas.clientWidth; // square canvas
+  if (!cssSize) return;
+  heroRenderer.setSize(cssSize, cssSize, false);
+  heroCamera.aspect = 1;
+  heroCamera.updateProjectionMatrix();
+  fitCamera();
+}
+
+rebuildGeometry();
+heroResize();
+window.addEventListener('resize', heroResize);
+
+// ───── pointer drag (tilt) ─────
+let dragging = false, lastDX = 0, lastDY = 0;
+let userPitch = 0, userYaw = 0;
+heroCanvas.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  lastDX = e.clientX; lastDY = e.clientY;
+  heroCanvas.setPointerCapture(e.pointerId);
+});
+heroCanvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - lastDX;
+  const dy = e.clientY - lastDY;
+  lastDX = e.clientX; lastDY = e.clientY;
+  userYaw   += dx * 0.008;
+  userPitch += dy * 0.008;
+});
+function endHeroDrag(e) {
+  if (!dragging) return;
+  dragging = false;
+  try { heroCanvas.releasePointerCapture(e.pointerId); } catch {}
+}
+heroCanvas.addEventListener('pointerup',     endHeroDrag);
+heroCanvas.addEventListener('pointercancel', endHeroDrag);
+heroCanvas.addEventListener('pointerleave',  endHeroDrag);
+
+document.getElementById('reset-drag').addEventListener('click', () => {
+  userYaw = 0; userPitch = 0;
+});
+
+// ───── animation loop ─────
+let lastTime = performance.now();
+let autoYaw  = 0;
+function animate(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  autoYaw += SPIN * dt;
+  spinGroup.rotation.y = autoYaw + userYaw;
+  tiltGroup.rotation.x = TILT_X + userPitch;
+  tiltGroup.rotation.z = TILT_Z;
+  heroRenderer.render(heroScene, heroCamera);
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// ───── 3D slider wiring ─────
+function wire3D(id, outId, parse, fmt, set) {
+  const el  = document.getElementById(id);
+  const out = document.getElementById(outId);
+  out.textContent = fmt(parse(el.value));
+  el.addEventListener('input', () => {
+    const v = parse(el.value);
+    set(v);
+    out.textContent = fmt(v);
+  });
+}
+wire3D('ctrl-radius',     'out-radius',     parseFloat, v => v.toFixed(2), v => { RADIUS    = v; rebuildGeometry(); });
+wire3D('ctrl-length',     'out-length',     parseFloat, v => v.toFixed(1), v => { LENGTH    = v; rebuildGeometry(); });
+wire3D('ctrl-tiltx',      'out-tiltx',      parseFloat, v => v.toFixed(0), v => { TILT_X    = THREE.MathUtils.degToRad(v); });
+wire3D('ctrl-tiltz',      'out-tiltz',      parseFloat, v => v.toFixed(0), v => { TILT_Z    = THREE.MathUtils.degToRad(v); });
+wire3D('ctrl-speed',      'out-speed',      parseFloat, v => v.toFixed(2), v => { SPIN      = v; });
+wire3D('ctrl-rough',      'out-rough',      parseFloat, v => v.toFixed(2), v => { ROUGH     = v; material.roughness = v; });
+wire3D('ctrl-lump',       'out-lump',       parseFloat, v => v.toFixed(3), v => { LUMP_AMP     = v; rebuildGeometry(); });
+wire3D('ctrl-lumpfreq',   'out-lumpfreq',   parseFloat, v => v.toFixed(1), v => { LUMP_FREQ    = v; rebuildGeometry(); });
+wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => { NOTCH_AMP    = v; rebuildGeometry(); });
+wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; rebuildGeometry(); });
+wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(0), v => { NOTCH_SHARP  = v | 0; rebuildGeometry(); });
+
+document.getElementById('reroll-lump').addEventListener('click', () => {
+  LUMP_SEED = (LUMP_SEED + 1 + Math.floor(Math.random() * 100)) | 0;
+  rebuildGeometry();
 });
 </script>
 </body>
