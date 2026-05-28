@@ -693,6 +693,13 @@ let mesh = null;
 // LatheGeometry UVs are cylindrical: u wraps around the lathe axis, v runs
 // along the profile from top apex (v=0) to bottom apex (v=1). The texture has
 // the asterisk pattern at v<vReach (top cap region) and v>1-vReach (bottom cap).
+function spokeHash(idx) {
+  // Cheap 1-D hash → [0, 1). Different per spoke index.
+  let h = Math.imul(idx | 0, 374761393) ^ 0x9E3779B9;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
 // Generate BOTH the bump map (lighting perturbation) and a color-modulation
 // map (so the valley actually reads as darker — bump maps can't darken the
 // floor of a depression on their own because the floor's normal is unchanged).
@@ -706,37 +713,69 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
   const colorCtx = colorCanvas.getContext('2d');
   const bumpData  = bumpCtx.createImageData(size, size);
   const colorData = colorCtx.createImageData(size, size);
-  // Constant angular width: each spoke is lineDeg degrees around the axis.
-  // The line's PHYSICAL arc length tapers naturally because the cap radius
-  // tapers to 0 at the apex — that's what gives the radial-converging look.
   const halfAngular  = (lineDeg * Math.PI / 180) / 2;
   const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
-  const angularEdge  = Math.min(halfAngular * 0.6, 0.012); // soft side walls
-  const vEdgeFrac    = 0.25;                               // long bottom taper
+  const TAPER        = 0.5;    // 0 = constant angular (sharp point at apex);
+                               // 1 = constant physical (extruded look).
+                               // Blend gives a thicker apex with some narrowing.
+  const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
+  const vEdgeFrac    = 0.22;   // long bottom taper for soft pressed-in feel
+  // Precompute per-spoke depth multipliers so each line presses differently.
+  const spokeDepthMul = new Array(Math.max(1, spokes));
+  for (let s = 0; s < spokeDepthMul.length; s++) {
+    spokeDepthMul[s] = 0.55 + 0.55 * spokeHash(s); // 0.55 .. 1.10
+  }
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const u = px / (size - 1);
       const v = py / (size - 1);
       let distFromApex = -1;
-      if (v < vReach)          distFromApex = v;
-      else if (v > 1 - vReach) distFromApex = 1 - v;
+      let onTop = false;
+      if (v < vReach)          { distFromApex = v;     onTop = true;  }
+      else if (v > 1 - vReach) { distFromApex = 1 - v; onTop = false; }
       let depth = 0;
       if (distFromApex >= 0) {
+        const tV = distFromApex / vReach;
+        // sin(t) for the quarter-ellipse profile at this v.
+        const cosT = Math.max(-1, Math.min(1, 1 - tV));
+        const sinT = Math.max(minSinT, Math.sqrt(Math.max(0, 1 - cosT * cosT)));
+        // Blend constant-angular and constant-physical widths so the apex
+        // end thickens (less taper) but doesn't merge into a band.
+        const halfAngFlat = halfAngular;
+        const halfAngFull = halfAngular / sinT;
+        let halfAng = halfAngFlat * (1 - TAPER) + halfAngFull * TAPER;
+        // Per-pixel width jitter so each line's thickness wobbles along its length.
+        const wAng = u * 2 * Math.PI;
+        const wNoise = fractal3(
+          Math.cos(wAng) * 5.5,
+          Math.sin(wAng) * 5.5,
+          v * 50 + (onTop ? 0 : 99),
+          3
+        ) * 2 - 1;
+        halfAng *= 1 + wNoise * 0.45;
+        // Clamp so spokes never bleed into each other (60% of the gap is max).
+        halfAng = Math.min(Math.max(halfAng, halfAngular * 0.25), segmentAngle * 0.30);
+        const angularEdge = Math.min(halfAng * 0.5, 0.012);
+
         let angular;
+        let spokeIdx = 0;
         if (spokes < 2) {
           angular = 1;
         } else {
           const theta   = u * 2 * Math.PI;
+          // spokeIdx for per-spoke depth lookup (which spoke we're closest to).
+          spokeIdx = Math.round(theta / segmentAngle) % spokes;
+          if (spokeIdx < 0) spokeIdx += spokes;
           const wrapped = ((theta % segmentAngle) + segmentAngle) % segmentAngle;
           const distFromSpoke = Math.min(wrapped, segmentAngle - wrapped);
-          if (distFromSpoke <= halfAngular - angularEdge)      angular = 1;
-          else if (distFromSpoke >= halfAngular + angularEdge) angular = 0;
+          if (distFromSpoke <= halfAng - angularEdge)      angular = 1;
+          else if (distFromSpoke >= halfAng + angularEdge) angular = 0;
           else {
-            const t = (distFromSpoke - (halfAngular - angularEdge)) / (2 * angularEdge);
+            const t = (distFromSpoke - (halfAng - angularEdge)) / (2 * angularEdge);
             angular = 1 - (t * t * (3 - 2 * t));
           }
         }
-        const tV = distFromApex / vReach;
+        // v-direction falloff (long soft tail at the bottom; flat near apex).
         let fall;
         if (tV < 1 - vEdgeFrac) {
           fall = 1;
@@ -744,41 +783,34 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           const tt = (tV - (1 - vEdgeFrac)) / vEdgeFrac;
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
-        depth = angular * fall;
-        // Organic imperfection: high-freq jitter along the line + lower-freq
-        // breathing across lines. Total swing > 100% so the line can briefly
-        // break (depth clamps to 0) — gives the press an irregular, hand-made
-        // quality instead of machine-perfect grooves.
+        depth = angular * fall * spokeDepthMul[spokeIdx];
+        // Organic imperfection along the line: jitter + low-freq breathing.
         if (depth > 0) {
           const a = u * 2 * Math.PI;
           const nHi = fractal3(
-            Math.cos(a) * 7,
-            Math.sin(a) * 7,
-            v * 80,
+            Math.cos(a) * 8,
+            Math.sin(a) * 8,
+            v * 90 + (onTop ? 0 : 53),
             4
           ) * 2 - 1;
           const nLo = fractal3(
-            Math.cos(a) * 1.4,
-            Math.sin(a) * 1.4,
-            v * 8 + 13,
+            Math.cos(a) * 1.6,
+            Math.sin(a) * 1.6,
+            v * 12 + (onTop ? 13 : 71),
             2
           ) * 2 - 1;
-          const wobble = nHi * 0.55 + nLo * 0.35;   // up to ±90% combined
-          depth *= 1 + wobble;
+          depth *= 1 + nHi * 0.55 + nLo * 0.35;     // up to ±90%
           if (depth < 0) depth = 0;
           else if (depth > 1) depth = 1;
         }
       }
       const idx = (py * size + px) * 4;
-      // Bump map: dark = depressed
-      const bumpGrey = Math.round((1 - depth) * 255);
+      const bumpGrey  = Math.round((1 - depth) * 255);
       bumpData.data[idx]     = bumpGrey;
       bumpData.data[idx + 1] = bumpGrey;
       bumpData.data[idx + 2] = bumpGrey;
       bumpData.data[idx + 3] = 255;
-      // Color modulation: white where depth=0 (no change), darker by 'darken'
-      // fraction where depth=1 (valley floor reads visibly darker).
-      const colorMul = 1 - depth * darken;
+      const colorMul  = 1 - depth * darken;
       const colorGrey = Math.round(colorMul * 255);
       colorData.data[idx]     = colorGrey;
       colorData.data[idx + 1] = colorGrey;
@@ -915,7 +947,7 @@ function updateBumpMap() {
   const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.25;
+  const darken  = 0.12;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
