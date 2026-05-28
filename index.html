@@ -693,43 +693,28 @@ let mesh = null;
 // LatheGeometry UVs are cylindrical: u wraps around the lathe axis, v runs
 // along the profile from top apex (v=0) to bottom apex (v=1). The texture has
 // the asterisk pattern at v<vReach (top cap region) and v>1-vReach (bottom cap).
-function makeAsteriskBumpMap(size, spokes, lineDeg, vReach, R, capH, totalAxial) {
+function makeAsteriskBumpMap(size, spokes, lineDeg, vReach) {
   const canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext('2d');
   const imgData = ctx.createImageData(size, size);
   const data = imgData.data;
-  // Physical (arc-length) half-width of a line, measured at the seam radius R.
-  // At each row of the texture, we compute the local cap radius r(v) and scale
-  // the angular half-width by R/r(v) so the line's PHYSICAL width stays
-  // constant — no more flare from the cap getting wider as we move down.
-  const halfPhysical = (lineDeg * Math.PI / 180) / 2 * R;
+  // Constant angular width: each spoke is lineDeg degrees around the axis.
+  // The line's PHYSICAL arc length tapers naturally because the cap radius
+  // tapers to 0 at the apex — that's what gives the radial-converging look.
+  const halfAngular  = (lineDeg * Math.PI / 180) / 2;
   const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
-  const angularEdge  = 0.0025; // tiny anti-alias band on the u-direction step
-  const vEdgeFrac    = 0.06;   // last 6% of the line tapers (hard bottom edge)
+  const angularEdge  = 0.0025;
+  const vEdgeFrac    = 0.10;   // taper last 10% of the line to a soft tail
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const u = px / (size - 1);
       const v = py / (size - 1);
-      // Distance from whichever cap apex we're in (in axial-proportional v).
       let distFromApex = -1;
       if (v < vReach)          distFromApex = v;
       else if (v > 1 - vReach) distFromApex = 1 - v;
       let depth = 0;
       if (distFromApex >= 0) {
-        // Local cap radius r(v) from the quarter-ellipse profile:
-        //   axial D = distFromApex * totalAxial
-        //   cos(t) = 1 - D/capH,  r = R * sin(t)
-        const D_axial = distFromApex * totalAxial;
-        const cosT    = Math.max(-1, Math.min(1, 1 - D_axial / capH));
-        const sinT    = Math.sqrt(Math.max(0, 1 - cosT * cosT));
-        const radius  = R * sinT;
-        // Per-row adjusted angular half-width = physical / radius. Clamped so
-        // it can't exceed half the gap between spokes (near the apex r→0,
-        // so we cap at segmentAngle/2 and the spokes merge at the apex).
-        const minR    = R * 0.02;
-        const halfAng = Math.min(halfPhysical / Math.max(radius, minR), segmentAngle / 2);
-
         let angular;
         if (spokes < 2) {
           angular = 1;
@@ -737,14 +722,13 @@ function makeAsteriskBumpMap(size, spokes, lineDeg, vReach, R, capH, totalAxial)
           const theta   = u * 2 * Math.PI;
           const wrapped = ((theta % segmentAngle) + segmentAngle) % segmentAngle;
           const distFromSpoke = Math.min(wrapped, segmentAngle - wrapped);
-          if (distFromSpoke <= halfAng - angularEdge)      angular = 1;
-          else if (distFromSpoke >= halfAng + angularEdge) angular = 0;
+          if (distFromSpoke <= halfAngular - angularEdge)      angular = 1;
+          else if (distFromSpoke >= halfAngular + angularEdge) angular = 0;
           else {
-            const t = (distFromSpoke - (halfAng - angularEdge)) / (2 * angularEdge);
+            const t = (distFromSpoke - (halfAngular - angularEdge)) / (2 * angularEdge);
             angular = 1 - (t * t * (3 - 2 * t));
           }
         }
-        // Hard bottom edge: full depth across the line, then short tapered tail.
         const tV = distFromApex / vReach;
         let fall;
         if (tV < 1 - vEdgeFrac) {
@@ -754,8 +738,23 @@ function makeAsteriskBumpMap(size, spokes, lineDeg, vReach, R, capH, totalAxial)
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
         depth = angular * fall;
+        // Organic imperfection: modulate pressed depth with fractal noise so
+        // lines aren't perfectly uniform (matches the body lumpiness vibe).
+        // cos/sin form keeps the noise continuous around the u-wrap.
+        if (depth > 0) {
+          const a = u * 2 * Math.PI;
+          const n = fractal3(
+            Math.cos(a) * 4,
+            Math.sin(a) * 4,
+            v * 30,
+            3
+          ) * 2 - 1;            // [-1, 1]
+          depth *= 1 + n * 0.30; // ±30% variation along the line
+          if (depth < 0) depth = 0;
+          else if (depth > 1) depth = 1;
+        }
       }
-      const grey = Math.round((1 - depth) * 255); // dark = depressed, white = flat
+      const grey = Math.round((1 - depth) * 255);
       const idx = (py * size + px) * 4;
       data[idx] = grey; data[idx+1] = grey; data[idx+2] = grey; data[idx+3] = 255;
     }
@@ -887,7 +886,7 @@ function updateBumpMap() {
   const capH       = CAP_FULL * RADIUS;
   const reach      = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach     = reach / totalAxial;
-  const bumpCanvas = makeAsteriskBumpMap(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, RADIUS, capH, totalAxial);
+  const bumpCanvas = makeAsteriskBumpMap(1024, NOTCH_POINTS, NOTCH_SHARP, vReach);
   if (material.bumpMap) material.bumpMap.dispose();
   const tex = new THREE.CanvasTexture(bumpCanvas);
   tex.wrapS      = THREE.RepeatWrapping;       // u wraps around the lathe
