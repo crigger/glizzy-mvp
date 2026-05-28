@@ -720,10 +720,10 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
                                // Blend gives a thicker apex with some narrowing.
   const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
   const vEdgeFrac    = 0.32;   // long bottom taper for soft pressed-in feel
-  const BULGE        = 0.10;   // Small lighting-only bulge in the bump map.
-                               // The real plumping is now done by applyTipBulge
-                               // via actual vertex displacement, so this stays
-                               // subtle here to avoid double-counting.
+  const BULGE        = 0.20;   // how far the BETWEEN-spoke areas push OUTWARD.
+                               // Casings pinch along the twists and plump out
+                               // between them — signed depth: spokes positive
+                               // (depression), between-spokes negative (bulge).
   // Precompute per-spoke depth multipliers so each line presses differently.
   const spokeDepthMul = new Array(Math.max(1, spokes));
   for (let s = 0; s < spokeDepthMul.length; s++) {
@@ -874,77 +874,6 @@ function weldNormalsBySharedPosition(geom) {
   norm.needsUpdate = true;
 }
 
-// Geometric plumping for the between-spoke regions of the asterisk imprint.
-// Pushes vertices OUTWARD along their normals so the cap actually puffs up
-// between the spoke lines (silhouette changes — bump-map alone couldn't do
-// this). Outward-only displacement is safe: it can never create the back-cap
-// punch-through that inward depressions did, because the bulge walls stay
-// oriented outward (away from the camera on the back cap).
-function applyTipBulge(geom) {
-  if (NOTCH_AMP <= 0) return;
-  const pos  = geom.attributes.position;
-  const norm = geom.attributes.normal;
-  const halfL = LENGTH / 2;
-  const capH  = CAP_FULL * RADIUS;
-  const tips  = [halfL + capH, -(halfL + capH)];
-  const reach = Math.min(NOTCH_SIZE * capH, capH * 0.95);
-  const halfAngular  = (NOTCH_SHARP * Math.PI / 180) / 2;
-  const segmentAngle = (2 * Math.PI) / Math.max(1, NOTCH_POINTS);
-  const TAPER     = 0.5;
-  const minSinT   = 0.18;
-  const vEdgeFrac = 0.32;
-  // Geometric bulge amount, scaled by NOTCH_AMP so the bulge tracks the
-  // imprint depth (deeper press → more plump between).
-  const GEOM_BULGE = 0.55;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    let totalBulge = 0;
-    for (const tipY of tips) {
-      const dy = Math.abs(y - tipY);
-      if (dy >= reach) continue;
-      const tV   = dy / reach;
-      const cosT = Math.max(-1, Math.min(1, 1 - tV));
-      const sinT = Math.max(minSinT, Math.sqrt(Math.max(0, 1 - cosT * cosT)));
-      const halfAngFlat = halfAngular;
-      const halfAngFull = halfAngular / sinT;
-      let halfAng = halfAngFlat * (1 - TAPER) + halfAngFull * TAPER;
-      halfAng = Math.min(Math.max(halfAng, halfAngular * 0.25), segmentAngle * 0.30);
-
-      let angular;
-      if (NOTCH_POINTS < 2) {
-        angular = 1;
-      } else {
-        const theta   = Math.atan2(z, x);
-        const wrapped = ((theta % segmentAngle) + segmentAngle) % segmentAngle;
-        const distFromSpoke = Math.min(wrapped, segmentAngle - wrapped);
-        if (distFromSpoke >= halfAng) {
-          angular = 0;
-        } else {
-          const t = distFromSpoke / halfAng;
-          angular = 1 - (t * t * (3 - 2 * t));
-        }
-      }
-      const betweenFactor = 1 - angular;     // 1 between spokes, 0 on a spoke
-      let fall;
-      if (tV < 1 - vEdgeFrac) fall = 1;
-      else {
-        const tt = (tV - (1 - vEdgeFrac)) / vEdgeFrac;
-        fall = 1 - (tt * tt * (3 - 2 * tt));
-      }
-      totalBulge += GEOM_BULGE * NOTCH_AMP * RADIUS * betweenFactor * fall;
-    }
-    if (totalBulge > 0) {
-      pos.setXYZ(i,
-        x + norm.getX(i) * totalBulge,
-        y + norm.getY(i) * totalBulge,
-        z + norm.getZ(i) * totalBulge
-      );
-    }
-  }
-  pos.needsUpdate = true;
-  geom.computeVertexNormals();
-}
-
 function applyLumpiness(geom) {
   if (LUMP_AMP <= 0) return;
   const pos  = geom.attributes.position;
@@ -1076,10 +1005,8 @@ function rebuildGeometry() {
   }
   const geom = buildCapsuleGeometry();
   applyLumpiness(geom);
-  // Real outward bulge between the asterisk spokes (silhouette-affecting),
-  // complementing the bump-map's spoke shadows. Both functions re-run
-  // computeVertexNormals; we re-weld at the end so the seam stays smooth.
-  applyTipBulge(geom);
+  // applyLumpiness re-runs computeVertexNormals; re-weld so the seam stays
+  // shading-smooth.
   weldNormalsBySharedPosition(geom);
   updateBumpMap();
   updateBumpScale();
