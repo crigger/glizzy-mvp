@@ -221,7 +221,7 @@
         <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.5">
         <output id="out-lumpfreq">0.5</output></label>
       <label><span>tip notch depth</span>
-        <input id="ctrl-notch" type="range" min="0" max="0.10" step="0.005" value="0.05">
+        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.05">
         <output id="out-notch">0.050</output></label>
       <label><span>notch spokes (1=dimple)</span>
         <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
@@ -689,38 +689,30 @@ function applyTipNotches(geom) {
   const pos  = geom.attributes.position;
   const halfL = LENGTH / 2;
   const capH  = CAP_FULL * RADIUS;
-  const tips  = [halfL + capH, -(halfL + capH)];
-  // Clamp reach to the cap's actual axial height so the asterisk doesn't
-  // leak into the cylinder when the cap is flat (low CAP_FULL).
+  // Stamp only the TOP tip. Applying the imprint to both caps causes the
+  // back cap's spoke-valley walls to tilt past the silhouette and read as
+  // front-facing, so the back imprint appears to punch through the body
+  // regardless of press depth. With a single stamp there's no second
+  // imprint to leak. Press is axial (along -Y) so it's a clean letterpress
+  // imprint, not a radial pinch.
+  const tipY  = halfL + capH;
   const reach = Math.min(NOTCH_SIZE * RADIUS, capH * 0.95);
   const asterisk = NOTCH_POINTS >= 2;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    // Press along the cap's long axis (Y) only — NOT along the local surface
-    // normal. A normal-direction push has a radial component on the cap that
-    // visibly pinches the cap inward; an axial push is what a flat-edged stamp
-    // pressing down on the tip actually does, leaving an imprint without
-    // collapsing the surrounding cap silhouette.
-    let dyOffset = 0;
-    for (const tipY of tips) {
-      const dy = Math.abs(y - tipY);
-      if (dy >= reach) continue;
-      let angular;
-      if (!asterisk) {
-        angular = 1;
-      } else {
-        const base = (1 + Math.cos(NOTCH_POINTS * Math.atan2(z, x))) / 2;
-        angular = Math.pow(base, NOTCH_SHARP);
-      }
-      const t    = dy / reach;
-      const fall = 1 - (t * t * (3 - 2 * t));
-      const depress = angular * fall * NOTCH_AMP * RADIUS;
-      // Top tip (y > 0) presses toward -Y; bottom tip toward +Y.
-      dyOffset += depress * (tipY > 0 ? -1 : 1);
+    const dy = Math.abs(y - tipY);
+    if (dy >= reach) continue;
+    let angular;
+    if (!asterisk) {
+      angular = 1;
+    } else {
+      const base = (1 + Math.cos(NOTCH_POINTS * Math.atan2(z, x))) / 2;
+      angular = Math.pow(base, NOTCH_SHARP);
     }
-    if (dyOffset !== 0) {
-      pos.setY(i, y + dyOffset);
-    }
+    const t    = dy / reach;
+    const fall = 1 - (t * t * (3 - 2 * t));
+    const depress = angular * fall * NOTCH_AMP * RADIUS;
+    pos.setY(i, y - depress);
   }
   pos.needsUpdate = true;
   geom.computeVertexNormals();
