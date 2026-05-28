@@ -226,9 +226,9 @@
       <label><span>notch spokes (1=dimple)</span>
         <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
         <output id="out-notchpts">6</output></label>
-      <label><span>line sharpness</span>
-        <input id="ctrl-notchsharp" type="range" min="1" max="20" step="1" value="15">
-        <output id="out-notchsharp">15</output></label>
+      <label><span>line thickness (°)</span>
+        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="2">
+        <output id="out-notchsharp">2.0</output></label>
       <label><span>cap fullness</span>
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
@@ -611,8 +611,8 @@ let LUMP_FREQ   = 0.5;
 let LUMP_SEED   = 0;
 let NOTCH_AMP    = 0.05;
 let NOTCH_POINTS = 6;
-let NOTCH_SHARP  = 15;
-const NOTCH_SIZE = 0.45;
+let NOTCH_SHARP  = 2.0;      // line thickness in degrees (was: cos^k exponent)
+const NOTCH_SIZE = 0.5;      // fraction of CAP HEIGHT covered by each line (apex → halfway down)
 let CAP_FULL     = 1.0;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
 const COLOR   = 0xdc512a;
 
@@ -693,12 +693,18 @@ let mesh = null;
 // LatheGeometry UVs are cylindrical: u wraps around the lathe axis, v runs
 // along the profile from top apex (v=0) to bottom apex (v=1). The texture has
 // the asterisk pattern at v<vReach (top cap region) and v>1-vReach (bottom cap).
-function makeAsteriskBumpMap(size, spokes, sharpness, vReach) {
+function makeAsteriskBumpMap(size, spokes, lineDeg, vReach) {
   const canvas = document.createElement('canvas');
   canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext('2d');
   const imgData = ctx.createImageData(size, size);
   const data = imgData.data;
+  // Flat-edged step profile (with tiny anti-aliased edges) instead of cos^k —
+  // the walls of each spoke are vertical so the lighting reads like a
+  // flat-edged tool was pressed in, not a soft gradient that flares outward.
+  const halfWidth    = (lineDeg * Math.PI / 180) / 2;
+  const edge         = 0.0035;                  // anti-aliasing ramp width (rad)
+  const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const u = px / (size - 1);
@@ -709,11 +715,21 @@ function makeAsteriskBumpMap(size, spokes, sharpness, vReach) {
       else if (v > 1 - vReach)  distFromApex = 1 - v;
       let depth = 0;
       if (distFromApex >= 0) {
-        const theta = u * 2 * Math.PI;
-        // Spoke pattern: cos^k carves narrow grooves at evenly-spaced angles.
-        const base    = (1 + Math.cos(spokes * theta)) / 2;
-        const angular = spokes >= 2 ? Math.pow(base, sharpness) : 1;
-        // Smoothstep falloff: deepest at apex, zero at the reach edge.
+        let angular;
+        if (spokes < 2) {
+          angular = 1;
+        } else {
+          const theta   = u * 2 * Math.PI;
+          const wrapped = ((theta % segmentAngle) + segmentAngle) % segmentAngle;
+          const distFromSpoke = Math.min(wrapped, segmentAngle - wrapped);
+          if (distFromSpoke <= halfWidth - edge)      angular = 1;
+          else if (distFromSpoke >= halfWidth + edge) angular = 0;
+          else {
+            const t = (distFromSpoke - (halfWidth - edge)) / (2 * edge);
+            angular = 1 - (t * t * (3 - 2 * t));
+          }
+        }
+        // Smoothstep falloff along the line length: deepest at apex, zero at reach edge.
         const t    = distFromApex / vReach;
         const fall = 1 - (t * t * (3 - 2 * t));
         depth = angular * fall;
@@ -834,9 +850,13 @@ function buildCapsuleGeometry() {
 // (RADIUS, LENGTH, CAP_FULL) is touched — vReach depends on those.
 function updateBumpMap() {
   const totalAxial = LENGTH + 2 * CAP_FULL * RADIUS;
-  const reach      = Math.min(NOTCH_SIZE * RADIUS, CAP_FULL * RADIUS * 0.95);
+  // NOTCH_SIZE is now fraction of CAP HEIGHT (not radius), so the imprint
+  // always starts at the same relative spot on the cap regardless of CAP_FULL.
+  // NOTCH_SIZE=0.5 → lines start at the halfway-mark of the dome.
+  const capH       = CAP_FULL * RADIUS;
+  const reach      = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach     = reach / totalAxial;
-  const bumpCanvas = makeAsteriskBumpMap(512, NOTCH_POINTS, NOTCH_SHARP, vReach);
+  const bumpCanvas = makeAsteriskBumpMap(1024, NOTCH_POINTS, NOTCH_SHARP, vReach);
   if (material.bumpMap) material.bumpMap.dispose();
   const tex = new THREE.CanvasTexture(bumpCanvas);
   tex.wrapS      = THREE.RepeatWrapping;       // u wraps around the lathe
@@ -996,7 +1016,7 @@ wire3D('ctrl-lump',       'out-lump',       parseFloat, v => v.toFixed(3), v => 
 wire3D('ctrl-lumpfreq',   'out-lumpfreq',   parseFloat, v => v.toFixed(1), v => { LUMP_FREQ    = v; rebuildGeometry(); });
 wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => { NOTCH_AMP    = v;     updateBumpScale(); });
 wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; updateBumpMap();  });
-wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(0), v => { NOTCH_SHARP  = v | 0; updateBumpMap();  });
+wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(1), v => { NOTCH_SHARP  = v;     updateBumpMap();  });
 wire3D('ctrl-capfull',    'out-capfull',    parseFloat, v => v.toFixed(2), v => { CAP_FULL     = v; rebuildGeometry(); });
 
 document.getElementById('reroll-lump').addEventListener('click', () => {
