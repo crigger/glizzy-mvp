@@ -843,22 +843,43 @@ window.addEventListener('resize', heroResize);
 // ───── pointer drag (tilt) ─────
 let dragging = false, lastDX = 0, lastDY = 0;
 let userPitch = 0, userYaw = 0;
+// Angular velocity carried over after the user releases the drag — decays
+// exponentially in the animation loop for a natural "flick to spin" feel.
+let vYaw = 0, vPitch = 0;
+let lastMoveT = 0;
+const DRAG_GAIN  = 0.008;
+const FLING_DECAY = 2.5;   // higher = momentum dies faster (half-life ≈ ln2/k s)
+const FLING_MIN   = 0.001; // rad/s below which we just snap velocity to 0
+
 heroCanvas.addEventListener('pointerdown', (e) => {
   dragging = true;
   lastDX = e.clientX; lastDY = e.clientY;
+  lastMoveT = performance.now();
+  vYaw = 0; vPitch = 0;   // grabbing kills any in-flight momentum
   heroCanvas.setPointerCapture(e.pointerId);
 });
 heroCanvas.addEventListener('pointermove', (e) => {
   if (!dragging) return;
-  const dx = e.clientX - lastDX;
-  const dy = e.clientY - lastDY;
+  const now = performance.now();
+  const dt  = Math.max(0.001, (now - lastMoveT) / 1000);
+  const dx  = e.clientX - lastDX;
+  const dy  = e.clientY - lastDY;
   lastDX = e.clientX; lastDY = e.clientY;
-  userYaw   += dx * 0.008;
-  userPitch += dy * 0.008;
+  lastMoveT = now;
+  const dYaw   = dx * DRAG_GAIN;
+  const dPitch = dy * DRAG_GAIN;
+  userYaw   += dYaw;
+  userPitch += dPitch;
+  // Smoothed instantaneous velocity for momentum on release.
+  const alpha = 0.6;
+  vYaw   = vYaw   * (1 - alpha) + (dYaw   / dt) * alpha;
+  vPitch = vPitch * (1 - alpha) + (dPitch / dt) * alpha;
 });
 function endHeroDrag(e) {
   if (!dragging) return;
   dragging = false;
+  // If the pointer was held still before release, don't fling — zero velocity.
+  if (performance.now() - lastMoveT > 80) { vYaw = 0; vPitch = 0; }
   try { heroCanvas.releasePointerCapture(e.pointerId); } catch {}
 }
 heroCanvas.addEventListener('pointerup',     endHeroDrag);
@@ -867,6 +888,7 @@ heroCanvas.addEventListener('pointerleave',  endHeroDrag);
 
 document.getElementById('reset-drag').addEventListener('click', () => {
   userYaw = 0; userPitch = 0;
+  vYaw = 0; vPitch = 0;
 });
 
 // ───── animation loop ─────
@@ -876,6 +898,17 @@ function animate(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   autoYaw += SPIN * dt;
+  // Carry drag momentum: apply current velocity to user yaw/pitch, then decay
+  // exponentially so the flick coasts and settles instead of snapping to stop.
+  if (!dragging && (vYaw !== 0 || vPitch !== 0)) {
+    userYaw   += vYaw   * dt;
+    userPitch += vPitch * dt;
+    const decay = Math.exp(-FLING_DECAY * dt);
+    vYaw   *= decay;
+    vPitch *= decay;
+    if (Math.abs(vYaw)   < FLING_MIN) vYaw   = 0;
+    if (Math.abs(vPitch) < FLING_MIN) vPitch = 0;
+  }
   spinGroup.rotation.y = autoYaw + userYaw;
   tiltGroup.rotation.x = TILT_X + userPitch;
   tiltGroup.rotation.z = TILT_Z;
