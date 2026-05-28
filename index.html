@@ -229,6 +229,9 @@
       <label><span>line sharpness</span>
         <input id="ctrl-notchsharp" type="range" min="1" max="20" step="1" value="15">
         <output id="out-notchsharp">15</output></label>
+      <label><span>cap fullness</span>
+        <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="0.7">
+        <output id="out-capfull">0.70</output></label>
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
@@ -610,6 +613,7 @@ let NOTCH_AMP    = 0.07;
 let NOTCH_POINTS = 6;
 let NOTCH_SHARP  = 15;
 const NOTCH_SIZE = 0.45;
+let CAP_FULL     = 0.7;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
 const COLOR   = 0xdc512a;
 
 // ───── 3D value noise ─────
@@ -683,8 +687,11 @@ function applyTipNotches(geom) {
   const pos  = geom.attributes.position;
   const norm = geom.attributes.normal;
   const halfL = LENGTH / 2;
-  const tips  = [halfL + RADIUS, -(halfL + RADIUS)];
-  const reach = NOTCH_SIZE * RADIUS;
+  const capH  = CAP_FULL * RADIUS;
+  const tips  = [halfL + capH, -(halfL + capH)];
+  // Clamp reach to the cap's actual axial height so the asterisk doesn't
+  // leak into the cylinder when the cap is flat (low CAP_FULL).
+  const reach = Math.min(NOTCH_SIZE * RADIUS, capH * 0.95);
   const asterisk = NOTCH_POINTS >= 2;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
@@ -759,20 +766,23 @@ function buildCapsuleGeometry() {
   // uniformly along the whole body — safe now that lumps only push inward.
   const arcStep    = (RADIUS * Math.PI / 2) / capSegs;
   const cylRings   = Math.max(2, Math.round(LENGTH / arcStep));
+  // Quarter-ellipse cap: radial axis = RADIUS, axial axis = capH. capH < RADIUS
+  // yields a blunter "pill" shape that doesn't taper to a sharp point.
+  const capH       = CAP_FULL * RADIUS;
   const profile    = [];
-  // Top hemisphere: apex → top seam
+  // Top cap: apex → top seam
   for (let i = 0; i <= capSegs; i++) {
     const t = (i / capSegs) * Math.PI / 2;
-    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), halfL + RADIUS * Math.cos(t)));
+    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), halfL + capH * Math.cos(t)));
   }
   // Cylinder interior (skip both seams — already in cap arrays)
   for (let i = 1; i < cylRings; i++) {
     profile.push(new THREE.Vector2(RADIUS, halfL - (i / cylRings) * LENGTH));
   }
-  // Bottom hemisphere: bottom seam → apex
+  // Bottom cap: bottom seam → apex
   for (let i = 0; i <= capSegs; i++) {
     const t = Math.PI / 2 + (i / capSegs) * Math.PI / 2;
-    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), -halfL + RADIUS * Math.cos(t)));
+    profile.push(new THREE.Vector2(RADIUS * Math.sin(t), -halfL + capH * Math.cos(t)));
   }
   let g = new THREE.LatheGeometry(profile, radialSegs);
   // Drop UVs so mergeVertices can weld the lathe's closure seam (the duplicated
@@ -798,7 +808,7 @@ function rebuildGeometry() {
 }
 
 function fitCamera() {
-  const totalLength = LENGTH + 2 * RADIUS;
+  const totalLength = LENGTH + 2 * CAP_FULL * RADIUS;
   const fov = THREE.MathUtils.degToRad(heroCamera.fov);
   const padding = 1.35;
   heroCamera.position.z = (totalLength * padding) / (2 * Math.tan(fov / 2));
@@ -883,6 +893,7 @@ wire3D('ctrl-lumpfreq',   'out-lumpfreq',   parseFloat, v => v.toFixed(1), v => 
 wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => { NOTCH_AMP    = v; rebuildGeometry(); });
 wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; rebuildGeometry(); });
 wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(0), v => { NOTCH_SHARP  = v | 0; rebuildGeometry(); });
+wire3D('ctrl-capfull',    'out-capfull',    parseFloat, v => v.toFixed(2), v => { CAP_FULL     = v; rebuildGeometry(); });
 
 document.getElementById('reroll-lump').addEventListener('click', () => {
   LUMP_SEED = (LUMP_SEED + 1 + Math.floor(Math.random() * 100)) | 0;
