@@ -221,14 +221,14 @@
         <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.5">
         <output id="out-lumpfreq">0.5</output></label>
       <label><span>tip notch depth</span>
-        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.05">
-        <output id="out-notch">0.050</output></label>
+        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.175">
+        <output id="out-notch">0.175</output></label>
       <label><span>notch spokes (1=dimple)</span>
         <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
         <output id="out-notchpts">6</output></label>
       <label><span>line thickness (°)</span>
-        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="7">
-        <output id="out-notchsharp">7.0</output></label>
+        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="13.5">
+        <output id="out-notchsharp">13.5</output></label>
       <label><span>cap fullness</span>
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
@@ -609,9 +609,9 @@ let ROUGH     = 0.5;
 let LUMP_AMP    = 0.08;
 let LUMP_FREQ   = 0.5;
 let LUMP_SEED   = 0;
-let NOTCH_AMP    = 0.05;
+let NOTCH_AMP    = 0.175;
 let NOTCH_POINTS = 6;
-let NOTCH_SHARP  = 7.0;      // line thickness in degrees (was: cos^k exponent)
+let NOTCH_SHARP  = 13.5;     // line thickness in degrees (was: cos^k exponent)
 const NOTCH_SIZE = 0.5;      // fraction of CAP HEIGHT covered by each line (apex → halfway down)
 let CAP_FULL     = 1.0;      // 1 = pure hemisphere cap, < 1 = flatter/blunter pill ends
 const COLOR   = 0xdc512a;
@@ -949,7 +949,7 @@ function updateBumpMap() {
   const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.12;
+  const darken  = 0.18;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
@@ -974,8 +974,10 @@ function updateBumpMap() {
 }
 
 // NOTCH_AMP → bumpScale (lighting strength); cheap, no texture regen.
+// Multiplier reduced (12 → 6) so wall normals perturb less aggressively, which
+// tones down the specular highlight in the valley without losing depth.
 function updateBumpScale() {
-  material.bumpScale = NOTCH_AMP * 12;
+  material.bumpScale = NOTCH_AMP * 6;
 }
 
 function rebuildGeometry() {
