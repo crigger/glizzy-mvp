@@ -715,14 +715,15 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
   const colorData = colorCtx.createImageData(size, size);
   const halfAngular  = (lineDeg * Math.PI / 180) / 2;
   const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
-  const TAPER        = 0.5;    // 0 = constant angular (sharp point at apex);
+  const TAPER        = 0.65;    // 0 = constant angular (sharp point at apex);
                                // 1 = constant physical (extruded look).
                                // Blend gives a thicker apex with some narrowing.
   const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
   const vEdgeFrac    = 0.32;   // long bottom taper for soft pressed-in feel
-  const BASELINE     = 0.10;   // baseline depression between spokes — the twist
-                               // pulls the casing inward everywhere in the imprint
-                               // zone, not just along the spoke lines.
+  const BULGE        = 0.20;   // how far the BETWEEN-spoke areas push OUTWARD.
+                               // Casings pinch along the twists and plump out
+                               // between them — signed depth: spokes positive
+                               // (depression), between-spokes negative (bulge).
   // Precompute per-spoke depth multipliers so each line presses differently.
   const spokeDepthMul = new Array(Math.max(1, spokes));
   for (let s = 0; s < spokeDepthMul.length; s++) {
@@ -788,8 +789,10 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
           const tt = (tV - (1 - vEdgeFrac)) / vEdgeFrac;
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
-        // Baseline pinch fills the asterisk region; spokes press deeper on top.
-        depth = (BASELINE + (1 - BASELINE) * angular * spokeDepthMul[spokeIdx]) * fall;
+        // Signed depth: bulge OUT (-BULGE) between spokes, depress IN at
+        // spoke centers. Whole thing tapers to 0 at the asterisk edge so the
+        // cap blends back into the surrounding surface without a visible ring.
+        depth = (-BULGE + angular * (1 + BULGE) * spokeDepthMul[spokeIdx]) * fall;
         // Organic imperfection along the line: jitter + low-freq breathing.
         if (depth > 0) {
           const a = u * 2 * Math.PI;
@@ -811,18 +814,24 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
         }
       }
       const idx = (py * size + px) * 4;
-      const bumpGrey  = Math.round((1 - depth) * 255);
+      // Signed depth → bump grey: mid-gray (128) is neutral, dark = depression,
+      // bright = bulge. Three.js bump shader only uses local gradients so the
+      // absolute level outside the asterisk (still 128) produces no bump effect
+      // on the body.
+      const bumpRaw = 128 - depth * 127;
+      const bumpGrey = bumpRaw < 0 ? 0 : (bumpRaw > 255 ? 255 : Math.round(bumpRaw));
       bumpData.data[idx]     = bumpGrey;
       bumpData.data[idx + 1] = bumpGrey;
       bumpData.data[idx + 2] = bumpGrey;
       bumpData.data[idx + 3] = 255;
-      // Color modulation: per-channel rates so the valley shifts toward a
-      // saturated deep red/brown (natural shadow of orange) instead of grey.
-      // Green and blue darken faster than red, which mimics a multiply-into-
-      // material-color blend rather than a flat grey overlay.
-      const rMul = 1 - depth * darken;
-      const gMul = 1 - depth * (darken * 1.3);
-      const bMul = 1 - depth * (darken * 1.6);
+      // Color modulation: only the DEPRESSED part (depth > 0) darkens the
+      // diffuse color. Between-spoke bulges keep full color — they read as
+      // raised, not shadowed. G and B darken faster than R so the spoke
+      // shadow shifts toward a saturated deep red/brown.
+      const depression = depth > 0 ? (depth > 1 ? 1 : depth) : 0;
+      const rMul = 1 - depression * darken;
+      const gMul = 1 - depression * (darken * 1.3);
+      const bMul = 1 - depression * (darken * 1.6);
       colorData.data[idx]     = Math.round(Math.max(0, rMul) * 255);
       colorData.data[idx + 1] = Math.round(Math.max(0, gMul) * 255);
       colorData.data[idx + 2] = Math.round(Math.max(0, bMul) * 255);
