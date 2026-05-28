@@ -45,18 +45,21 @@
   main {
     position: relative;
     z-index: 1;
-    max-width: 640px;
+    /* max-width: 640px; */
     margin: 0 auto;
-    padding: 16svh 24px 30svh;
+    padding: 24px 24px 30svh;
   }
+
   section {
-    margin: 18svh 0;
-    padding: 28px 32px;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 14px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    box-sizing: border-box;
+    min-height: calc(100svh - 96px - 24px);
+    margin: 24px 0;
+    padding: 48px;
+  }
+
+  section:first-child {
+    margin-top: 0;
+    display: flex;
   }
   h1 { font-size: 2.8rem; margin: 0 0 8px; letter-spacing: -0.02em; }
   h2 { font-size: 1.4rem; margin: 0 0 12px; opacity: 0.9; }
@@ -64,20 +67,36 @@
 
   /* hero 3D capsule canvas */
   .hero-canvas-wrap {
+    align-self: center;
     display: flex;
-    justify-content: center;
-    margin: -8px auto 16px;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 0 auto;
+    /* Reserve layout space so the page doesn't shift when the canvas detaches
+       into the fixed mini state. */
+    width: calc(100vmin - 96px - 24px);
+    aspect-ratio: 1/1;
+    max-width: 100%;
   }
   #hero-stage {
-    aspect-ratio: 1/1;
-    width: 75vmin;
-    /* height: 75vmin; */
-    max-width: 100%;
+    width: 100%;
+    height: 100%;
     display: block;
     touch-action: none;
     cursor: grab;
   }
   #hero-stage:active { cursor: grabbing; }
+  /* Mini pinned state: fixed 148px box in the top-right corner.
+     Stays on top of all other content (z-index above the debug panel). */
+  #hero-stage.mini {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 148px;
+    height: 148px;
+    z-index: 200;
+    cursor: grab;
+  }
 
   /* debug panel */
   #debug-panel {
@@ -92,6 +111,8 @@
     min-width: 320px;
     max-width: 380px;
     overflow: hidden;
+
+    display: none; /* hide for now */
   }
   #debug-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -138,14 +159,10 @@
 <svg id="glizzy" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
 
 <main>
-  <section>
+  <section class="hero-section">
     <div class="hero-canvas-wrap">
       <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>
     </div>
-    <h1>Glizzy MVP</h1>
-    <h2>GSAP edition — procedural switchback dog</h2>
-    <p>Scroll. The vertical stub on the right is visible at load. After you scroll past it, the dog continues with left/right switchbacks that ink in as you scroll.</p>
-    <p>The path is regenerated on resize and adapts to the page height. Try the body-height slider to see how it fills.</p>
   </section>
   <section><h2>Section 2</h2><p>Filler content for scrolling through.</p></section>
   <section><h2>Section 3</h2><p>Filler content for scrolling through.</p></section>
@@ -719,7 +736,7 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
                                // 1 = constant physical (extruded look).
                                // Blend gives a thicker apex with some narrowing.
   const minSinT      = 0.18;   // floor on radius so apex doesn't blow up
-  const vEdgeFrac    = 0.32;   // long bottom taper for soft pressed-in feel
+  const vEdgeFrac    = 0.52;   // long bottom taper for soft pressed-in feel
   const BULGE        = 0.20;   // how far the BETWEEN-spoke areas push OUTWARD.
                                // Casings pinch along the twists and plump out
                                // between them — signed depth: spokes positive
@@ -967,7 +984,7 @@ function updateBumpMap() {
   const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.75);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.22;
+  const darken  = 0.15;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
@@ -1149,6 +1166,59 @@ document.getElementById('reroll-lump').addEventListener('click', () => {
   LUMP_SEED = (LUMP_SEED + 1 + Math.floor(Math.random() * 100)) | 0;
   rebuildGeometry();
 });
+
+// ───── Hero ↔ pinned-mini state ─────────────────────────────────────────────
+// When the hero canvas wrap scrolls out of view, the canvas FLIPs to a fixed
+// 148px box pinned at the top-right corner. When the wrap scrolls back in,
+// it FLIPs back to fill the wrap. FLIP technique: snap the new state, measure
+// the delta, transform the element back to its old visual position, then
+// animate the transform to identity so it smoothly morphs between states.
+const heroWrap = document.querySelector('.hero-canvas-wrap');
+let canvasIsMini    = false;
+let canvasFlipping  = false;
+const FLIP_DURATION = 480;
+
+function flipCanvas(makeMini) {
+  if (canvasFlipping || canvasIsMini === makeMini) return;
+  canvasFlipping = true;
+  const startRect = heroCanvas.getBoundingClientRect();
+  if (makeMini) heroCanvas.classList.add('mini');
+  else          heroCanvas.classList.remove('mini');
+  canvasIsMini = makeMini;
+  const endRect = heroCanvas.getBoundingClientRect();
+  const dx = startRect.left   - endRect.left;
+  const dy = startRect.top    - endRect.top;
+  const sx = startRect.width  / endRect.width;
+  const sy = startRect.height / endRect.height;
+  heroCanvas.style.transformOrigin = 'top left';
+  heroCanvas.style.transform       = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  heroCanvas.style.transition      = 'none';
+  // Force reflow so the inverted transform applies before the next paint.
+  void heroCanvas.offsetHeight;
+  heroCanvas.style.transition = `transform ${FLIP_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  heroCanvas.style.transform  = '';
+  setTimeout(() => {
+    heroCanvas.style.transition      = '';
+    heroCanvas.style.transformOrigin = '';
+    heroResize();        // re-render at the new logical size
+    canvasFlipping = false;
+  }, FLIP_DURATION + 20);
+}
+
+// Observer triggers on the wrap. When the wrap is fully out of view, switch
+// to mini; when any part of it returns, switch back to hero.
+const heroObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    flipCanvas(!entry.isIntersecting);
+  }
+}, { threshold: 0 });
+heroObserver.observe(heroWrap);
+
+// Keep the canvas's internal render size in sync if the wrap resizes (e.g.
+// on window resize) — the existing window resize listener calls heroResize
+// already, but ResizeObserver catches CSS-only changes too.
+new ResizeObserver(() => { if (!canvasFlipping) heroResize(); })
+  .observe(heroCanvas);
 </script>
 </body>
 </html>
