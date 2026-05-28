@@ -684,38 +684,78 @@ const tiltGroup = new THREE.Group(); spinGroup.add(tiltGroup);
 const material = new THREE.MeshStandardMaterial({ color: COLOR, roughness: ROUGH, metalness: 0 });
 let mesh = null;
 
-function applyTipNotches(geom) {
-  if (NOTCH_AMP <= 0) return;
-  const pos  = geom.attributes.position;
-  const halfL = LENGTH / 2;
-  const capH  = CAP_FULL * RADIUS;
-  // Stamp only the TOP tip. Applying the imprint to both caps causes the
-  // back cap's spoke-valley walls to tilt past the silhouette and read as
-  // front-facing, so the back imprint appears to punch through the body
-  // regardless of press depth. With a single stamp there's no second
-  // imprint to leak. Press is axial (along -Y) so it's a clean letterpress
-  // imprint, not a radial pinch.
-  const tipY  = halfL + capH;
-  const reach = Math.min(NOTCH_SIZE * RADIUS, capH * 0.95);
-  const asterisk = NOTCH_POINTS >= 2;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    const dy = Math.abs(y - tipY);
-    if (dy >= reach) continue;
-    let angular;
-    if (!asterisk) {
-      angular = 1;
-    } else {
-      const base = (1 + Math.cos(NOTCH_POINTS * Math.atan2(z, x))) / 2;
-      angular = Math.pow(base, NOTCH_SHARP);
+// Generate a procedural greyscale heightmap (used as a bumpMap) encoding the
+// asterisk imprint at BOTH cap apexes. Bump-mapping is lighting-only — no real
+// geometry exists at the imprint, so:
+//   - There are no spoke-valley walls to tilt past the silhouette.
+//   - Backface culling correctly hides the entire back cap and its imprint.
+//   - The imprint reads as a pressed-in mark, but never punches through.
+// LatheGeometry UVs are cylindrical: u wraps around the lathe axis, v runs
+// along the profile from top apex (v=0) to bottom apex (v=1). The texture has
+// the asterisk pattern at v<vReach (top cap region) and v>1-vReach (bottom cap).
+function makeAsteriskBumpMap(size, spokes, sharpness, vReach) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.createImageData(size, size);
+  const data = imgData.data;
+  for (let py = 0; py < size; py++) {
+    for (let px = 0; px < size; px++) {
+      const u = px / (size - 1);
+      const v = py / (size - 1);
+      // Distance from whichever cap we're in (apex), or -1 if mid-cylinder.
+      let distFromApex = -1;
+      if (v < vReach)           distFromApex = v;
+      else if (v > 1 - vReach)  distFromApex = 1 - v;
+      let depth = 0;
+      if (distFromApex >= 0) {
+        const theta = u * 2 * Math.PI;
+        // Spoke pattern: cos^k carves narrow grooves at evenly-spaced angles.
+        const base    = (1 + Math.cos(spokes * theta)) / 2;
+        const angular = spokes >= 2 ? Math.pow(base, sharpness) : 1;
+        // Smoothstep falloff: deepest at apex, zero at the reach edge.
+        const t    = distFromApex / vReach;
+        const fall = 1 - (t * t * (3 - 2 * t));
+        depth = angular * fall;
+      }
+      const grey = Math.round((1 - depth) * 255); // dark = depressed, white = flat
+      const idx = (py * size + px) * 4;
+      data[idx] = grey; data[idx+1] = grey; data[idx+2] = grey; data[idx+3] = 255;
     }
-    const t    = dy / reach;
-    const fall = 1 - (t * t * (3 - 2 * t));
-    const depress = angular * fall * NOTCH_AMP * RADIUS;
-    pos.setY(i, y - depress);
   }
-  pos.needsUpdate = true;
-  geom.computeVertexNormals();
+  ctx.putImageData(imgData, 0, 0);
+  return canvas;
+}
+
+// LatheGeometry has duplicated vertices at the lathe-closure seam (u=0 vs u=1)
+// and at each pole ring. mergeVertices won't fold them because their UVs
+// differ. computeVertexNormals therefore gives each duplicate a separate
+// normal averaged from only its own side's faces, leaving a visible vertical
+// seam after lighting. This pass averages normals across duplicate-position
+// groups so the lighting reads smoothly while UVs stay intact for the bump map.
+function weldNormalsBySharedPosition(geom) {
+  const pos = geom.attributes.position;
+  const norm = geom.attributes.normal;
+  const TOL = 1e-5;
+  const round = (v) => Math.round(v / TOL) * TOL;
+  const groups = new Map();
+  for (let i = 0; i < pos.count; i++) {
+    const key = `${round(pos.getX(i))},${round(pos.getY(i))},${round(pos.getZ(i))}`;
+    let arr = groups.get(key);
+    if (!arr) { arr = []; groups.set(key, arr); }
+    arr.push(i);
+  }
+  for (const arr of groups.values()) {
+    if (arr.length < 2) continue;
+    let nx = 0, ny = 0, nz = 0;
+    for (const i of arr) {
+      nx += norm.getX(i); ny += norm.getY(i); nz += norm.getZ(i);
+    }
+    const len = Math.hypot(nx, ny, nz) || 1;
+    nx /= len; ny /= len; nz /= len;
+    for (const i of arr) norm.setXYZ(i, nx, ny, nz);
+  }
+  norm.needsUpdate = true;
 }
 
 function applyLumpiness(geom) {
@@ -780,14 +820,36 @@ function buildCapsuleGeometry() {
     const t = Math.PI / 2 + (i / capSegs) * Math.PI / 2;
     profile.push(new THREE.Vector2(RADIUS * Math.sin(t), -halfL + capH * Math.cos(t)));
   }
-  let g = new THREE.LatheGeometry(profile, radialSegs);
-  // Drop UVs so mergeVertices can weld the lathe's closure seam (the duplicated
-  // ring vertices at phi=0 / phi=2π differ only in u=0 vs u=1 and would
-  // otherwise be kept separate, producing a visible vertical seam).
-  g.deleteAttribute('uv');
-  g = mergeVertices(g);
+  const g = new THREE.LatheGeometry(profile, radialSegs);
+  // Keep UVs intact for bump mapping. The lathe-closure seam stays duplicated
+  // (so the bump-map u-coordinate wraps cleanly), and weldNormalsBySharedPosition
+  // averages the per-side normals into one smooth value.
   g.computeVertexNormals();
+  weldNormalsBySharedPosition(g);
   return g;
+}
+
+// Regenerate the asterisk bump-map canvas + texture. Called whenever the
+// spoke count, sharpness, OR any geometry knob that changes the axial extent
+// (RADIUS, LENGTH, CAP_FULL) is touched — vReach depends on those.
+function updateBumpMap() {
+  const totalAxial = LENGTH + 2 * CAP_FULL * RADIUS;
+  const reach      = Math.min(NOTCH_SIZE * RADIUS, CAP_FULL * RADIUS * 0.95);
+  const vReach     = reach / totalAxial;
+  const bumpCanvas = makeAsteriskBumpMap(512, NOTCH_POINTS, NOTCH_SHARP, vReach);
+  if (material.bumpMap) material.bumpMap.dispose();
+  const tex = new THREE.CanvasTexture(bumpCanvas);
+  tex.wrapS      = THREE.RepeatWrapping;       // u wraps around the lathe
+  tex.wrapT      = THREE.ClampToEdgeWrapping;  // v doesn't wrap top/bottom
+  tex.colorSpace = THREE.NoColorSpace;         // data texture, not sRGB color
+  tex.anisotropy = heroRenderer.capabilities.getMaxAnisotropy();
+  material.bumpMap = tex;
+  material.needsUpdate = true;
+}
+
+// NOTCH_AMP → bumpScale (lighting strength); cheap, no texture regen.
+function updateBumpScale() {
+  material.bumpScale = NOTCH_AMP * 12;
 }
 
 function rebuildGeometry() {
@@ -797,7 +859,11 @@ function rebuildGeometry() {
   }
   const geom = buildCapsuleGeometry();
   applyLumpiness(geom);
-  applyTipNotches(geom);
+  // applyLumpiness re-runs computeVertexNormals; re-weld so the seam stays
+  // shading-smooth.
+  weldNormalsBySharedPosition(geom);
+  updateBumpMap();
+  updateBumpScale();
   mesh = new THREE.Mesh(geom, material);
   tiltGroup.add(mesh);
   fitCamera();
@@ -928,9 +994,9 @@ wire3D('ctrl-speed',      'out-speed',      parseFloat, v => v.toFixed(2), v => 
 wire3D('ctrl-rough',      'out-rough',      parseFloat, v => v.toFixed(2), v => { ROUGH     = v; material.roughness = v; });
 wire3D('ctrl-lump',       'out-lump',       parseFloat, v => v.toFixed(3), v => { LUMP_AMP     = v; rebuildGeometry(); });
 wire3D('ctrl-lumpfreq',   'out-lumpfreq',   parseFloat, v => v.toFixed(1), v => { LUMP_FREQ    = v; rebuildGeometry(); });
-wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => { NOTCH_AMP    = v; rebuildGeometry(); });
-wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; rebuildGeometry(); });
-wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(0), v => { NOTCH_SHARP  = v | 0; rebuildGeometry(); });
+wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => { NOTCH_AMP    = v;     updateBumpScale(); });
+wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; updateBumpMap();  });
+wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(0), v => { NOTCH_SHARP  = v | 0; updateBumpMap();  });
 wire3D('ctrl-capfull',    'out-capfull',    parseFloat, v => v.toFixed(2), v => { CAP_FULL     = v; rebuildGeometry(); });
 
 document.getElementById('reroll-lump').addEventListener('click', () => {
