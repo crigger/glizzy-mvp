@@ -693,19 +693,26 @@ let mesh = null;
 // LatheGeometry UVs are cylindrical: u wraps around the lathe axis, v runs
 // along the profile from top apex (v=0) to bottom apex (v=1). The texture has
 // the asterisk pattern at v<vReach (top cap region) and v>1-vReach (bottom cap).
-function makeAsteriskBumpMap(size, spokes, lineDeg, vReach) {
-  const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const imgData = ctx.createImageData(size, size);
-  const data = imgData.data;
+// Generate BOTH the bump map (lighting perturbation) and a color-modulation
+// map (so the valley actually reads as darker — bump maps can't darken the
+// floor of a depression on their own because the floor's normal is unchanged).
+// Both maps share the same depth field, so a single pass yields both.
+function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
+  const bumpCanvas  = document.createElement('canvas');
+  const colorCanvas = document.createElement('canvas');
+  bumpCanvas.width  = colorCanvas.width  = size;
+  bumpCanvas.height = colorCanvas.height = size;
+  const bumpCtx  = bumpCanvas.getContext('2d');
+  const colorCtx = colorCanvas.getContext('2d');
+  const bumpData  = bumpCtx.createImageData(size, size);
+  const colorData = colorCtx.createImageData(size, size);
   // Constant angular width: each spoke is lineDeg degrees around the axis.
   // The line's PHYSICAL arc length tapers naturally because the cap radius
   // tapers to 0 at the apex — that's what gives the radial-converging look.
   const halfAngular  = (lineDeg * Math.PI / 180) / 2;
   const segmentAngle = (2 * Math.PI) / Math.max(1, spokes);
   const angularEdge  = 0.0025;
-  const vEdgeFrac    = 0.10;   // taper last 10% of the line to a soft tail
+  const vEdgeFrac    = 0.10;
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
       const u = px / (size - 1);
@@ -738,29 +745,49 @@ function makeAsteriskBumpMap(size, spokes, lineDeg, vReach) {
           fall = 1 - (tt * tt * (3 - 2 * tt));
         }
         depth = angular * fall;
-        // Organic imperfection: modulate pressed depth with fractal noise so
-        // lines aren't perfectly uniform (matches the body lumpiness vibe).
-        // cos/sin form keeps the noise continuous around the u-wrap.
+        // Organic imperfection: high-freq variation along the line + a
+        // lower-freq breathing modulation so different lines press deeper
+        // than others (matches the body lumpiness vibe).
         if (depth > 0) {
           const a = u * 2 * Math.PI;
-          const n = fractal3(
+          const nHi = fractal3(
             Math.cos(a) * 4,
             Math.sin(a) * 4,
-            v * 30,
+            v * 35,
             3
-          ) * 2 - 1;            // [-1, 1]
-          depth *= 1 + n * 0.30; // ±30% variation along the line
+          ) * 2 - 1;
+          const nLo = fractal3(
+            Math.cos(a) * 1.4,
+            Math.sin(a) * 1.4,
+            v * 8 + 13,
+            2
+          ) * 2 - 1;
+          const wobble = nHi * 0.35 + nLo * 0.25;   // ±60% combined
+          depth *= 1 + wobble;
           if (depth < 0) depth = 0;
           else if (depth > 1) depth = 1;
         }
       }
-      const grey = Math.round((1 - depth) * 255);
       const idx = (py * size + px) * 4;
-      data[idx] = grey; data[idx+1] = grey; data[idx+2] = grey; data[idx+3] = 255;
+      // Bump map: dark = depressed
+      const bumpGrey = Math.round((1 - depth) * 255);
+      bumpData.data[idx]     = bumpGrey;
+      bumpData.data[idx + 1] = bumpGrey;
+      bumpData.data[idx + 2] = bumpGrey;
+      bumpData.data[idx + 3] = 255;
+      // Color modulation: white where depth=0 (no change), darker by 'darken'
+      // fraction where depth=1 (valley floor reads visibly darker).
+      const colorMul = 1 - depth * darken;
+      const colorGrey = Math.round(colorMul * 255);
+      colorData.data[idx]     = colorGrey;
+      colorData.data[idx + 1] = colorGrey;
+      colorData.data[idx + 2] = colorGrey;
+      colorData.data[idx + 3] = 255;
     }
   }
-  ctx.putImageData(imgData, 0, 0);
-  return canvas;
+  bumpCtx.putImageData(bumpData, 0, 0);
+  colorCtx.putImageData(colorData, 0, 0);
+  return { bumpCanvas, colorCanvas };
 }
 
 // LatheGeometry has duplicated vertices at the lathe-closure seam (u=0 vs u=1)
@@ -880,20 +907,34 @@ function buildCapsuleGeometry() {
 // (RADIUS, LENGTH, CAP_FULL) is touched — vReach depends on those.
 function updateBumpMap() {
   const totalAxial = LENGTH + 2 * CAP_FULL * RADIUS;
-  // NOTCH_SIZE is now fraction of CAP HEIGHT (not radius), so the imprint
-  // always starts at the same relative spot on the cap regardless of CAP_FULL.
-  // NOTCH_SIZE=0.5 → lines start at the halfway-mark of the dome.
-  const capH       = CAP_FULL * RADIUS;
-  const reach      = Math.min(NOTCH_SIZE * capH, capH * 0.95);
-  const vReach     = reach / totalAxial;
-  const bumpCanvas = makeAsteriskBumpMap(1024, NOTCH_POINTS, NOTCH_SHARP, vReach);
+  // NOTCH_SIZE is fraction of CAP HEIGHT, so the imprint always starts at the
+  // same relative spot on the cap regardless of CAP_FULL. NOTCH_SIZE=0.5 →
+  // lines start at the halfway-mark of the dome.
+  const capH    = CAP_FULL * RADIUS;
+  const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
+  const vReach  = reach / totalAxial;
+  // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
+  const darken  = 0.55;
+  const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
+
   if (material.bumpMap) material.bumpMap.dispose();
-  const tex = new THREE.CanvasTexture(bumpCanvas);
-  tex.wrapS      = THREE.RepeatWrapping;       // u wraps around the lathe
-  tex.wrapT      = THREE.ClampToEdgeWrapping;  // v doesn't wrap top/bottom
-  tex.colorSpace = THREE.NoColorSpace;         // data texture, not sRGB color
-  tex.anisotropy = heroRenderer.capabilities.getMaxAnisotropy();
-  material.bumpMap = tex;
+  const bumpTex = new THREE.CanvasTexture(bumpCanvas);
+  bumpTex.wrapS      = THREE.RepeatWrapping;
+  bumpTex.wrapT      = THREE.ClampToEdgeWrapping;
+  bumpTex.colorSpace = THREE.NoColorSpace;       // data, not sRGB
+  bumpTex.anisotropy = heroRenderer.capabilities.getMaxAnisotropy();
+  material.bumpMap = bumpTex;
+
+  // Color-modulation map: multiplies material.color per-fragment so the
+  // valley floor reads visibly darker, not just edge-shaded. Bump map only
+  // perturbs normals — it can't darken a flat-bottomed depression's floor.
+  if (material.map) material.map.dispose();
+  const colorTex = new THREE.CanvasTexture(colorCanvas);
+  colorTex.wrapS      = THREE.RepeatWrapping;
+  colorTex.wrapT      = THREE.ClampToEdgeWrapping;
+  colorTex.colorSpace = THREE.SRGBColorSpace;    // color, gets sRGB→linear
+  colorTex.anisotropy = heroRenderer.capabilities.getMaxAnisotropy();
+  material.map = colorTex;
   material.needsUpdate = true;
 }
 
