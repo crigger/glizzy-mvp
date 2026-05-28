@@ -749,8 +749,9 @@ function buildCapsuleGeometry() {
   const halfL      = LENGTH / 2;
   const capSegs    = 24;
   const radialSegs = 64;
-  const arcStep    = (RADIUS * Math.PI / 2) / capSegs;
-  const cylRings   = Math.max(2, Math.round(LENGTH / arcStep));
+  // Keep cylinder body relatively sparsely sampled — dense rings amplify the
+  // noise lumps on the body and make the capsule read as lopsided.
+  const cylRings   = Math.max(2, Math.round(LENGTH * 0.8));
   const profile    = [];
   // Top hemisphere: apex → top seam
   for (let i = 0; i <= capSegs; i++) {
@@ -767,7 +768,10 @@ function buildCapsuleGeometry() {
     profile.push(new THREE.Vector2(RADIUS * Math.sin(t), -halfL + RADIUS * Math.cos(t)));
   }
   let g = new THREE.LatheGeometry(profile, radialSegs);
-  // Weld coincident vertices at poles + the seam where the lathe revolves back to phi=0.
+  // Drop UVs so mergeVertices can weld the lathe's closure seam (the duplicated
+  // ring vertices at phi=0 / phi=2π differ only in u=0 vs u=1 and would
+  // otherwise be kept separate, producing a visible vertical seam).
+  g.deleteAttribute('uv');
   g = mergeVertices(g);
   g.computeVertexNormals();
   return g;
