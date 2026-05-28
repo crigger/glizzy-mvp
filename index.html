@@ -815,7 +815,16 @@ function fitCamera() {
   const totalLength = LENGTH + 2 * CAP_FULL * RADIUS;
   const fov = THREE.MathUtils.degToRad(heroCamera.fov);
   const padding = 1.35;
-  heroCamera.position.z = (totalLength * padding) / (2 * Math.tan(fov / 2));
+  const dist = (totalLength * padding) / (2 * Math.tan(fov / 2));
+  heroCamera.position.z = dist;
+  // Wrap near/far tight around the model. At very narrow FOV the camera sits
+  // ~100+ units away, and a near=0.1/far=400 frustum wastes the depth buffer's
+  // precision on empty space — the back cap's imprint then Z-fights through
+  // the body. A snug window keeps all 24 bits of depth precision on the dog.
+  const halfExtent = totalLength * 0.7;
+  heroCamera.near = Math.max(0.1, dist - halfExtent);
+  heroCamera.far  = dist + halfExtent;
+  heroCamera.updateProjectionMatrix();
 }
 
 function heroResize() {
