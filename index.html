@@ -657,12 +657,11 @@ function fractal3(x, y, z, octaves = 4) {
 
 const heroCanvas = document.getElementById('hero-stage');
 const heroScene  = new THREE.Scene();
-// Very narrow FOV ("long telephoto") so a tilted capsule has almost no near-end
-// foreshortening. fitCamera() pulls the camera farther back to compensate. With
-// FOV this small the projection is near-orthographic — if the cap still reads
-// as cone-shaped at this distance, that's the hemisphere geometry itself, not
-// perspective. Drop CAP_FULL below 1.0 in that case to blunt the tip.
-const heroCamera = new THREE.PerspectiveCamera(10, 1, 0.1, 200);
+// FOV 5° is effectively orthographic (< 2% near/far size delta even when the
+// capsule rotates fully end-on). If it STILL reads as conical at this FOV, the
+// hemisphere itself is the cause — a true hemisphere cap tapers from R at the
+// seam to 0 at the apex over a distance of R, which the eye reads as a cone.
+const heroCamera = new THREE.PerspectiveCamera(5, 1, 0.1, 400);
 heroCamera.position.set(0, 0, 10);
 
 const heroRenderer = new THREE.WebGLRenderer({ canvas: heroCanvas, antialias: true, alpha: true });
