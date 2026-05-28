@@ -812,11 +812,16 @@ function makeAsteriskMaps(size, spokes, lineDeg, vReach, darken) {
       bumpData.data[idx + 1] = bumpGrey;
       bumpData.data[idx + 2] = bumpGrey;
       bumpData.data[idx + 3] = 255;
-      const colorMul  = 1 - depth * darken;
-      const colorGrey = Math.round(colorMul * 255);
-      colorData.data[idx]     = colorGrey;
-      colorData.data[idx + 1] = colorGrey;
-      colorData.data[idx + 2] = colorGrey;
+      // Color modulation: per-channel rates so the valley shifts toward a
+      // saturated deep red/brown (natural shadow of orange) instead of grey.
+      // Green and blue darken faster than red, which mimics a multiply-into-
+      // material-color blend rather than a flat grey overlay.
+      const rMul = 1 - depth * darken;
+      const gMul = 1 - depth * (darken * 1.55);
+      const bMul = 1 - depth * (darken * 2.05);
+      colorData.data[idx]     = Math.round(Math.max(0, rMul) * 255);
+      colorData.data[idx + 1] = Math.round(Math.max(0, gMul) * 255);
+      colorData.data[idx + 2] = Math.round(Math.max(0, bMul) * 255);
       colorData.data[idx + 3] = 255;
     }
   }
@@ -949,7 +954,7 @@ function updateBumpMap() {
   const reach   = Math.min(NOTCH_SIZE * capH, capH * 0.95);
   const vReach  = reach / totalAxial;
   // darken: how dark the valley floor reads (0=no darkening, 1=black valley)
-  const darken  = 0.18;
+  const darken  = 0.35;
   const { bumpCanvas, colorCanvas } = makeAsteriskMaps(1024, NOTCH_POINTS, NOTCH_SHARP, vReach, darken);
 
   if (material.bumpMap) material.bumpMap.dispose();
