@@ -248,23 +248,23 @@
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
       <label><span>key light X</span>
-        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="-4">
-        <output id="out-keyx">-4.0</output></label>
+        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="-8">
+        <output id="out-keyx">-8.0</output></label>
       <label><span>key light Y</span>
-        <input id="ctrl-keyy" type="range" min="-10" max="10" step="0.5" value="-5">
-        <output id="out-keyy">-5.0</output></label>
+        <input id="ctrl-keyy" type="range" min="-10" max="10" step="0.5" value="-10">
+        <output id="out-keyy">-10.0</output></label>
       <label><span>key light Z</span>
-        <input id="ctrl-keyz" type="range" min="-10" max="10" step="0.5" value="3">
-        <output id="out-keyz">3.0</output></label>
+        <input id="ctrl-keyz" type="range" min="-10" max="10" step="0.5" value="10">
+        <output id="out-keyz">10.0</output></label>
       <label><span>key intensity</span>
         <input id="ctrl-keyi" type="range" min="0" max="4" step="0.1" value="1.8">
         <output id="out-keyi">1.8</output></label>
       <label><span>ambient</span>
-        <input id="ctrl-amb" type="range" min="0" max="1.5" step="0.05" value="0.45">
-        <output id="out-amb">0.45</output></label>
+        <input id="ctrl-amb" type="range" min="0" max="1.5" step="0.05" value="1.5">
+        <output id="out-amb">1.50</output></label>
       <label><span>rim intensity</span>
-        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="0.4">
-        <output id="out-rimi">0.40</output></label>
+        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="1.3">
+        <output id="out-rimi">1.30</output></label>
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
@@ -702,12 +702,12 @@ heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // ───── lighting ─────
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 heroScene.add(ambientLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-keyLight.position.set(-4, -5, 3);
+keyLight.position.set(-8, -10, 10);
 heroScene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.4);
+const rimLight = new THREE.DirectionalLight(0xff7a4f, 1.3);
 rimLight.position.set(-3, -1, -2);
 heroScene.add(rimLight);
 
