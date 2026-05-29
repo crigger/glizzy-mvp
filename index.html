@@ -686,10 +686,10 @@ heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 // ───── lighting ─────
 heroScene.add(new THREE.AmbientLight(0xffffff, 0.45));
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-keyLight.position.set(4, 10, 2);  // top-dominant, slight right — lights the upper half
+keyLight.position.set(3, 4, 6);   // mostly from FRONT, tilted up + right
 heroScene.add(keyLight);
 const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.4);
-rimLight.position.set(-3, -3, -2); // bottom-left-back fill so the lower half doesn't go fully dark
+rimLight.position.set(-3, -1, -2); // warm fill from lower-left-back
 heroScene.add(rimLight);
 
 // ───── nested rotation groups ─────
