@@ -686,9 +686,9 @@ heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 // ───── lighting ─────
 heroScene.add(new THREE.AmbientLight(0xffffff, 0.22));   // reduced fill so top/bottom contrast actually reads
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-keyLight.position.set(2, 6, 4);   // top-dominant with strong front bias, slight right
+keyLight.position.set(0, 10, 3);  // straight overhead, with a touch of front bias
 heroScene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.18); // very dim so the bottom stays in shadow
+const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.0); // disabled — was filling the bottom from below
 rimLight.position.set(-3, -1, -2);
 heroScene.add(rimLight);
 
