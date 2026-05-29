@@ -247,6 +247,24 @@
       <label><span>cap fullness</span>
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
+      <label><span>key light X</span>
+        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="-4">
+        <output id="out-keyx">-4.0</output></label>
+      <label><span>key light Y</span>
+        <input id="ctrl-keyy" type="range" min="-10" max="10" step="0.5" value="-5">
+        <output id="out-keyy">-5.0</output></label>
+      <label><span>key light Z</span>
+        <input id="ctrl-keyz" type="range" min="-10" max="10" step="0.5" value="3">
+        <output id="out-keyz">3.0</output></label>
+      <label><span>key intensity</span>
+        <input id="ctrl-keyi" type="range" min="0" max="4" step="0.1" value="1.8">
+        <output id="out-keyi">1.8</output></label>
+      <label><span>ambient</span>
+        <input id="ctrl-amb" type="range" min="0" max="1.5" step="0.05" value="0.45">
+        <output id="out-amb">0.45</output></label>
+      <label><span>rim intensity</span>
+        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="0.4">
+        <output id="out-rimi">0.40</output></label>
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
@@ -684,7 +702,8 @@ heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // ───── lighting ─────
-heroScene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+heroScene.add(ambientLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
 keyLight.position.set(-4, -5, 3);
 heroScene.add(keyLight);
@@ -1159,6 +1178,12 @@ wire3D('ctrl-notch',      'out-notch',      parseFloat, v => v.toFixed(3), v => 
 wire3D('ctrl-notchpts',   'out-notchpts',   parseFloat, v => v.toFixed(0), v => { NOTCH_POINTS = v | 0; updateBumpMap();  });
 wire3D('ctrl-notchsharp', 'out-notchsharp', parseFloat, v => v.toFixed(1), v => { NOTCH_SHARP  = v;     updateBumpMap();  });
 wire3D('ctrl-capfull',    'out-capfull',    parseFloat, v => v.toFixed(2), v => { CAP_FULL     = v; rebuildGeometry(); });
+wire3D('ctrl-keyx',       'out-keyx',       parseFloat, v => v.toFixed(1), v => { keyLight.position.x = v; });
+wire3D('ctrl-keyy',       'out-keyy',       parseFloat, v => v.toFixed(1), v => { keyLight.position.y = v; });
+wire3D('ctrl-keyz',       'out-keyz',       parseFloat, v => v.toFixed(1), v => { keyLight.position.z = v; });
+wire3D('ctrl-keyi',       'out-keyi',       parseFloat, v => v.toFixed(1), v => { keyLight.intensity  = v; });
+wire3D('ctrl-amb',        'out-amb',        parseFloat, v => v.toFixed(2), v => { ambientLight.intensity = v; });
+wire3D('ctrl-rimi',       'out-rimi',       parseFloat, v => v.toFixed(2), v => { rimLight.intensity = v; });
 
 document.getElementById('reroll-lump').addEventListener('click', () => {
   LUMP_SEED = (LUMP_SEED + 1 + Math.floor(Math.random() * 100)) | 0;
