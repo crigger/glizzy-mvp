@@ -684,9 +684,13 @@ heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // ───── lighting ─────
-heroScene.add(new THREE.AmbientLight(0xffffff, 0.35));   // enough fill that the cylinder sides aren't black
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
-keyLight.position.set(3, 7, 3);   // upper-right with strong front bias
+// HemisphereLight replaces plain ambient: surfaces facing UP get the "sky"
+// colour, surfaces facing DOWN get the "ground" colour, with a smooth gradient
+// in between. This bakes a "lit from above" feel into the *ambient* term so the
+// dog reads as top-lit no matter what rotation the spin lands on.
+heroScene.add(new THREE.HemisphereLight(0xffffff, 0x2a1208, 1.0));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+keyLight.position.set(3, 6, 3);   // upper-right-front for highlight + shape definition
 heroScene.add(keyLight);
 const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.0); // disabled — was filling the bottom from below
 rimLight.position.set(-3, -1, -2);
