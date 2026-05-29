@@ -684,12 +684,12 @@ heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // ───── lighting ─────
-heroScene.add(new THREE.AmbientLight(0xffffff, 0.45));
+heroScene.add(new THREE.AmbientLight(0xffffff, 0.22));   // reduced fill so top/bottom contrast actually reads
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
-keyLight.position.set(3, 4, 6);   // mostly from FRONT, tilted up + right
+keyLight.position.set(2, 6, 4);   // top-dominant with strong front bias, slight right
 heroScene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.4);
-rimLight.position.set(-3, -1, -2); // warm fill from lower-left-back
+const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.18); // very dim so the bottom stays in shadow
+rimLight.position.set(-3, -1, -2);
 heroScene.add(rimLight);
 
 // ───── nested rotation groups ─────
