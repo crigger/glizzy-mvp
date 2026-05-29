@@ -6,10 +6,10 @@
 <title>Glizzy MVP — GSAP</title>
 <style>
   :root {
-    --bg-top: #23aed5;
-    --bg-bottom: #1f88a8;
+    --bg-top: #202f61;
+    --bg-bottom: #122557;
     --dog-color: #dc512a;
-    --dog-highlight: #f4a685;
+    --dog-highlight: #ff945a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -125,10 +125,19 @@
   #debug-body { padding: 10px 12px; }
   #debug-panel.collapsed #debug-body { display: none; }
   #debug-panel.collapsed { min-width: 0; }
-  #debug-panel pre { margin: 0 0 8px; white-space: pre-wrap; }
+  #debug-panel pre { display: none; }    /* hidden — content still feeds the copy button */
   #debug-panel label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   #debug-panel label span { width: 140px; }
   #debug-panel label input { flex: 1; }
+  #debug-panel label input[type="color"] {
+    flex: none;
+    width: 56px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
   #debug-panel label output { width: 56px; text-align: right; }
   #debug-panel .action-btn {
     width: 100%; padding: 6px;
@@ -176,6 +185,15 @@
     <span class="chev">+</span>
   </div>
   <div id="debug-body">
+    <label><span>bg top</span>
+      <input id="ctrl-bgtop" type="color" value="#202f61"></label>
+    <label><span>bg bottom</span>
+      <input id="ctrl-bgbottom" type="color" value="#122557"></label>
+    <label><span>dog color</span>
+      <input id="ctrl-dogcolor" type="color" value="#dc512a"></label>
+    <label><span>dog highlight</span>
+      <input id="ctrl-doghi" type="color" value="#ff945a"></label>
+
     <div class="tabs">
       <button class="tab active" data-tab="svg">SVG</button>
       <button class="tab" data-tab="3d">3D</button>
@@ -184,28 +202,28 @@
     <div class="tab-content" data-tab="svg">
       <pre id="debug"></pre>
       <label><span>top margin (vmin)</span>
-        <input id="ctrl-topmargin" type="range" min="0" max="100" step="5" value="50">
+        <input id="ctrl-topmargin" type="range" min="0" max="200" step="5" value="50">
         <output id="out-topmargin">50</output></label>
       <label><span>dog height (vmin)</span>
-        <input id="ctrl-dogheight" type="range" min="50" max="200" step="5" value="120">
+        <input id="ctrl-dogheight" type="range" min="50" max="400" step="5" value="120">
         <output id="out-dogheight">120</output></label>
       <label><span>scroll trigger (vmin)</span>
-        <input id="ctrl-scrolltrigger" type="range" min="0" max="300" step="5" value="100">
+        <input id="ctrl-scrolltrigger" type="range" min="0" max="600" step="5" value="100">
         <output id="out-scrolltrigger">100</output></label>
       <label><span>end stub (vmin)</span>
-        <input id="ctrl-endstub" type="range" min="0" max="150" step="5" value="75">
+        <input id="ctrl-endstub" type="range" min="0" max="300" step="5" value="75">
         <output id="out-endstub">75</output></label>
       <label><span>end margin (vmin)</span>
-        <input id="ctrl-endmargin" type="range" min="0" max="200" step="5" value="100">
+        <input id="ctrl-endmargin" type="range" min="0" max="400" step="5" value="100">
         <output id="out-endmargin">100</output></label>
       <label><span>stroke (% vw)</span>
-        <input id="ctrl-stroke" type="range" min="10" max="70" step="1" value="50">
+        <input id="ctrl-stroke" type="range" min="10" max="140" step="1" value="50">
         <output id="out-stroke">50</output></label>
       <label><span>U-turn (× stroke)</span>
-        <input id="ctrl-uturn" type="range" min="0.5" max="1.5" step="0.05" value="0.75">
+        <input id="ctrl-uturn" type="range" min="0.5" max="3" step="0.05" value="0.75">
         <output id="out-uturn">0.75</output></label>
       <label><span>body min-height (svh)</span>
-        <input id="ctrl-body" type="range" min="200" max="1200" step="25" value="800">
+        <input id="ctrl-body" type="range" min="200" max="2400" step="25" value="800">
         <output id="out-body">800</output></label>
       <button id="copy-stats" class="action-btn">copy stats</button>
     </div>
@@ -227,8 +245,8 @@
         <input id="ctrl-speed"  type="range" min="0" max="3" step="0.05" value="0.8">
         <output id="out-speed">0.80</output></label>
       <label><span>roughness</span>
-        <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.50">
-        <output id="out-rough">0.50</output></label>
+        <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.66">
+        <output id="out-rough">0.66</output></label>
       <label><span>lumpiness</span>
         <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.08">
         <output id="out-lump">0.080</output></label>
@@ -309,8 +327,8 @@ let currentBreakpoint = null;
 // Aspect-ratio presets. Landscape (wider-than-tall) needs a tighter top margin
 // and shorter stubs/margins than portrait, otherwise the dog has too much air.
 const ASPECT_PRESETS = {
-  portrait:  { topMargin: 100, dogHeight: 120, trigger: 210, endStub: 75, endMargin: 100 },
-  landscape: { topMargin: 60, dogHeight: 140, trigger: 200, endStub: 50, endMargin:  50 },
+  portrait:  { topMargin: 200, dogHeight: 120, trigger: 210, endStub: 75, endMargin: 100 },
+  landscape: { topMargin: 200, dogHeight: 140, trigger: 200, endStub: 50, endMargin:  50 },
 };
 let currentAspect = null;
 
@@ -469,12 +487,18 @@ function rebuild() {
   // Stack N stroked paths with interpolated width AND color from outer→inner.
   // Each successive path covers the previous one with a narrower, lighter ring,
   // creating a smooth banded gradient without any raster filter cost.
-  const STEPS = 24;
+  // The interpolation parameter `t` is passed through a smoothstep ease so the
+  // bands cluster near the outer edge and the inner highlight, with a smoother,
+  // faster transition through the middle — same trick as easing a CSS linear
+  // gradient (https://css-tricks.com/easing-linear-gradients/) but applied to
+  // the stop *positions* instead of the color stops directly.
+  const STEPS = 48;
   const allPaths = [];
   for (let i = 0; i < STEPS; i++) {
-    const t = i / (STEPS - 1);                    // 0 at outer, 1 at center
-    const w = strokeWidth * (1 - t * 0.92);       // 100% → 8% of stroke
-    const stroke = lerpColor(dogColor, highlightCol, t);
+    const t      = i / (STEPS - 1);                     // 0 at outer, 1 at center
+    const eased  = t * t * (3 - 2 * t);                 // smoothstep ease-in-out
+    const w      = strokeWidth * (1 - eased * 0.92);    // 100% → 8% of stroke
+    const stroke = lerpColor(dogColor, highlightCol, eased);
 
     const p = document.createElementNS(ns, 'path');
     p.setAttribute('d', d);
@@ -534,6 +558,20 @@ function updateDebug() {
   const mode = state.breakpoint === 'desktop' ? 'desktop' : 'mobile';
   const hLen = (state.rightX - state.leftX) - 2 * state.R;
   const triggerPx = (SCROLL_TRIGGER_VMIN / 100) * (state.vmin || 0);
+  const bgTop  = document.getElementById('ctrl-bgtop')?.value     || '';
+  const bgBot  = document.getElementById('ctrl-bgbottom')?.value  || '';
+  const dCol   = document.getElementById('ctrl-dogcolor')?.value  || '';
+  const dHi    = document.getElementById('ctrl-doghi')?.value     || '';
+  const s3     = window.glizzy3D?.getStats?.();
+  const block3D = s3 ?
+`
+---
+3D: RADIUS=${s3.RADIUS} LENGTH=${s3.LENGTH} TILT_X=${s3.TILT_X_deg}° TILT_Z=${s3.TILT_Z_deg}°
+SPIN=${s3.SPIN.toFixed(2)} ROUGH=${s3.ROUGH.toFixed(2)}
+LUMP_AMP=${s3.LUMP_AMP.toFixed(3)} LUMP_FREQ=${s3.LUMP_FREQ.toFixed(1)} LUMP_SEED=${s3.LUMP_SEED}
+NOTCH_AMP=${s3.NOTCH_AMP.toFixed(3)} NOTCH_POINTS=${s3.NOTCH_POINTS} NOTCH_SHARP=${s3.NOTCH_SHARP} CAP_FULL=${s3.CAP_FULL.toFixed(2)}
+key=(${s3.keyX.toFixed(1)}, ${s3.keyY.toFixed(1)}, ${s3.keyZ.toFixed(1)}) @ ${s3.keyI.toFixed(2)}
+ambient=${s3.ambI.toFixed(2)}  rim=${s3.rimI.toFixed(2)}` : '';
   dbg.textContent =
 `viewport     ${state.vw} x ${state.vh}   vmin=${state.vmin?.toFixed(0)}  (${mode})
 docHeight    ${docH}  (maxScroll=${maxScroll})
@@ -547,7 +585,9 @@ stub pathlen ${stubPathLen.toFixed(0)} (${pathLen ? (stubPathLen/pathLen*100).to
 dashoffset   ${offset.toFixed(0)}  →  drawn ${drawn.toFixed(0)} (${pct}%)
 TOP_MARGIN=${TOP_MARGIN_VMIN}vmin  DOG_HEIGHT=${DOG_HEIGHT_VMIN}vmin  TRIGGER=${SCROLL_TRIGGER_VMIN}vmin
 END_STUB=${END_STUB_VMIN}vmin  END_MARGIN=${END_MARGIN_VMIN}vmin
-STROKE_VW=${STROKE_VW.toFixed(3)}  UTURN_RATIO=${UTURN_RATIO}  BODY_VH=${BODY_VH}`;
+STROKE_VW=${STROKE_VW.toFixed(3)}  UTURN_RATIO=${UTURN_RATIO}  BODY_VH=${BODY_VH}
+---
+colors: bg-top=${bgTop} bg-bot=${bgBot} dog=${dCol} highlight=${dHi}${block3D}`;
 }
 
 // Wire up sliders
@@ -589,8 +629,46 @@ document.querySelectorAll('#debug-panel .tab').forEach(btn => {
   });
 });
 
+// iOS Safari blocks navigator.clipboard.writeText over plain HTTP. Use the
+// execCommand fallback (works without HTTPS) and only try the modern API
+// when it's actually available.
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text) {
+  // iOS Safari refuses to copy from elements that are display:none, visibility:hidden,
+  // or opacity:0. Position it off-screen instead. Also needs contentEditable+focus+
+  // setSelectionRange OR a Range/Selection — we set both, since iOS versions differ.
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.readOnly = true;
+  ta.contentEditable = 'true';
+  ta.style.position = 'absolute';
+  ta.style.left = '-9999px';
+  ta.style.top = (window.pageYOffset || document.documentElement.scrollTop) + 'px';
+  ta.style.fontSize = '16px';   // prevents iOS zoom-on-focus
+  document.body.appendChild(ta);
+  ta.focus();
+  const range = document.createRange();
+  range.selectNodeContents(ta);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  ta.setSelectionRange(0, 999999);
+  try { document.execCommand('copy'); } catch {}
+  sel.removeAllRanges();
+  document.body.removeChild(ta);
+}
 document.getElementById('copy-stats').addEventListener('click', () => {
-  navigator.clipboard?.writeText(document.getElementById('debug').textContent);
+  const btn = document.getElementById('copy-stats');
+  copyText(document.getElementById('debug').textContent);
+  const old = btn.textContent;
+  btn.textContent = 'copied!';
+  setTimeout(() => { btn.textContent = old; }, 1000);
 });
 
 // Initial build (run after GSAP is loaded; both scripts above run synchronously before this)
@@ -638,7 +716,7 @@ let LENGTH    = 5.0;
 let TILT_X    = THREE.MathUtils.degToRad(15);
 let TILT_Z    = THREE.MathUtils.degToRad(-25);
 let SPIN      = 0.8;
-let ROUGH     = 0.5;
+let ROUGH     = 0.66;
 let LUMP_AMP    = 0.08;
 let LUMP_FREQ   = 0.5;
 let LUMP_SEED   = 0;
@@ -1184,6 +1262,50 @@ wire3D('ctrl-keyz',       'out-keyz',       parseFloat, v => v.toFixed(1), v => 
 wire3D('ctrl-keyi',       'out-keyi',       parseFloat, v => v.toFixed(1), v => { keyLight.intensity  = v; });
 wire3D('ctrl-amb',        'out-amb',        parseFloat, v => v.toFixed(2), v => { ambientLight.intensity = v; });
 wire3D('ctrl-rimi',       'out-rimi',       parseFloat, v => v.toFixed(2), v => { rimLight.intensity = v; });
+
+// ───── Colour pickers ─────────────────────────────────────────────────────
+// All four update the CSS variables (used by the page background + SVG dog
+// stroke gradient). Dog color also updates the 3D material; dog highlight +
+// dog color both trigger an SVG rebuild so the stacked-stroke gradient is
+// regenerated with the new colors.
+function setRootVar(name, value) {
+  document.documentElement.style.setProperty(name, value);
+}
+document.getElementById('ctrl-bgtop').addEventListener('input', (e) => {
+  setRootVar('--bg-top', e.target.value);
+});
+document.getElementById('ctrl-bgbottom').addEventListener('input', (e) => {
+  setRootVar('--bg-bottom', e.target.value);
+});
+document.getElementById('ctrl-dogcolor').addEventListener('input', (e) => {
+  setRootVar('--dog-color', e.target.value);
+  material.color.set(e.target.value);
+  if (typeof rebuild === 'function') rebuild();   // SVG re-renders with new stroke color
+});
+document.getElementById('ctrl-doghi').addEventListener('input', (e) => {
+  setRootVar('--dog-highlight', e.target.value);
+  if (typeof rebuild === 'function') rebuild();
+});
+
+// Expose 3D state to the classic-script side so updateDebug can include it.
+window.glizzy3D = {
+  getStats() {
+    return {
+      RADIUS, LENGTH,
+      TILT_X_deg: Math.round(THREE.MathUtils.radToDeg(TILT_X)),
+      TILT_Z_deg: Math.round(THREE.MathUtils.radToDeg(TILT_Z)),
+      SPIN, ROUGH: material.roughness,
+      LUMP_AMP, LUMP_FREQ, LUMP_SEED,
+      NOTCH_AMP, NOTCH_POINTS, NOTCH_SHARP, CAP_FULL,
+      keyX: keyLight.position.x,
+      keyY: keyLight.position.y,
+      keyZ: keyLight.position.z,
+      keyI: keyLight.intensity,
+      ambI: ambientLight.intensity,
+      rimI: rimLight.intensity,
+    };
+  }
+};
 
 document.getElementById('reroll-lump').addEventListener('click', () => {
   LUMP_SEED = (LUMP_SEED + 1 + Math.floor(Math.random() * 100)) | 0;
