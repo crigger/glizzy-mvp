@@ -684,8 +684,15 @@ function buildPath() {
 
   // Page-height math. Total page = (top dog) + 2R (top trans arc + closing arc) + (N rows × 2R)
   //                                + endStubStrokeLen + halfStroke (end cap) + endMargin
-  // Solve for N to fit the user's desired body height (page extends past it if N rounds up).
-  const desiredPageH = (BODY_VH / 100) * vh;
+  // Solve for N to fit MAX(user's desired body height, actual rendered content). The
+  // content measurement (main's bounding rect bottom in document coords) is unaffected
+  // by the body min-height we set ourselves, so it reflects the true natural extent —
+  // important for catching font-swap reflow, dynamic content, etc.
+  const mainEl  = document.querySelector('main');
+  const contentBottom = mainEl
+    ? mainEl.getBoundingClientRect().bottom + (window.scrollY || window.pageYOffset)
+    : 0;
+  const desiredPageH = Math.max((BODY_VH / 100) * vh, contentBottom);
   const fixed = stubEndY + 2 * R + endStubStrokeLen + halfStroke + endMargin;
   const switchbackArea = desiredPageH - fixed;
   let numRows = Math.floor(switchbackArea / (2 * R));
@@ -939,6 +946,16 @@ document.getElementById('copy-stats').addEventListener('click', () => {
 // Initial build (run after GSAP is loaded; both scripts above run synchronously before this)
 rebuild();
 window.addEventListener('scroll', updateDebug, { passive: true });
+
+// Font-swap reflow: when our woff2 files finish loading the line metrics shift,
+// content height changes. Rebuild + refresh ScrollTrigger so the path covers
+// the new natural content extent.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    rebuild();
+    ScrollTrigger.refresh();
+  });
+}
 
 
 // Rebuild on resize, but ignore mobile URL-bar height changes — only width changes
