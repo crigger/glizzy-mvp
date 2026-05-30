@@ -1,0 +1,12 @@
+{
+  "name": "Glizzy",
+  "short_name": "Glizzy",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg",     "sizes": "any",     "type": "image/svg+xml" }
+  ],
+  "theme_color": "#dc512a",
+  "background_color": "#000731",
+  "display": "standalone"
+}

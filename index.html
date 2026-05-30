@@ -4,12 +4,96 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Glizzy MVP — GSAP</title>
+<link rel="icon"             type="image/svg+xml" href="icon-2c.svg">
+<link rel="icon"             type="image/png"     sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest"         href="site.webmanifest">
+<meta name="theme-color" content="#000731">
 <style>
+  /* ───── fonts (woff2) ───── */
+  @font-face {
+    font-family: 'Sequoia Sans';
+    src: url('fonts/SequoiaSans-Thin.woff2') format('woff2');
+    font-weight: 100; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Sequoia Sans';
+    src: url('fonts/SequoiaSans-Light.woff2') format('woff2');
+    font-weight: 300; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Sequoia Sans';
+    src: url('fonts/SequoiaSans-Regular.woff2') format('woff2');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Sequoia Sans';
+    src: url('fonts/SequoiaSans-Wide.woff2') format('woff2');
+    font-weight: 400; font-stretch: expanded;
+    font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'BN Magnolia';
+    src: url('fonts/BNMagnolia.woff2') format('woff2');
+    font-weight: normal; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Bricolage Grotesque';
+    src: url('fonts/BricolageGrotesque-VF.woff2') format('woff2-variations');
+    font-weight: 200 800;
+    font-stretch:  75% 100%;
+    font-style: normal; font-display: swap;
+  }
+
+  /* ───── font utility classes ─────
+     Prefix: .f-<family>[-<variant>]
+     For variable-font axis overrides, use the *-display / *-text / *-condensed
+     helpers — they apply font-variation-settings so explicit axes pin even when
+     font-optical-sizing would otherwise interpolate.                          */
+  .f-sequoia            { font-family: 'Sequoia Sans'; font-weight: 400; }
+  .f-sequoia-thin       { font-family: 'Sequoia Sans'; font-weight: 100; }
+  .f-sequoia-light      { font-family: 'Sequoia Sans'; font-weight: 300; }
+  .f-sequoia-wide       { font-family: 'Sequoia Sans'; font-weight: 400;
+                          font-stretch: expanded; }
+  .f-magnolia           { font-family: 'BN Magnolia'; }
+  .f-bricolage          { font-family: 'Bricolage Grotesque'; font-weight: 400; }
+  .f-bricolage-light    { font-family: 'Bricolage Grotesque'; font-weight: 300; }
+  .f-bricolage-bold     { font-family: 'Bricolage Grotesque'; font-weight: 700; }
+  .f-bricolage-condensed{ font-family: 'Bricolage Grotesque';
+                          font-stretch: 75%; }
+  .f-bricolage-display  { font-family: 'Bricolage Grotesque';
+                          font-variation-settings: 'opsz' 96, 'wght' 500; }
+  .f-bricolage-text     { font-family: 'Bricolage Grotesque';
+                          font-variation-settings: 'opsz' 12, 'wght' 500; }
+
+  /* font-sample card layout */
+  .font-samples { display: flex; flex-direction: column; gap: 18px; }
+  .font-sample {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 16px 0; border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .font-sample .label {
+    font: 10px/1.4 ui-monospace, SFMono-Regular, monospace;
+    letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.55;
+  }
+  .font-sample .specimen { font-size: 2.4rem; line-height: 1.1; margin: 0; }
+  .font-sample .pangram  { font-size: 1rem;   line-height: 1.5; opacity: 0.8; margin: 0; }
+
   :root {
-    --bg-top: #202f61;
-    --bg-bottom: #122557;
+    /* sRGB fallback values — used everywhere if the browser doesn't grok P3 */
+    --bg-top: #000731;
+    --bg-bottom: #000724;
     --dog-color: #dc512a;
     --dog-highlight: #ff945a;
+
+    --mustard: #ffa300;
+  }
+  @supports (color: color(display-p3 0 0 0)) {
+    :root {
+      --bg-top: color(display-p3 0 0.027 0.192);
+      --bg-bottom: color(display-p3 0 0.027 0.141);
+      --mustard: color(display-p3 1 0.64 0.12);
+    }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -20,7 +104,7 @@
     overscroll-behavior-y: none;
   }
   body {
-    color: #fff;
+    color: var(--mustard);
     font: 16px/1.6 system-ui, -apple-system, sans-serif;
     background: transparent;
     min-height: 400svh;
@@ -61,9 +145,9 @@
     margin-top: 0;
     display: flex;
   }
-  h1 { font-size: 2.8rem; margin: 0 0 8px; letter-spacing: -0.02em; }
-  h2 { font-size: 1.4rem; margin: 0 0 12px; opacity: 0.9; }
-  p  { margin: 0 0 10px; opacity: 0.92; }
+  h1 { font-size: 2.8rem; margin: 0 0 8px; }
+  h2 { font-size: 1.4rem; margin: 0 0 12px; }
+  p  { margin: 0 0 10px; }
 
   /* hero 3D capsule canvas */
   .hero-canvas-wrap {
@@ -77,6 +161,7 @@
     width: calc(100vmin - 96px - 24px);
     aspect-ratio: 1/1;
     max-width: 100%;
+    z-index: 2;
   }
   #hero-stage {
     width: 100%;
@@ -97,6 +182,22 @@
     z-index: 200;
     cursor: grab;
   }
+
+  /* Top-right brand icon (same shape as the favicon). Inlined so the path's
+     fill="currentColor" picks up --mustard, which resolves to its display-p3
+     value on supporting browsers (wider-gamut orange when available). */
+  .site-icon {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 56px;
+    height: 56px;
+    z-index: 200;
+    color: var(--mustard);
+    pointer-events: none;
+    user-select: none;
+  }
+  .site-icon svg { width: 100%; height: 100%; display: block; }
 
   /* debug panel */
   #debug-panel {
@@ -158,15 +259,58 @@
     background: var(--dog-color);
   }
   #debug-panel .tab-content.hidden { display: none; }
+
+  .hero-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+  }
+
+  .hero__masthead {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    position: absolute;
+    inset: 0 0 2rem;
+    z-index: 0;
+  }
+
+  .hero__masthead h1 {
+    font-size: clamp(6.5rem, 22.5vw, 24rem);
+    letter-spacing: 0.02em;
+    font-weight: normal;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .hero__masthead span {
+    font-size: clamp(2rem, 7vw, 10rem);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    margin: -.25em 0 0;
+  }
 </style>
 </head>
 <body>
+
+<div class="site-icon" aria-label="Glizzy" role="img">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 73.35 73.24" aria-hidden="true"><path fill="currentColor" d="m61.98 62.1.12-.12c.14-.14.25-.29.34-.46.14-.1.29-.22.45-.38.82-.93 1.31-1.32 1.76-1.76.46-.43.93-.86 1.65-1.89 1.41-2.08 1.25-2.18 2.43-4.37.58-1.1.75-1.71.96-2.3.11-.29.18-.6.31-.97.11-.37.29-.8.48-1.39.4-1.17.61-1.76.81-2.34.21-.58.38-1.18.65-2.4.11-.61.24-1.06.37-1.44.12-.37.24-.67.37-.97.12-.3.26-.6.36-.99s.18-.86.23-1.49c.06-1.26.08-1.9.07-2.53 0-.32 0-.63-.01-1.03-.02-.39-.05-.87-.08-1.5-.04-.63-.11-1.1-.15-1.49s-.09-.71-.14-1.02c-.11-.62-.2-1.25-.46-2.49-.12-.62-.27-1.07-.4-1.45-.14-.37-.25-.67-.39-.95-.14-.29-.28-.57-.43-.94-.08-.18-.15-.38-.24-.61s-.19-.48-.3-.78q-.165-.435-.3-.78c-.1-.22-.2-.42-.29-.59-.18-.35-.34-.62-.51-.89-.16-.27-.35-.53-.54-.86-.2-.33-.41-.75-.71-1.29-.58-1.1-.76-1.71-.94-2.33-.17-.63-.39-1.24-1.1-2.29-.76-1.01-1.21-1.46-1.69-1.88-.24-.21-.47-.42-.75-.7-.29-.27-.62-.6-1.05-1.05-1.75-1.77-1.68-1.86-3.6-3.46-.97-.79-1.54-1.08-2.08-1.4-.27-.16-.55-.3-.89-.49s-.73-.44-1.27-.75-.96-.53-1.31-.69c-.36-.15-.66-.25-.96-.35-.59-.21-1.19-.38-2.32-.89-1.14-.45-1.64-.89-2.16-1.3-.26-.21-.52-.41-.87-.62-.35-.19-.79-.37-1.4-.55-.61-.17-1.08-.25-1.46-.33-.39-.08-.7-.12-1.01-.15-.63-.07-1.25-.16-2.5-.31C40.42.01 39.94 0 39.55 0s-.71 0-1.02.03-.63.06-1.02.07c-.39 0-.86.03-1.48.04-2.49.07-2.48.24-4.94.55-1.23.17-1.86.15-2.52.1-.33-.03-.65-.03-1.05 0-.4.04-.87.09-1.48.28-.6.19-1.06.32-1.43.45-.37.14-.67.25-.96.35-.6.21-1.18.46-2.34.96-1.14.54-1.72.81-2.27 1.12-.28.15-.56.3-.91.49-.34.2-.74.45-1.29.78-.54.33-.92.61-1.25.82-.33.22-.59.39-.84.59-.5.38-1.03.73-1.99 1.55-.24.2-.45.39-.62.57s-.31.35-.42.52c-.24.32-.4.61-.56.9-.16.28-.3.59-.52.91-.21.34-.52.68-.92 1.15-.41.46-.74.79-1.03 1.05-.28.27-.52.48-.76.68-.24.21-.49.41-.75.7s-.56.65-.93 1.17c-.69 1.05-.98 1.61-1.23 2.19-.13.29-.26.57-.43.92s-.36.78-.65 1.33-.46.99-.63 1.34c-.15.36-.29.64-.39.93-.11.29-.22.58-.36.95-.15.36-.3.8-.49 1.39-.75 2.37-.94 2.32-1.45 4.77-.24 1.23-.25 1.86-.3 2.48-.03.31-.03.62-.05 1.01-.01.39-.06.85-.08 1.47S.13 35.7.1 36.08c-.02.39-.04.7-.07 1.01-.06.62-.08 1.25 0 2.5.06.62.11 1.09.14 1.48.04.39.08.7.11 1.01.04.31.06.63.13 1.01.07.39.16.85.28 1.46.3 1.22.41 1.84.57 2.45.07.31.15.61.25.99.11.38.27.82.48 1.42s.43 1.02.59 1.38c.17.36.31.64.47.91.32.54.6 1.11 1.22 2.2 1.24 2.19 1.62 1.95 3.05 3.97.38.49.65.87.9 1.16.26.29.46.52.67.75.4.47.85.9 1.69 1.8.88.86 1.34 1.28 1.83 1.66.48.38.96.78 1.93 1.53 1.97 1.48 1.85 1.65 3.98 2.93 1.07.63 1.63.9 2.17 1.2.27.15.55.28.9.45.35.16.77.38 1.35.6.58.23 1.01.4 1.37.55.36.14.65.24.95.35.58.23 1.17.41 2.37.75.61.14 1.05.27 1.43.39.37.12.67.21.97.31s.6.21.98.3.85.17 1.47.25c1.25.12 1.87.21 2.5.26.31.03.63.06 1.02.08s.87.02 1.5.01c.63 0 1.1-.1 1.49-.19.39-.1.69-.21.99-.35.6-.27 1.19-.5 2.41-.7 2.42-.44 2.53.02 4.94-.67.6-.18 1.04-.35 1.39-.53.35-.17.62-.34.89-.5s.53-.35.87-.53c.34-.2.76-.38 1.31-.66.56-.27.98-.45 1.32-.63s.62-.32.89-.46c.55-.27 1.08-.6 2.13-1.24 1.03-.69 1.56-1 2.07-1.35.26-.17.52-.34.84-.56.31-.23.67-.53 1.15-.92.32-.27.53-.55.66-.83.45-.26.87-.59 1.25-.94.02-.02.05-.04.08-.06ZM43.66 44.08c.31 1.23.59 2.44.83 3.62.2 1.26.43 2.48.67 3.66.2.57.41 1.15.61 1.72s.41 1.15.61 1.72q.3.855.63 1.8c.19.52.33 1.08.43 1.68q.03.42.24.96l.26 1.04c.03.33.06.69.1 1.08.08.32.09.57.02.76-.13.37-.22.6-.26.66-.13.15-.25.23-.36.26-.09.08-.26.09-.5.04-.09.08-.27.15-.54.22-.41.16-.88.34-1.4.53l-1.56.57c-.52.19-1.05.35-1.58.49q-.795.21-1.5.12c-.56-.06-1.11-.18-1.66-.37-.5-.73-.58-1.92-.73-2.73-.21-1.2-.45-2.36-.77-3.53-.87-3.2-1.77-6.39-2.58-9.6-.24-.95-.46-1.91-.68-2.88-.02.01-.03.02-.05.04-.43.42-.89.9-1.36 1.44-.36.5-.83 1-1.42 1.5-.51.42-1.12.98-1.83 1.67q-1.005.975-2.07 2.13l-2.13 2.07c-.63.69-1.22 1.31-1.78 1.84-.79.85-1.4 1.56-1.84 2.14l-1.07 1.04c-.35.19-.68.2-.99.04-.27-.04-.64-.26-1.1-.66v-.12c-.46-.4-.88-.87-1.26-1.42-.38-.47-.8-.95-1.27-1.42-.19-.2-.42-.4-.69-.59-.23-.24-.54-.48-.92-.71-.11-.2-.25-.37-.4-.53-.12-.04-.21-.14-.29-.3-.34-.43-.53-.83-.57-1.18-.11-.2-.07-.47.13-.82.2-.27.57-.64 1.12-1.09.47-.54 1.11-1.23 1.9-2.08.43-.5.97-1.06 1.6-1.67l3.85-3.74c.67-.58 1.26-1.07 1.77-1.49.36-.42.81-.9 1.36-1.44l1.78-1.73c.09-.09.2-.18.29-.28q-1.38-.345-2.73-.72c-3.19-.9-6.35-1.89-9.53-2.84-1.17-.35-2.32-.62-3.51-.86-.81-.17-2-.28-2.71-.8-.17-.55-.28-1.11-.33-1.67-.04-.47.02-.97.17-1.5s.33-1.05.53-1.57.41-1.03.61-1.54c.2-.52.39-.98.56-1.39.08-.27.15-.44.24-.53-.05-.24-.03-.41.06-.5.03-.11.12-.22.27-.35.07-.04.29-.12.67-.24.19-.06.44-.05.76.04.39.05.75.1 1.08.13l1.03.29c.36.16.67.25.95.27.6.11 1.15.27 1.67.47.62.23 1.21.46 1.78.68s1.13.43 1.7.65 1.13.43 1.7.65c1.18.28 2.39.53 3.64.77q1.77.42 3.6.93c.16.02.34.04.51.06-.11-.39-.24-.8-.38-1.23-.25-.56-.45-1.22-.59-1.98-.11-.65-.28-1.46-.53-2.42-.23-.91-.5-1.86-.81-2.86l-.73-2.88c-.28-.89-.52-1.71-.71-2.46-.34-1.11-.65-1.99-.93-2.66l-.37-1.44c.01-.4.16-.69.46-.88.17-.21.55-.42 1.12-.62l.1.06q.855-.3 1.86-.39c.6-.1 1.22-.22 1.86-.39.27-.07.55-.17.86-.3.32-.08.68-.23 1.08-.44.23 0 .45-.03.66-.08.09-.08.23-.11.4-.1.55-.08.98-.05 1.3.1.23 0 .44.17.64.52.13.31.26.81.39 1.52.23.68.51 1.57.85 2.68.22.63.43 1.37.65 2.22l1.32 5.2c.16.87.3 1.63.41 2.28.19.52.38 1.15.57 1.9l.55 2.15c.88-.85 1.75-1.67 2.63-2.44.98-.81 1.93-1.61 2.84-2.41.4-.46.79-.92 1.19-1.39.4-.46.79-.92 1.19-1.39.4-.46.81-.94 1.25-1.44.36-.42.77-.83 1.24-1.21.24-.15.47-.38.71-.69l.77-.75c.27-.19.57-.4.88-.63.24-.23.45-.36.65-.4.39-.07.62-.11.7-.11.19.04.33.1.41.18.12.04.21.18.29.41.12.04.27.16.46.36.35.28.73.59 1.15.95s.85.71 1.27 1.07.83.73 1.21 1.13.67.81.86 1.24q.345.765.51 1.62c-.38.8-1.37 1.46-2 2-.93.78-1.82 1.57-2.68 2.43-2.34 2.35-4.65 4.72-7.03 7.03-.54.52-1.08 1.04-1.64 1.55l2.22.63c.74.21 1.37.42 1.88.62.65.13 1.41.28 2.27.47l5.17 1.46c.85.24 1.58.48 2.2.71 1.1.37 1.98.67 2.66.92.7.14 1.21.28 1.51.43.34.21.51.43.5.66.14.32.16.76.06 1.3 0 .17-.03.31-.11.4-.06.21-.09.43-.1.66-.23.39-.38.75-.47 1.07-.14.3-.25.59-.33.85-.18.64-.33 1.25-.44 1.85-.07.67-.22 1.28-.44 1.85l.06.1c-.22.57-.44.93-.65 1.1-.2.29-.49.43-.89.43l-1.43-.4c-.66-.3-1.54-.64-2.63-1-.74-.21-1.56-.47-2.44-.78l-2.86-.81c-.99-.34-1.94-.63-2.84-.89-.95-.27-1.76-.47-2.41-.59-.76-.16-1.41-.37-1.96-.64-.43-.16-.83-.3-1.22-.42.02.18.04.35.05.51Z"/></svg>
+</div>
 
 <!-- The dog. Built procedurally in JS. -->
 <svg id="glizzy" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
 
 <main>
   <section class="hero-section">
+    <div class="hero__masthead">
+      <h1 class="masthead__title f-magnolia">Glizzy?</h1>
+      <span class="masthead__subtitle f-sequoia">Store</span>
+    </div>
     <div class="hero-canvas-wrap">
       <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>
     </div>
@@ -177,6 +321,61 @@
   <section><h2>Section 5</h2><p>Filler content for scrolling through.</p></section>
   <section><h2>Section 6</h2><p>Filler content for scrolling through.</p></section>
   <section><h2>The end</h2><p>By now you've scrolled past the entire dog.</p></section>
+
+  <section>
+    <h2>Font samples</h2>
+    <div class="font-samples">
+      <div class="font-sample">
+        <span class="label">.f-sequoia-thin</span>
+        <p class="specimen f-sequoia-thin">Glizzy is a hot dog</p>
+        <p class="pangram  f-sequoia-thin">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-sequoia-light</span>
+        <p class="specimen f-sequoia-light">Glizzy is a hot dog</p>
+        <p class="pangram  f-sequoia-light">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-sequoia</span>
+        <p class="specimen f-sequoia">Glizzy is a hot dog</p>
+        <p class="pangram  f-sequoia">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-sequoia-wide</span>
+        <p class="specimen f-sequoia-wide">Glizzy is a hot dog</p>
+        <p class="pangram  f-sequoia-wide">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-magnolia</span>
+        <p class="specimen f-magnolia">Glizzy is a hot dog</p>
+        <p class="pangram  f-magnolia">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-bricolage-light</span>
+        <p class="specimen f-bricolage-light">Glizzy is a hot dog</p>
+        <p class="pangram  f-bricolage-light">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-bricolage</span>
+        <p class="specimen f-bricolage">Glizzy is a hot dog</p>
+        <p class="pangram  f-bricolage">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-bricolage-bold</span>
+        <p class="specimen f-bricolage-bold">Glizzy is a hot dog</p>
+        <p class="pangram  f-bricolage-bold">The quick brown fox jumps over the lazy dog · 0123456789</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-bricolage-condensed</span>
+        <p class="specimen f-bricolage-condensed">condensed glizzy</p>
+      </div>
+      <div class="font-sample">
+        <span class="label">.f-bricolage-text vs .f-bricolage-display (opsz 12 ↔ 96)</span>
+        <p class="specimen f-bricolage-text">opsz 12 — display-set spaced like text</p>
+        <p class="specimen f-bricolage-display">opsz 96 — text-set spaced like display</p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <div id="debug-panel" class="collapsed">
@@ -186,9 +385,9 @@
   </div>
   <div id="debug-body">
     <label><span>bg top</span>
-      <input id="ctrl-bgtop" type="color" value="#202f61"></label>
+      <input id="ctrl-bgtop" type="color" value="#000731"></label>
     <label><span>bg bottom</span>
-      <input id="ctrl-bgbottom" type="color" value="#122557"></label>
+      <input id="ctrl-bgbottom" type="color" value="#000724"></label>
     <label><span>dog color</span>
       <input id="ctrl-dogcolor" type="color" value="#dc512a"></label>
     <label><span>dog highlight</span>
@@ -222,6 +421,9 @@
       <label><span>U-turn (× stroke)</span>
         <input id="ctrl-uturn" type="range" min="0.5" max="3" step="0.05" value="0.75">
         <output id="out-uturn">0.75</output></label>
+      <label><span>u-turn bleed (% vw)</span>
+        <input id="ctrl-bleed" type="range" min="0" max="50" step="1" value="20">
+        <output id="out-bleed">20</output></label>
       <label><span>body min-height (svh)</span>
         <input id="ctrl-body" type="range" min="200" max="2400" step="25" value="800">
         <output id="out-body">800</output></label>
@@ -248,11 +450,11 @@
         <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.66">
         <output id="out-rough">0.66</output></label>
       <label><span>lumpiness</span>
-        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.08">
-        <output id="out-lump">0.080</output></label>
+        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.10">
+        <output id="out-lump">0.100</output></label>
       <label><span>lump scale</span>
-        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.5">
-        <output id="out-lumpfreq">0.5</output></label>
+        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.6">
+        <output id="out-lumpfreq">0.6</output></label>
       <label><span>tip notch depth</span>
         <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.175">
         <output id="out-notch">0.175</output></label>
@@ -266,8 +468,8 @@
         <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
         <output id="out-capfull">1.00</output></label>
       <label><span>key light X</span>
-        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="-8">
-        <output id="out-keyx">-8.0</output></label>
+        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="10">
+        <output id="out-keyx">10.0</output></label>
       <label><span>key light Y</span>
         <input id="ctrl-keyy" type="range" min="-10" max="10" step="0.5" value="-10">
         <output id="out-keyy">-10.0</output></label>
@@ -281,8 +483,8 @@
         <input id="ctrl-amb" type="range" min="0" max="1.5" step="0.05" value="1.5">
         <output id="out-amb">1.50</output></label>
       <label><span>rim intensity</span>
-        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="1.3">
-        <output id="out-rimi">1.30</output></label>
+        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="0.2">
+        <output id="out-rimi">0.20</output></label>
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
@@ -296,15 +498,38 @@ gsap.registerPlugin(ScrollTrigger);
 // Prevent mobile URL-bar show/hide from re-triggering the path animation.
 ScrollTrigger.config({ ignoreMobileResize: true });
 
-// Linear interpolation between two hex colors (#rrggbb) at t in [0, 1].
-function lerpColor(a, b, t) {
-  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-  const ar = (pa >> 16) & 0xff, ag = (pa >> 8) & 0xff, ab = pa & 0xff;
-  const br = (pb >> 16) & 0xff, bg = (pb >> 8) & 0xff, bb = pb & 0xff;
-  const r = Math.round(ar + (br - ar) * t);
-  const g = Math.round(ag + (bg - ag) * t);
-  const b2 = Math.round(ab + (bb - ab) * t);
-  return '#' + [r, g, b2].map(v => v.toString(16).padStart(2, '0')).join('');
+// Parse a CSS color string into {r,g,b} floats in [0,1] + a p3 flag.
+// Handles #rrggbb, rgb()/rgba(), and color(display-p3 r g b) — which is what
+// getComputedStyle returns when the @supports block kicks in on Safari/Chrome.
+function parseColor(s) {
+  s = (s || '').trim();
+  let m;
+  if (s[0] === '#') {
+    const v = parseInt(s.slice(1), 16);
+    return { r: ((v >> 16) & 0xff) / 255, g: ((v >> 8) & 0xff) / 255, b: (v & 0xff) / 255, p3: false };
+  }
+  if ((m = s.match(/color\(display-p3\s+([\d.+-eE]+)\s+([\d.+-eE]+)\s+([\d.+-eE]+)/i))) {
+    return { r: +m[1], g: +m[2], b: +m[3], p3: true };
+  }
+  if ((m = s.match(/rgba?\(\s*([\d.]+)\D+([\d.]+)\D+([\d.]+)/))) {
+    return { r: +m[1] / 255, g: +m[2] / 255, b: +m[3] / 255, p3: false };
+  }
+  return { r: 0, g: 0, b: 0, p3: false };
+}
+
+// Linear interpolation between two CSS colors at t in [0, 1].
+// Emits color(display-p3 ...) if either input was P3, else #rrggbb.
+function lerpColor(aStr, bStr, t) {
+  const a = parseColor(aStr);
+  const b = parseColor(bStr);
+  const r  = a.r + (b.r - a.r) * t;
+  const g  = a.g + (b.g - a.g) * t;
+  const bl = a.b + (b.b - a.b) * t;
+  if (a.p3 || b.p3) {
+    return `color(display-p3 ${r.toFixed(4)} ${g.toFixed(4)} ${bl.toFixed(4)})`;
+  }
+  const to8 = v => Math.max(0, Math.min(255, Math.round(v * 255)));
+  return '#' + [to8(r), to8(g), to8(bl)].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
 // ---------- tuning knobs (live via debug panel) ----------
@@ -315,6 +540,7 @@ let END_STUB_VMIN       = 75;    // height of the bottom vertical stub: end cap 
 let END_MARGIN_VMIN     = 100;   // empty space below the end cap (in vmin)
 let STROKE_VW           = 0.5;   // stroke as fraction of VIEWPORT WIDTH
 let UTURN_RATIO         = 0.75;  // U-turn radius as multiple of stroke width (≥0.5 = no self-intersection)
+let UTURN_BLEED_VW      = 0.20;  // extra horizontal overflow as fraction of vw
 let BODY_VH             = 800;   // desired body min-height in svh (page extends past this if needed)
 
 // Breakpoint defaults for stroke width — both desktop and mobile use 50vw now.
@@ -328,7 +554,7 @@ let currentBreakpoint = null;
 // and shorter stubs/margins than portrait, otherwise the dog has too much air.
 const ASPECT_PRESETS = {
   portrait:  { topMargin: 200, dogHeight: 120, trigger: 210, endStub: 75, endMargin: 100 },
-  landscape: { topMargin: 200, dogHeight: 140, trigger: 200, endStub: 50, endMargin:  50 },
+  landscape: { topMargin: 135, dogHeight: 140, trigger: 280, endStub: 50, endMargin:  50 },
 };
 let currentAspect = null;
 
@@ -411,7 +637,7 @@ function buildPath() {
   const stubX  = vw - halfStroke;
   // Allow centerline to extend past viewport edges if U-turn radius needs more room.
   // First H length = (vw - halfStroke - R) - (leftX + R) = vw - halfStroke - 2R - leftX
-  const overflow = Math.max(0, 2 * R + halfStroke - vw);
+  const overflow = Math.max(UTURN_BLEED_VW * vw, 2 * R + halfStroke - vw);
   const leftX  = -overflow;
   const rightX = vw + overflow;
 
@@ -533,9 +759,6 @@ function rebuild() {
       ease: 'none',
       scrollTrigger: {
         start: () => (SCROLL_TRIGGER_VMIN / 100) * Math.min(window.innerWidth, window.innerHeight),
-        // End when the path's last point (end of end-stub stroke) reaches the viewport
-        // bottom. By the time the user gets to the page bottom, the animation is already
-        // at 100% in either viewport size.
         end:   () => state.endStubEndY - window.innerHeight,
         scrub: 0.5,
         invalidateOnRefresh: true,
@@ -610,6 +833,7 @@ wire('ctrl-endstub',       'out-endstub',       parseFloat, v => END_STUB_VMIN  
 wire('ctrl-endmargin',     'out-endmargin',     parseFloat, v => END_MARGIN_VMIN     = v);
 wire('ctrl-stroke',        'out-stroke',        parseFloat, v => STROKE_VW           = v / 100);
 wire('ctrl-uturn',         'out-uturn',         parseFloat, v => UTURN_RATIO         = v);
+wire('ctrl-bleed',         'out-bleed',         parseFloat, v => UTURN_BLEED_VW      = v / 100);
 wire('ctrl-body',          'out-body',          parseFloat, v => BODY_VH             = v);
 
 // Collapsible debug panel (collapsed on load — see <div class="collapsed"> on the panel)
@@ -675,6 +899,7 @@ document.getElementById('copy-stats').addEventListener('click', () => {
 rebuild();
 window.addEventListener('scroll', updateDebug, { passive: true });
 
+
 // Rebuild on resize, but ignore mobile URL-bar height changes — only width changes
 // (or sufficiently large height changes) trigger a rebuild.
 let resizeTimer;
@@ -717,8 +942,8 @@ let TILT_X    = THREE.MathUtils.degToRad(15);
 let TILT_Z    = THREE.MathUtils.degToRad(-25);
 let SPIN      = 0.8;
 let ROUGH     = 0.66;
-let LUMP_AMP    = 0.08;
-let LUMP_FREQ   = 0.5;
+let LUMP_AMP    = 0.10;
+let LUMP_FREQ   = 0.6;
 let LUMP_SEED   = 0;
 let NOTCH_AMP    = 0.175;
 let NOTCH_POINTS = 6;
@@ -783,9 +1008,9 @@ heroRenderer.outputColorSpace = THREE.SRGBColorSpace;
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 heroScene.add(ambientLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 4);
-keyLight.position.set(-8, -10, 10);
+keyLight.position.set(10, -10, 10);
 heroScene.add(keyLight);
-const rimLight = new THREE.DirectionalLight(0xff7a4f, 1.3);
+const rimLight = new THREE.DirectionalLight(0xff7a4f, 0.2);
 rimLight.position.set(-3, -1, -2);
 heroScene.add(rimLight);
 
