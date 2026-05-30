@@ -294,6 +294,23 @@
     letter-spacing: 0.1em;
     margin: -.25em 0 0;
   }
+
+  .glizzy-repeat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .glizzy-repeat span {
+    font-size: clamp(5rem, 20.5vw, 50rem);
+    font-family: 'Sequoia Sans';
+    font-weight: 400;
+    font-stretch: expanded;
+    line-height: .8;
+    letter-spacing: 0.02em;
+  }
 </style>
 </head>
 <body>
@@ -315,12 +332,36 @@
       <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>
     </div>
   </section>
-  <section><h2>Section 2</h2><p>Filler content for scrolling through.</p></section>
-  <section><h2>Section 3</h2><p>Filler content for scrolling through.</p></section>
-  <section><h2>Section 4</h2><p>Filler content for scrolling through.</p></section>
-  <section><h2>Section 5</h2><p>Filler content for scrolling through.</p></section>
-  <section><h2>Section 6</h2><p>Filler content for scrolling through.</p></section>
-  <section><h2>The end</h2><p>By now you've scrolled past the entire dog.</p></section>
+  <section class="glizzy-repeat">
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+  </section>
+  <section class="glizzy-repeat">
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+  </section>
+  <section class="glizzy-repeat">
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+  </section>
+  <section class="glizzy-repeat">
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+  </section>
+  <section class="glizzy-repeat">
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+    <span>Glizzy</span>
+  </section>
 
   <section>
     <h2>Font samples</h2>
