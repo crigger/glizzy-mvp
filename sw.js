@@ -6,7 +6,7 @@
 //       * navigations / HTML  → network-first, cache fallback (so deploys land fast).
 //       * everything else      → cache-first, network fallback + write-through.
 
-const VERSION    = 'v3';
+const VERSION    = 'v4';
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [
@@ -19,6 +19,7 @@ const PRECACHE = [
   '/icon-2c--padded.svg',
   '/favicon-32.png',
   '/apple-touch-icon.png',
+  '/apple-touch-icon-1024.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-1024.png',
