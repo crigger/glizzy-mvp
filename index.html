@@ -81,18 +81,20 @@
 
   :root {
     /* sRGB fallback values — used everywhere if the browser doesn't grok P3 */
-    --bg-top: #000731;
-    --bg-bottom: #000724;
+    --bg-top: #000d60;
+    --bg-bottom: #000d48;
     --dog-color: #dc512a;
     --dog-highlight: #ff945a;
 
     --mustard: #ffa300;
+    --cta: #30a2ff;
   }
   @supports (color: color(display-p3 0 0 0)) {
     :root {
-      --bg-top: color(display-p3 0 0.027 0.192);
-      --bg-bottom: color(display-p3 0 0.027 0.141);
+      --bg-top: color(display-p3 0 0.04 0.27);
+      --bg-bottom: color(display-p3 0 0.04 0.22);
       --mustard: color(display-p3 1 0.64 0.12);
+      --cta: color(display-p3 0.15 0.58 1);
     }
   }
   * { box-sizing: border-box; }
@@ -175,12 +177,19 @@
      Stays on top of all other content (z-index above the debug panel). */
   #hero-stage.mini {
     position: fixed;
-    top: 16px;
-    left: 16px;
-    width: 148px;
-    height: 148px;
+    top: 0;
+    left: 0;
+    width: 96px;
+    height: 96px;
     z-index: 200;
     cursor: grab;
+  }
+
+  @media screen and (min-aspect-ratio: 1/1) {
+    #hero-stage.mini {
+      width: 148px;
+      height: 148px;
+    }
   }
 
   /* Top-right brand icon (same shape as the favicon). Inlined so the path's
@@ -212,6 +221,8 @@
     min-width: 320px;
     max-width: 380px;
     overflow: hidden;
+
+    display: none;
   }
   #debug-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -311,6 +322,47 @@
     line-height: .8;
     letter-spacing: 0.02em;
   }
+
+  /* Intro CTA: the question again + acquire button. The dog stub occupies the
+     right half of the viewport, so the content lives in the left half on
+     desktop and centers on phones. */
+  .intro-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .intro-cta__inner {
+    /* keep clear of the right-half dog stub */
+    max-width: min(46%, 30rem);
+  }
+  .intro-cta__q {
+    font-size: clamp(3rem, 9vw, 7rem);
+    font-weight: normal;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    margin: 0 0 1.25rem;
+  }
+  .btn-acquire {
+    display: inline-block;
+    background: var(--cta);
+    color: var(--bg-top);
+    text-decoration: none;
+    font-family: 'Sequoia Sans';
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.85em 1.6em;
+    border-radius: 999px;
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .btn-acquire:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-acquire:active { transform: translateY(0); }
+
+  @media (max-width: 700px) {
+    .intro-cta { align-items: center; text-align: center; }
+    .intro-cta__inner { max-width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -332,11 +384,11 @@
       <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>
     </div>
   </section>
-  <section class="glizzy-repeat">
-    <span>Glizzy</span>
-    <span>Glizzy</span>
-    <span>Glizzy</span>
-    <span>Glizzy</span>
+  <section class="intro-cta">
+    <div class="intro-cta__inner">
+      <h2 class="intro-cta__q f-magnolia">Glizzy?</h2>
+      <a class="btn-acquire" href="#">Acquire</a>
+    </div>
   </section>
   <section class="glizzy-repeat">
     <span>Glizzy</span>
