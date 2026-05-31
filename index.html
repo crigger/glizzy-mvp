@@ -8,7 +8,13 @@
 <link rel="icon"             type="image/png"     sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest"         href="site.webmanifest">
-<meta name="theme-color" content="#000731">
+<meta name="theme-color"     content="#000731">
+<!-- PWA / installable web app hints -->
+<meta name="apple-mobile-web-app-capable"          content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title"            content="Glizzy">
+<meta name="mobile-web-app-capable"                content="yes">
+<meta name="application-name"                      content="Glizzy">
 <style>
   /* ───── fonts (woff2) ───── */
   @font-face {
@@ -1699,6 +1705,16 @@ heroObserver.observe(heroWrap);
 // already, but ResizeObserver catches CSS-only changes too.
 new ResizeObserver(() => { if (!canvasFlipping) heroResize(); })
   .observe(heroCanvas);
+</script>
+
+<script>
+  // Register the PWA service worker (cached app shell, installable on iOS / Android).
+  // Only runs in production-style contexts (HTTPS or localhost); silently no-ops elsewhere.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => { /* swallow registration errors */ });
+    });
+  }
 </script>
 </body>
 </html>
