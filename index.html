@@ -147,7 +147,13 @@
     box-sizing: border-box;
     min-height: calc(100svh - 96px - 24px);
     margin: 24px 0;
-    padding: 48px;
+    padding: 48px 0;
+  }
+
+  @media (min-width: 768px) {
+    section {
+      padding: 48px;
+    }
   }
 
   section:first-child {
@@ -342,9 +348,10 @@
   .intro-cta__inner {
     /* keep clear of the right-half dog stub */
     max-width: min(46%, 30rem);
+    padding-top: 50svh;
   }
   .intro-cta__q {
-    font-size: clamp(3rem, 9vw, 7rem);
+    font-size: clamp(3.25rem, 9vw, 7rem);
     font-weight: normal;
     line-height: 1;
     letter-spacing: 0.02em;
@@ -367,7 +374,7 @@
   .btn-acquire:active { transform: translateY(0); }
 
   @media (max-width: 700px) {
-    .intro-cta { align-items: center; text-align: center; }
+    .intro-cta { align-items: flex-start; text-align: left; }
     .intro-cta__inner { max-width: 100%; }
   }
 </style>
