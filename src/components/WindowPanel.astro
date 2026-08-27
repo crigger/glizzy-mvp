@@ -18,11 +18,18 @@ interface Props {
   /** Omit for a panel with no chrome bar — see `.window--untitled`. */
   title?: string;
   draggable?: boolean;
+  /**
+   * Media edge-to-edge: no padding and no bone card, the slot sits directly
+   * under the chrome. For a panel whose content IS an image — the bone card
+   * exists to put type on, and framing a photograph with it reads as a mat
+   * that nothing chose. The PDP's art window is the first user.
+   */
+  flush?: boolean;
 }
-const { title, draggable = false } = Astro.props;
+const { title, draggable = false, flush = false } = Astro.props;
 ---
 
-<div class:list={['window', !title && 'window--untitled']}>
+<div class:list={['window', !title && 'window--untitled', flush && 'window--flush']}>
   {
     title && (
       <div class:list={['window-chrome', draggable && 'js-drag-handle']}>
@@ -35,9 +42,10 @@ const { title, draggable = false } = Astro.props;
       The copy sits on an opaque card, never on the glass. That is what lets the
       panel behind it be as transparent and as busy as it likes — the contrast
       is between the type and the card, and nothing else.
+
+      A flush panel skips the card entirely: its content is opaque media, and
+      the no-text-on-glass rule has nothing to protect.
     */}
-    <div class="window-content__inner">
-      <slot />
-    </div>
+    {flush ? <slot /> : <div class="window-content__inner"><slot /></div>}
   </div>
 </div>

@@ -271,12 +271,19 @@
   }
 }
 
+/* The window around the art. It is the grid child now, so the opt-out from
+   `.pdp__inner`'s stretch lives here — see .pdp__inner. */
+.pdp__window { align-self: start; }
+
+/*
+ * The keyline, the radius and the shadow all came off: the WINDOW supplies
+ * them now — mustard border, radius 8, its own thrown shadow — and a second
+ * rounded box inside a first reads as a picture matted twice. The faint
+ * ground stays for the beat before the image arrives.
+ */
 .pdp__art-frame {
-  align-self: start;   /* its own height — see .pdp__inner */
-  border-radius: 14px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
 }
 
 .pdp__art {

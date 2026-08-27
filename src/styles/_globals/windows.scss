@@ -253,6 +253,9 @@ section.glizzy-window {
   z-index: 1;
 }
 
+/* Media edge-to-edge — see WindowPanel's `flush` prop. */
+.window--flush .window-content { padding: 0; }
+
 /*
  * The opaque card. This is what makes the glass safe: the panel behind it can be
  * as transparent and as busy as it likes, because no readable text is ever on

@@ -10,6 +10,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import SiteIcon from '../../components/SiteIcon.astro';
+import WindowPanel from '../../components/WindowPanel.astro';
 import { breadcrumbNode, organizationNode, productNode } from '../../lib/productJsonLd';
 import {
   cdnImage,
@@ -105,19 +106,31 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
         accessibility tree with its description — leaving the canvas as the
         only thing left to name the product.
       */}
-      <div class="pdp__art-frame">
-        <img
-          class="pdp__art"
-          id="pdp-art"
-          fetchpriority="high"
-          src={cdnImage(art?.url ?? '', 960)}
-          srcset={cdnSrcset(art?.url ?? '', art?.width)}
-          sizes="(max-width: 48rem) calc(100vw - 2rem), calc(50vw - 3.5rem)"
-          alt={alt}
-          width={art?.width ?? 2000}
-          height={art?.height ?? 2000}
-        />
-        <canvas id="pdp-stage" class="pdp__stage" role="img" aria-label={alt}></canvas>
+      {/*
+        The art rides in one of the site's windows — the same chrome bar and
+        mustard keyline as the process panels, continuing their numbering, but
+        static and `flush`: the photograph IS the content, edge to edge under
+        the bar. The extra wrapper exists because the grid child needs
+        `align-self: start` and the window's own root class belongs to
+        windows.scss, not here.
+      */}
+      <div class="pdp__window">
+        <WindowPanel title="The Goods · 01" flush>
+          <div class="pdp__art-frame">
+            <img
+              class="pdp__art"
+              id="pdp-art"
+              fetchpriority="high"
+              src={cdnImage(art?.url ?? '', 960)}
+              srcset={cdnSrcset(art?.url ?? '', art?.width)}
+              sizes="(max-width: 48rem) calc(100vw - 2rem), calc(50vw - 3.5rem)"
+              alt={alt}
+              width={art?.width ?? 2000}
+              height={art?.height ?? 2000}
+            />
+            <canvas id="pdp-stage" class="pdp__stage" role="img" aria-label={alt}></canvas>
+          </div>
+        </WindowPanel>
       </div>
 
       <div class="pdp__detail">
