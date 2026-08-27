@@ -100,8 +100,10 @@ main {
    */
   /* max-width: 640px; */
   margin: 0 auto;
-  /* The page gutter lives here and nowhere else — see --page-gutter. */
-  padding: 24px var(--page-gutter);
+  /* The page gutter lives here and nowhere else — see --page-gutter. The top
+     also carries the status-bar guard: black-translucent + viewport-fit=cover
+     puts the installed PWA's content under the clock. Zero in a browser. */
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) var(--page-gutter) 24px;
 }
 
 /* Vertical only. The horizontal inset comes from `main`. */

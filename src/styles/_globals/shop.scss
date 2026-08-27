@@ -20,7 +20,12 @@
   // `main` uses, rather than the flat 24 this restated — so the shop keeps the
   // page's own margin (24 on a phone, 56 from tablet up) instead of quietly
   // running narrower than everything else at the width where it widens.
-  padding: 24px var(--page-gutter) 12svh;
+  //
+  // The TOP is guarded against the status bar. The site ships
+  // `black-translucent` + `viewport-fit=cover`, so in the installed PWA the
+  // page starts under the clock — the window chrome bar sat behind "7:50".
+  // In a browser the inset is 0 and this is exactly the 24px it always was.
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) var(--page-gutter) 12svh;
   max-width: none;
 }
 
@@ -524,7 +529,9 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1.25rem;
+  /* Top guarded for the installed PWA — the drawer is fixed to the viewport,
+     so "Cart" rendered under the status bar's clock. See .shop-page. */
+  padding: calc(env(safe-area-inset-top, 0px) + 1.25rem) 1.25rem 1.25rem;
   overflow-y: auto;
 
   /*
@@ -1045,7 +1052,9 @@
   font-family: 'Sequoia Sans';
   font-size: 0.8rem;
   line-height: 1.35;
-  opacity: 0.75;
+  /* Full strength, like the notes and the counter before it: this is the
+     buyer's own inscription being read back, not fine print. */
+  opacity: 1;
   margin: 0.25rem 0 0;
   white-space: pre-line;   /* the newlines are the point */
   overflow-wrap: anywhere; /* an unbroken 100-char string must not widen the drawer */
