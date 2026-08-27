@@ -241,17 +241,29 @@ const shopImageMirror = () => ({
  * The share card and the structured data have to carry ABSOLUTE urls, and by
  * the time this runs they do not.
  *
- * `Layout.astro` builds `og:image` absolute — and then `shopImageMirror()`
- * rewrites that Shopify CDN url to a local `/img/shop/…` path, because it
- * rewrites every occurrence in the output and cannot tell a `<meta>` from an
- * `<img>`. Each half is right on its own; the pair ships a relative og:image,
- * which no scraper will fetch. Same for the `image` array in the JSON-LD.
+ * The layout builds `og:image` absolute — and then `shopImageMirror()` rewrites
+ * that Shopify CDN url to a local `/img/shop/…` path, because it rewrites every
+ * occurrence in the output and cannot tell a `<meta>` from an `<img>`. Each
+ * half is right on its own; the pair ships a relative og:image, which no
+ * scraper will fetch. The same goes for the `image` array in the JSON-LD.
  *
- * So: after the mirror, absolutise. Meta by name, and the JSON-LD by PARSING
- * it and walking every string — a regex over a graph that nests offers inside
- * products inside a list would be guesswork.
+ * It only shows on PRODUCT pages — the rest of the site has no mirrored image
+ * in its head — which is exactly why it went unnoticed on all three sites.
+ *
+ * So: after the mirror, absolutise. Meta by attribute and name, and the JSON-LD
+ * by PARSING it and walking every string: a regex over a graph that nests
+ * offers inside products inside a list would be guesswork.
+ *
+ * SHARED WITH THE SIBLINGS, like the mirror it repairs. This is identical in
+ * vinton.land, mmmornings and glizzy apart from the site it is passed; fix a
+ * bug here and it wants fixing in the other two.
  */
-const ABSOLUTE_META = ['og:image', 'og:url', 'twitter:image'];
+const ABSOLUTE_META = [
+  ['property', 'og:image'],
+  ['property', 'og:url'],
+  ['name', 'twitter:image'],
+  ['itemprop', 'image'],
+];
 const absolutiseSocialUrls = (site) => ({
   name: 'absolutise-social-urls',
   hooks: {
@@ -259,12 +271,14 @@ const absolutiseSocialUrls = (site) => ({
       const { readdir, readFile, writeFile } = await import('node:fs/promises');
 
       const origin = new URL(site).origin;
-      const abs = (v) => (typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? origin + v : v);
+      const abs = (v) =>
+        typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? origin + v : v;
       const walk = (node) =>
-        Array.isArray(node) ? node.map(walk)
-        : node && typeof node === 'object'
-          ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
-        : abs(node);
+        Array.isArray(node)
+          ? node.map(walk)
+          : node && typeof node === 'object'
+            ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
+            : abs(node);
 
       const pages = [];
       const collect = async (d) => {
@@ -281,8 +295,7 @@ const absolutiseSocialUrls = (site) => ({
         const before = await readFile(file, 'utf8');
         let out = before;
 
-        for (const name of ABSOLUTE_META) {
-          const attr = name.startsWith('og:') ? 'property' : 'name';
+        for (const [attr, name] of ABSOLUTE_META) {
           out = out.replace(
             new RegExp(`(<meta ${attr}="${name}" content=")(/[^"]*)(")`, 'g'),
             (_m, a, url, z) => a + origin + url + z
@@ -292,12 +305,18 @@ const absolutiseSocialUrls = (site) => ({
         out = out.replace(
           /(<script type="application\/ld\+json">)(.*?)(<\/script>)/gs,
           (m, open, json, close) => {
-            try { return open + JSON.stringify(walk(JSON.parse(json))) + close; }
-            catch { return m; }   // never trade valid markup for a failed parse
+            try {
+              return open + JSON.stringify(walk(JSON.parse(json))) + close;
+            } catch {
+              return m; // never trade valid markup for a failed parse
+            }
           }
         );
 
-        if (out !== before) { await writeFile(file, out); fixed++; }
+        if (out !== before) {
+          await writeFile(file, out);
+          fixed++;
+        }
       }
       logger.info(`absolutised share-card and JSON-LD urls on ${fixed} page(s)`);
     },

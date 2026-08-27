@@ -417,8 +417,10 @@ export function formatPrice(money: ShopMoney): string {
  *
  * ───── IF A SECOND PRODUCT IS EVER ADDED ─────
  *
- * Bring `src/pages/shop/index.astro` back (it is in the git history, and
- * `components/shop/ShopCard.astro` is still here waiting for it), point this
+ * Bring `src/pages/shop/index.astro` back — it has to be REBUILT, not
+ * recovered. It was deleted before it was ever committed, so it is in no
+ * history anywhere; `git log --all` finds nothing. (`components/shop/
+ * ShopCard.astro` IS still here waiting for it.) Then point this
  * at `/shop/` again for the multi-product case, and restore the "Shop" level
  * in `breadcrumbNode()` in productJsonLd.ts. The build WARNS below if there is
  * more than one product, so this cannot be forgotten silently — a CTA would
