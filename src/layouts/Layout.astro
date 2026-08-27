@@ -103,7 +103,11 @@ const ogImageUrl = new URL(ogImage ?? '/og.jpg', Astro.site ?? SITE_FALLBACK).hr
     <link rel="apple-touch-icon" sizes="1024x1024" href="/apple-touch-icon-1024.png" />
     <link rel="canonical" href={canonical} />
     <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#000731" />
+    {/* --bg-top's sRGB value. #000731 before — the OLD site's navy, which put a
+    visible seam between the browser chrome and the page, and between the PWA
+    splash ground and the icon's plate. A meta cannot read a CSS variable, so
+    the hex is written out; it must track vars.scss by hand. */}
+    <meta name="theme-color" content="#000d60" />
 
     {/* PWA / installable web app hints */}
     <meta name="apple-mobile-web-app-capable" content="yes" />

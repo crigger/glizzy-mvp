@@ -13,7 +13,8 @@
 // write-through picks them up on the first visit and can never serve a stale
 // one, because a stale one has a different name.
 
-const VERSION    = 'v8';   // bumped for the Astro port — v7 cached the old hand-written index.html
+const VERSION    = 'v9';   // v9: the icon set re-drawn to match the corner mark — same URLs, so the
+                           // cache-first strategy would have served the old ones to installed PWAs forever
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [

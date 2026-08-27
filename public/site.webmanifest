@@ -1,13 +1,13 @@
 {
   "name": "Glizzy",
   "short_name": "Glizzy",
-  "description": "Glizzy MVP — a procedural switchback hot dog.",
+  "description": "Glizzy Store — one ceramic glizzy.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#000731",
-  "theme_color": "#000731",
+  "background_color": "#000d60",
+  "theme_color": "#000d60",
   "icons": [
     { "src": "apple-touch-icon-1024.png", "sizes": "1024x1024", "type": "image/png" },
     { "src": "icon-512.png",              "sizes": "512x512",   "type": "image/png" },
