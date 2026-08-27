@@ -13,8 +13,8 @@
 // write-through picks them up on the first visit and can never serve a stale
 // one, because a stale one has a different name.
 
-const VERSION    = 'v9';   // v9: the icon set re-drawn to match the corner mark — same URLs, so the
-                           // cache-first strategy would have served the old ones to installed PWAs forever
+const VERSION    = 'v10';  // v10: the opaque icon plate went navy -> mustard. Same-URL icon swaps need a
+                           // version bump or the cache-first precache serves installed PWAs the old set forever.
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [
