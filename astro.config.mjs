@@ -237,11 +237,134 @@ const shopImageMirror = () => ({
   },
 });
 
+/*
+ * The share card and the structured data have to carry ABSOLUTE urls, and by
+ * the time this runs they do not.
+ *
+ * `Layout.astro` builds `og:image` absolute — and then `shopImageMirror()`
+ * rewrites that Shopify CDN url to a local `/img/shop/…` path, because it
+ * rewrites every occurrence in the output and cannot tell a `<meta>` from an
+ * `<img>`. Each half is right on its own; the pair ships a relative og:image,
+ * which no scraper will fetch. Same for the `image` array in the JSON-LD.
+ *
+ * So: after the mirror, absolutise. Meta by name, and the JSON-LD by PARSING
+ * it and walking every string — a regex over a graph that nests offers inside
+ * products inside a list would be guesswork.
+ */
+const ABSOLUTE_META = ['og:image', 'og:url', 'twitter:image'];
+const absolutiseSocialUrls = (site) => ({
+  name: 'absolutise-social-urls',
+  hooks: {
+    'astro:build:done': async ({ dir, logger }) => {
+      const { readdir, readFile, writeFile } = await import('node:fs/promises');
+
+      const origin = new URL(site).origin;
+      const abs = (v) => (typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') ? origin + v : v);
+      const walk = (node) =>
+        Array.isArray(node) ? node.map(walk)
+        : node && typeof node === 'object'
+          ? Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]))
+        : abs(node);
+
+      const pages = [];
+      const collect = async (d) => {
+        for (const e of await readdir(d, { withFileTypes: true })) {
+          const next = new URL(`./${e.name}${e.isDirectory() ? '/' : ''}`, d);
+          if (e.isDirectory()) await collect(next);
+          else if (e.name.endsWith('.html')) pages.push(next);
+        }
+      };
+      await collect(dir);
+
+      let fixed = 0;
+      for (const file of pages) {
+        const before = await readFile(file, 'utf8');
+        let out = before;
+
+        for (const name of ABSOLUTE_META) {
+          const attr = name.startsWith('og:') ? 'property' : 'name';
+          out = out.replace(
+            new RegExp(`(<meta ${attr}="${name}" content=")(/[^"]*)(")`, 'g'),
+            (_m, a, url, z) => a + origin + url + z
+          );
+        }
+
+        out = out.replace(
+          /(<script type="application\/ld\+json">)(.*?)(<\/script>)/gs,
+          (m, open, json, close) => {
+            try { return open + JSON.stringify(walk(JSON.parse(json))) + close; }
+            catch { return m; }   // never trade valid markup for a failed parse
+          }
+        );
+
+        if (out !== before) { await writeFile(file, out); fixed++; }
+      }
+      logger.info(`absolutised share-card and JSON-LD urls on ${fixed} page(s)`);
+    },
+  },
+});
+
+/*
+ * sitemap.xml and robots.txt, written from what actually got BUILT rather than
+ * from a list of routes kept by hand — a sitemap that names a page that no
+ * longer exists is worse than no sitemap.
+ *
+ * A page opts out by carrying `noindex` (the Layout prop), which is the same
+ * switch that keeps it out of results. One decision, stated once: /thanks is
+ * only reached by a form redirect and /type is a specimen sheet.
+ *
+ * Hand-rolled rather than @astrojs/sitemap on purpose — Netlify builds with
+ * NODE_ENV=production and installs no devDependencies, so an integration has
+ * to sit in `dependencies` to survive CI. This is 20 lines and no dependency.
+ */
+const sitemap = (site) => ({
+  name: 'sitemap',
+  hooks: {
+    'astro:build:done': async ({ dir, logger }) => {
+      const { readdir, readFile, writeFile } = await import('node:fs/promises');
+
+      const origin = new URL(site).origin;
+      const urls = [];
+      const collect = async (d, path = '') => {
+        for (const e of await readdir(d, { withFileTypes: true })) {
+          if (e.isDirectory()) await collect(new URL(`./${e.name}/`, d), `${path}${e.name}/`);
+          else if (e.name === 'index.html') {
+            const html = await readFile(new URL(`./${e.name}`, d), 'utf8');
+            if (!/name="robots"[^>]*noindex/.test(html)) urls.push(`${origin}/${path}`);
+          }
+        }
+      };
+      await collect(dir);
+      urls.sort();
+
+      await writeFile(
+        new URL('./sitemap.xml', dir),
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+          '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+          urls.map((u) => `  <url><loc>${u}</loc></url>`).join('\n') +
+          '\n</urlset>\n'
+      );
+      await writeFile(
+        new URL('./robots.txt', dir),
+        `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
+      );
+      logger.info(`sitemap.xml with ${urls.length} url(s), and robots.txt`);
+    },
+  },
+});
+
+const SITE = 'https://glizzy.store';
+
 export default defineConfig({
-  site: 'https://glizzy-mvp.netlify.app',
+  site: SITE,
   output: 'static',
-  // After stripDevAssets: no point mirroring an image only a stripped page used.
-  integrations: [stripDevAssets(), shopImageMirror()],
+  /*
+   * Order is load-bearing. After stripDevAssets: no point mirroring an image
+   * only a stripped page used. absolutiseSocialUrls AFTER the mirror, because
+   * it exists to repair what the mirror does to og:image. sitemap last, so it
+   * reads the finished pages.
+   */
+  integrations: [stripDevAssets(), shopImageMirror(), absolutiseSocialUrls(SITE), sitemap(SITE)],
   server: { port: 3334 },
   /*
    * Astro 7 defaults this to 'jsx', which strips whitespace by JSX rules

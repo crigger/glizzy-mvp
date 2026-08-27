@@ -50,6 +50,10 @@ interface Props {
   noindex?: boolean;
 }
 
+/* Only ever used if `site` is missing from astro.config.mjs, which would be a
+   misconfiguration — but a relative canonical is worse than a wrong one. */
+const SITE_FALLBACK = 'https://glizzy.store';
+
 const {
   title = 'Glizzy Store',
   description = 'Glizzy?',
@@ -68,9 +72,20 @@ const jsonLd = jsonLdNodes.length
   ? { '@context': 'https://schema.org', '@graph': jsonLdNodes }
   : null;
 
-const ogImageUrl = ogImage
-  ? new URL(ogImage, Astro.site ?? 'https://glizzy-mvp.netlify.app').href
-  : undefined;
+/*
+ * The canonical url for this page, and the base every other absolute url in
+ * the head is built from. `Astro.url` carries the dev server's origin, so the
+ * pathname is taken from it and the ORIGIN from `Astro.site` — otherwise a
+ * page built with the dev server running would canonicalise to localhost.
+ */
+const canonical = new URL(Astro.url.pathname, Astro.site ?? SITE_FALLBACK).href;
+
+/*
+ * A share card on every page, not only the ones with a product photo. Without
+ * a default, `twitter:card` falls back to `summary` and the homepage shares as
+ * a bare text box.
+ */
+const ogImageUrl = new URL(ogImage ?? '/og.jpg', Astro.site ?? SITE_FALLBACK).href;
 ---
 
 <!doctype html>
@@ -86,6 +101,7 @@ const ogImageUrl = ogImage
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="1024x1024" href="/apple-touch-icon-1024.png" />
+    <link rel="canonical" href={canonical} />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#000731" />
 
@@ -97,10 +113,13 @@ const ogImageUrl = ogImage
     <meta name="application-name" content="Glizzy" />
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Glizzy Store" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
-    <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
 
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>

@@ -27,7 +27,7 @@ const money = (amount: string) => {
 /** `gid://shopify/ProductVariant/123` → `123`, the form `?variant=` carries. */
 const variantParam = (id: string) => id.split('/').pop() ?? '';
 
-const origin = (site: URL | undefined) => (site ? new URL('/', site).href : 'https://glizzy-mvp.netlify.app/');
+const origin = (site: URL | undefined) => (site ? new URL('/', site).href : 'https://glizzy.store/');
 
 export const productUrl = (product: ShopProduct, site: URL | undefined) =>
   `${origin(site)}shop/${product.handle}/`;
@@ -40,11 +40,17 @@ export function organizationNode(site: URL | undefined) {
   return {
     '@type': 'Organization',
     '@id': organizationId(site),
-    name: 'Mill Mountain Mornings',
+    /* THIS site's name. It was "Mill Mountain Mornings", copied in from the
+       sibling repo — the breadcrumb's copy of that was caught and these two
+       were not, so the live product page has been telling Google that a hot
+       dog is made by a coffee brand. */
+    name: 'Glizzy Store',
     url: base,
     logo: {
       '@type': 'ImageObject',
-      url: `${base}favicon-512.png`,
+      /* `icon-512.png`, which is what is actually in public/ — there has never
+         been a favicon-512.png, so this pointed at a 404. */
+      url: `${base}icon-512.png`,
       width: 512,
       height: 512,
     },
@@ -106,7 +112,7 @@ export function productNode(product: ShopProduct, site: URL | undefined) {
     description: product.description,
     url,
     image: [...new Set(images)],
-    brand: { '@type': 'Brand', name: 'Mill Mountain Mornings' },
+    brand: { '@type': 'Brand', name: 'Glizzy Store' },   // see organizationNode
     offers: product.variants.map((v) => offerNode(product, v, site)),
   };
 }

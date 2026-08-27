@@ -10,7 +10,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import SiteIcon from '../../components/SiteIcon.astro';
-import { breadcrumbNode, productNode } from '../../lib/productJsonLd';
+import { breadcrumbNode, organizationNode, productNode } from '../../lib/productJsonLd';
 import {
   cdnImage,
   cdnSrcset,
@@ -55,7 +55,16 @@ const art = imageFor(initial);
 
 const body = product.descriptionHtml.trim();
 
-const jsonLdNodes = [productNode(product, Astro.site), breadcrumbNode(product, Astro.site)];
+/*
+ * The organization is in the graph because every `Offer.seller` references it
+ * by `@id`. Emitting the offers without it left that reference pointing at a
+ * node no document defined.
+ */
+const jsonLdNodes = [
+  organizationNode(Astro.site),
+  productNode(product, Astro.site),
+  breadcrumbNode(product, Astro.site),
+];
 
 const alt =
   initial.image?.altText?.trim() || product.featuredImage?.altText?.trim() || product.title;
