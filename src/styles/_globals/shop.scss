@@ -1,0 +1,801 @@
+// The shop: /shop, /shop/[handle], and the cart drawer.
+//
+// NOT a port of mmmornings' 786-line sheet, most of which describes a masthead
+// and a marquee this site does not have. Rebuilt from what is already here —
+// the window panel, the blue pill, Magnolia for display, mustard on navy — so
+// the shop reads as part of the same site rather than a second one bolted on.
+//
+// The glass is the `.window` recipe from windows.scss, deliberately repeated
+// rather than shared: those windows are a scroll toy with a drag handle and
+// resize corners, and coupling a checkout to them would mean every tweak to
+// the toy is a change to the shop. Same numbers, separate lives.
+
+// ───── shared ─────────────────────────────────────────────────────────────
+
+.shop-page {
+  // `main` sets a 30svh bottom padding for the dog to run out into. There is
+  // no dog here. (0,1,0) beats `main`'s (0,0,1), so no source-order tie.
+  padding: 24px 24px 12svh;
+  max-width: 72rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+// The blue pill, same as `.btn-acquire` on the homepage. Not @extend-ed from it:
+// that one is a link and this is a <button>, and buttons need the reset.
+.shop-button {
+  display: inline-block;
+  appearance: none;
+  border: 0;
+  background: var(--cta);
+  color: var(--bg-top);
+  font-family: 'Sequoia Sans';
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  /*
+   * Stated, because <a> and <button> do NOT agree without it. A link inherits
+   * the body's 1.6; a button takes the UA's `line-height: normal`, so with
+   * identical padding the two came out 53px and 42px. Every pill on the site
+   * is one or the other, so this is what makes Send the same height as the
+   * intro CTA.
+   */
+  line-height: 1.6;
+  padding: 0.85em 1.6em;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+
+  &:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+
+  // Sold out. Reads as unavailable rather than as a button someone missed.
+  &:disabled {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.55);
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
+  }
+}
+
+.shop-button--quiet {
+  background: transparent;
+  color: var(--mustard);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+// ───── /shop ──────────────────────────────────────────────────────────────
+
+.shop__crumb {
+  font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin: 0 0 2rem;
+
+  a { color: inherit; text-decoration: none; }
+  a:hover { opacity: 1; text-decoration: underline; }
+}
+
+.shop__title {
+  font-size: clamp(3.5rem, 12vw, 9rem);
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  margin: 0 0 2.5rem;
+}
+
+.shop__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: 2rem;
+  align-items: start;
+}
+
+.shop__empty { opacity: 0.7; }
+
+// ───── the card ───────────────────────────────────────────────────────────
+
+.shop-card {
+  // Its type sizes in cqi, so the box has to be a containment context. Sizing
+  // a card's heading off the VIEWPORT is how mmmornings ended up with an 85px
+  // product name inside a 352px card.
+  container-type: inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem 1rem 1.25rem;
+
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+}
+
+.shop-card__art-link { display: block; }
+
+.shop-card__art {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.shop-card__name {
+  // A flex item defaults to min-width:auto and refuses to shrink below its
+  // content, so a long unbroken word paints straight out through the keyline
+  // while the box itself measures fine.
+  min-width: 0;
+  overflow-wrap: break-word;
+
+  font-family: 'BN Magnolia';
+  font-size: clamp(1.5rem, 9cqi, 2.4rem);
+  font-weight: normal;
+  line-height: 1.05;
+  margin: 0;
+
+  a { color: inherit; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
+
+.shop-card__versions {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.shop-card__chips,
+.pdp__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shop-card__chip,
+.pdp__chip {
+  position: relative;
+  cursor: pointer;
+
+  input {
+    // Off-screen, not display:none — a hidden radio is not focusable, and the
+    // chips are the only way to choose a variant by keyboard.
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  span {
+    display: inline-block;
+    padding: 0.45em 0.9em;
+    border-radius: 999px;
+    font-family: 'Sequoia Sans';
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+
+  input:checked + span {
+    background: var(--mustard);
+    color: var(--bg-top);
+    box-shadow: inset 0 0 0 1px var(--mustard);
+  }
+
+  // Focus lives on the span because the input it belongs to is off-screen.
+  input:focus-visible + span { outline: 2px solid var(--cta); outline-offset: 2px; }
+
+  input:disabled + span {
+    opacity: 0.35;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+}
+
+.shop-card__body,
+.pdp__body {
+  font-size: 1rem;
+  line-height: 1.55;
+
+  p { margin: 0 0 0.6em; }
+  p:last-child { margin-bottom: 0; }
+}
+
+.shop-card__price,
+.pdp__price {
+  font-family: 'Sequoia Sans';
+  font-weight: 400;
+  font-stretch: expanded;
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.shop-card__note,
+.pdp__note {
+  font-size: 0.85rem;
+  min-height: 1.2em;   // reserved, so a message doesn't shove the card taller
+  margin: 0;
+  opacity: 0.8;
+}
+
+// ───── /shop/[handle] ─────────────────────────────────────────────────────
+
+.pdp__inner {
+  display: grid;
+  gap: 2.5rem;
+  align-items: start;
+
+  @media (min-width: 48rem) {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
+.pdp__art-frame {
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+}
+
+.pdp__art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pdp__detail {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.1rem;
+}
+
+.pdp__title {
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-size: clamp(2.5rem, 14cqi, 5rem);
+  font-weight: normal;
+  line-height: 1;
+  margin: 0;
+}
+
+.pdp__options { border: 0; margin: 0; padding: 0; }
+
+.pdp__legend {
+  padding: 0;
+  font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: 0.6rem;
+}
+
+.pdp__nojs { font-size: 0.85rem; opacity: 0.7; }
+
+// ───── the cart ───────────────────────────────────────────────────────────
+
+/*
+ * Directly under the brand mark, top right — not the bottom corner it used to
+ * sit in. The offset is derived from `--corner-*` on :root rather than typed,
+ * so the mark's inset, size and the gap below it are stated once.
+ */
+.cart-fab {
+  position: fixed;
+  right: calc(env(safe-area-inset-right, 0px) + var(--corner-inset));
+  top: calc(
+    env(safe-area-inset-top, 0px) + var(--corner-inset) +
+    var(--corner-size) + var(--corner-gap)
+  );
+  z-index: 210;   // above .site-icon (200) and the mini canvas
+
+  /*
+   * The mark's size exactly, so the two read as one stack in the corner rather
+   * than a badge under a logo. `--corner-size` is the same token the mark uses.
+   *
+   * The size has to be SET, not padded to: `.shop-button` is an inline-block
+   * that grows around its label, so it was 48px tall and wider than tall — and
+   * it would change shape the moment the count reached double figures. Fixing
+   * both axes and zeroing the padding makes it a circle that cannot move,
+   * whatever number is in it. `border-radius: 999px` from `.shop-button` does
+   * the rest.
+   */
+  width: var(--corner-size);
+  height: var(--corner-size);
+  padding: 0;
+  display: grid;
+  place-items: center;
+
+  /*
+   * The mark's dark ring, on the cart too.
+   *
+   * The width is DERIVED from the artwork rather than eyeballed: in
+   * GlizzyMark.astro the ground circle is r=48.41 around a disc of r=37.2 in a
+   * 96.82 viewBox, so the ring is 11.21 units — 11.6% of the mark's full width,
+   * whatever size it is rendered at. At 56px that is 6.5px, and the blue disc
+   * inside lands at 43px, exactly matching the orange one above it.
+   *
+   * `box-sizing: border-box` is global here, so the border eats inward and the
+   * button stays `--corner-size` overall — which is what keeps the two circles
+   * the same size rather than making this one bigger by the ring.
+   */
+  border: calc(var(--corner-size) * 0.116) solid var(--bg-top);
+}
+
+.cart {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+}
+
+// A plain dim. See CartDrawer.astro for why it is not decorated.
+/*
+ * The window panels' screen, over the whole page — the same 3px mustard dot
+ * tile and the same backdrop blur as `.window::before` in windows.scss, so
+ * what sits behind the drawer reads as the same material as the panels do.
+ *
+ * The three background declarations are ONE unit and the order is load-bearing:
+ * `background` is a shorthand that resets position and size, so restating them
+ * after it is what keeps this a tiled 3px screen instead of a single gradient
+ * stretched across the viewport. Same trap the interlude hit.
+ *
+ * Unlike `.window::before` this is a real button — it closes the drawer — so it
+ * keeps its pointer events and its cursor rather than being inert.
+ */
+.cart__scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: radial-gradient(var(--mustard), 30%, transparent 0);
+  background-position: 50%;
+  background-size: 3px 3px;
+  backdrop-filter: blur(5rem);
+  cursor: pointer;
+}
+
+.cart__panel {
+  // Its title sizes in cqi. "Your Cart" wrapped to two lines on mmmornings
+  // because the drawer is narrow and the heading was sized off the viewport.
+  container-type: inline-size;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  /*
+   * 80%, not 100%, on a phone. Full width put the panel edge-to-edge over the
+   * product's own spinning glizzy; leaving a strip of the page showing keeps
+   * the thing being bought visible behind what is buying it. The 24rem cap
+   * still governs from tablet up.
+   */
+  width: min(24rem, 80%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+
+  /*
+   * The site's own deep blue, opaque — and so NO `backdrop-filter`. It used to
+   * be a 72% black wash over an 18px blur; blurring what a solid fill then
+   * covers is a compositor layer bought for nothing.
+   */
+  background: var(--bg-bottom);
+  border-left: 2px solid var(--mustard);
+  box-shadow: -18px 0 60px rgba(0, 0, 0, 0.5);
+}
+
+.cart__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  /*
+   * The close is `position: fixed` in the corner and no longer part of this
+   * row, so the space it occupies has to be reserved by hand — the inset, the
+   * button, and the panel's own padding that the fixed element does not sit
+   * inside.
+   */
+  padding-right: calc(var(--corner-size) + var(--corner-inset));
+}
+
+.cart__title {
+  font-family: 'BN Magnolia';
+  font-size: clamp(1.6rem, 11cqi, 2.4rem);
+  font-weight: normal;
+  line-height: 1;
+  margin: 0;
+}
+
+/*
+ * It takes the brand mark's PLACE, not just its size.
+ *
+ * Fixed to the same corner coordinates as `.site-icon` and `.cart-fab` — the
+ * same `--corner-*` tokens — so opening the drawer swaps the mark for the
+ * close in situ rather than putting a second control somewhere near it. The
+ * drawer is z-index 300 over the mark's 200, so it lands cleanly on top.
+ *
+ * Out of `.cart__head`'s flow as a result, which is why the head reserves the
+ * corner with padding below — otherwise a longer title would run under it.
+ *
+ * The ring is the same width as the mark's dark one, in mustard: the
+ * `0.116` is the artwork's ring as a fraction of its full width. See
+ * `.cart-fab` for where that number comes from.
+ */
+.cart__close {
+  appearance: none;
+  background: none;
+  position: fixed;
+  top:   calc(env(safe-area-inset-top,   0px) + var(--corner-inset));
+  right: calc(env(safe-area-inset-right, 0px) + var(--corner-inset));
+  width: var(--corner-size);
+  height: var(--corner-size);
+  padding: 0;
+  border: calc(var(--corner-size) * 0.116) solid var(--mustard);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--mustard);
+  font-size: calc(var(--corner-size) * 0.42);
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+
+  &:hover { opacity: 0.75; }
+  &:focus-visible { outline: 2px solid var(--mustard); outline-offset: 3px; }
+  path { stroke: currentColor; stroke-width: 2; }
+}
+
+.cart__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/*
+ * These five class names are cart.js's contract, not this file's choice — it
+ * builds every line with DOM calls and stamps them on. Renaming one here does
+ * not error; it silently empties the drawer. mmmornings' first draft of this
+ * sheet invented `.cart__line-title` and `.cart__step`, neither of which
+ * cart.js has ever written.
+ *
+ *   .cart__line  .cart__line-name  .cart__line-variant  .cart__qty  .cart__line-price
+ *
+ * The two unnamed <div>s inside .cart__line — the thumbnail and the middle
+ * column — are addressed positionally below for the same reason.
+ */
+/*
+ * STACKED, not the three-column row it was: full-width image, everything else
+ * beneath it. With one product in the catalogue the drawer is showing a single
+ * item, and a 6rem thumbnail beside two lines of text was a layout for a list.
+ *
+ * The name and the price sit on one row under the picture, which is why the
+ * middle column and the price are pulled back into a grid of their own below —
+ * cart.js emits them as siblings and its DOM order is the contract here.
+ */
+.cart__line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 1rem;
+  align-items: center;
+
+  /* The thumbnail: full width, spanning both columns, first row. */
+  > div:first-child {
+    grid-column: 1 / -1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+
+    img { display: block; width: 100%; height: auto; }
+  }
+}
+
+.cart__line-name {
+  font-family: 'Sequoia Sans';
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.cart__line-variant {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin: 0.15em 0 0;
+}
+
+.cart__qty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+
+  /* 36px, not 22 — these are the drawer's only fiddly targets and they were
+     well under the 44px a thumb wants. */
+  button {
+    appearance: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 0;
+    border-radius: 50%;
+    color: inherit;
+    font: 20px/1 ui-monospace, monospace;
+    cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, 0.18); }
+  }
+
+  span {
+    font-variant-numeric: tabular-nums;
+    min-width: 1.4em;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+}
+
+.cart__line-price {
+  font-family: 'Sequoia Sans';
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/*
+ * The empty state carries a way out of itself: the same Acquire pill the rest
+ * of the site uses, resolving to the product page through `buyHref()`. An
+ * empty cart that only says it is empty is a dead end.
+ */
+.cart__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+.cart__empty-line {
+  /* Full opacity. It was 0.7, which read as a disabled control rather than a
+     line of copy — and it is the only thing in the drawer at this point. */
+  color: var(--mustard);
+  opacity: 1;
+  font-size: clamp(1.4rem, 9cqi, 2rem);
+  line-height: 1;
+  margin: 0;
+}
+
+.cart__note {
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  margin: 0;
+}
+
+.cart__foot {
+  margin-top: auto;
+  padding-top: 1rem;
+  /* The CTA blue at full strength, not a 12% white hairline — it is the one
+     rule in the drawer and it separates the goods from the money. */
+  border-top: 2px solid var(--cta);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cart__total {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Sequoia Sans';
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.cart__checkout { text-align: center; }
+
+.cart__whose {
+  font-size: 0.75rem;
+  /* Full opacity. It names the domain the address bar is about to change to —
+     the last thing to render as fine print. */
+  opacity: 1;
+  margin: 0;
+  text-align: center;
+}
+
+/* ───── the ode: an opt-in note on the product page ───────────────────────── */
+
+.pdp__ode {
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/*
+ * The reveal, in CSS alone — no script, and nothing to go wrong between the
+ * checkbox and the field. `display: none` rather than `visibility` or a height
+ * animation, because a hidden-but-present textarea is still a tab stop, and a
+ * focus stop between the picker and Add to cart that lands on nothing visible
+ * is the worst thing a keyboard user can meet on this page.
+ */
+.pdp__ode-field { display: none; }
+.pdp__ode-opt:checked ~ .pdp__ode-field { display: block; }
+
+.pdp__ode-opt {
+  /*
+   * The real control, kept in the layout at 1em so it lines up with its label —
+   * NOT visually hidden. A custom box would have to reimplement focus, the
+   * indeterminate state and the platform's own checked mark for no gain here.
+   */
+  width: 1em;
+  height: 1em;
+  accent-color: var(--cta);
+  margin: 0;
+}
+
+/* The checkbox and its label share a row; the field takes the next one. */
+.pdp__ode {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.6rem;
+  row-gap: 0.75rem;
+}
+.pdp__ode-field { grid-column: 1 / -1; }
+
+.pdp__ode-toggle {
+  font-family: 'Sequoia Sans';
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pdp__ode-label {
+  display: block;
+  font-family: 'Sequoia Sans';
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 0.4rem;
+}
+
+/*
+ * `font-size` restated because the UA puts `font: 400 13.33px monospace` on a
+ * textarea; the FAMILY comes from the .f-sequoia class on the element, since
+ * any author rule beats the UA stylesheet. Setting `font` here as a shorthand
+ * would reset the family and undo the class — that exact mistake is written up
+ * in contact.scss.
+ *
+ * `resize: vertical` only: horizontal resize is what lets someone drag a field
+ * out past the page gutter. `field-sizing: content` is deliberately absent —
+ * the box is three lines by contract, and it should look like three lines
+ * before anything is typed.
+ */
+.pdp__ode-text {
+  display: block;
+  width: 100%;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 163, 0, 0.35);
+  border-radius: 4px;
+  padding: 0.6em 0.75em;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+
+  &::placeholder { color: inherit; opacity: 0.35; }
+  &:hover { border-color: rgba(255, 163, 0, 0.6); }
+  &:focus-visible {
+    outline: 2px solid var(--mustard);
+    outline-offset: 3px;
+    border-color: var(--mustard);
+  }
+}
+
+/*
+ * Deliberately NOT a live region. It updates on every keystroke, and an
+ * `aria-live` counter turns typing into a stream of announcements. The
+ * messages worth hearing — a trimmed paste, the limit reached — go to
+ * `#pdp-note`, which already is one.
+ */
+.pdp__ode-count {
+  font-family: 'Sequoia Sans';
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+  margin: 0.4rem 0 0;
+  text-align: right;
+
+  &.is-full { opacity: 0.9; color: var(--mustard); }
+}
+
+/* The ode echoed back on its cart line. */
+.cart__line-ode {
+  font-family: 'Sequoia Sans';
+  font-size: 0.8rem;
+  line-height: 1.35;
+  opacity: 0.75;
+  margin: 0.25rem 0 0;
+  white-space: pre-line;   /* the newlines are the point */
+  overflow-wrap: anywhere; /* an unbroken 100-char string must not widen the drawer */
+}
+
+/* ───── the PDP's live dog ────────────────────────────────────────────────── */
+
+/*
+ * The canvas sits over the product photo rather than replacing it. Until
+ * pdp-dog.js has built its scene the canvas is invisible and the photo shows
+ * through — so no JS, a blocked module or a WebGL failure all degrade to a real
+ * image instead of a blank square. `.is-ready` is set as the last thing the
+ * module does.
+ */
+/*
+ * The frame is square BY DECLARATION, not because of what is inside it.
+ *
+ * Its height used to come entirely from `.pdp__art`'s `height: auto` — so the
+ * box was whatever shape that image laid out as, and if the image was slow,
+ * blocked or not square the canvas absolutely positioned over it inherited the
+ * wrong shape and the dog came out squashed. The 3D stage is square by
+ * construction; say so here and nothing can take it away.
+ */
+.pdp__art-frame {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+/* The photo fills that square rather than defining it. */
+.pdp__art {
+  height: 100%;
+  object-fit: cover;
+}
+
+.pdp__stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  /*
+   * Inert. It is a picture that moves, not a control — so no grab cursor, and
+   * emphatically no `touch-action: none`, which would tell the browser this
+   * element handles its own gestures and leave a swipe over the product image
+   * unable to scroll the page. `pointer-events: none` also lets a click reach
+   * whatever is underneath rather than dying on a canvas.
+   */
+  pointer-events: none;
+}
+
+/*
+ * Both states are driven from the FRAME, not from the canvas. The canvas comes
+ * after the image in the DOM, so no sibling combinator can reach backwards to
+ * the image it has to hide — and it does have to hide it: the canvas is drawn
+ * with alpha, so an untouched photo would show straight through the dog.
+ */
+.pdp__art-frame.is-ready .pdp__stage { opacity: 1; }
+.pdp__art-frame.is-ready .pdp__art  { visibility: hidden; }

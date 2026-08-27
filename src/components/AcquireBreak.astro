@@ -1,0 +1,24 @@
+---
+/**
+ * A button standing on its own, closing a sequence.
+ *
+ * Centred rather than left-aligned like the hero CTA: alone after a run of
+ * screens it reads as the end of something, not the start of a column.
+ *
+ * Used four times — once after the five windows, saying "Acquire", and then
+ * in each gap between the repeats, saying "Fine".
+ */
+import AcquireButton from './AcquireButton.astro';
+
+interface Props {
+  href?: string;
+  /** Passed straight to the button; defaults to "Acquire" there. */
+  label?: string;
+}
+/* `href` undefined on purpose: AcquireButton resolves it — see buyHref(). */
+const { href, label } = Astro.props;
+---
+
+<section class="acquire-break">
+  <AcquireButton href={href} label={label} variant="squiggle" />
+</section>

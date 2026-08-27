@@ -1,0 +1,53 @@
+---
+/**
+ * The fixed brand mark, top-right — and the way back.
+ *
+ * On the homepage it returns you to the top; on every other route it goes
+ * home. One component either way, because it is the same affordance: the mark
+ * in the corner is how you get back to the beginning of wherever you are.
+ *
+ * `#top` needs nothing to point at. The HTML spec makes the fragment `top`
+ * (ASCII case-insensitive) mean the top of the document when no element has
+ * that id, so this works with no script and no anchor to keep in sync.
+ *
+ * The mark itself stays `aria-hidden` — it is inside the link, so the link's
+ * own label is the accessible name, and a `role="img"` here would announce the
+ * artwork a second time.
+ */
+import GlizzyMark from './GlizzyMark.astro';
+
+/* Tolerant of the trailing slash, which differs between dev and the build. */
+const isHome = Astro.url.pathname.replace(/\/+$/, '') === '';
+---
+
+<a
+  class="site-icon"
+  href={isHome ? '#top' : '/'}
+  aria-label={isHome ? 'Back to top' : 'Glizzy Store — home'}
+>
+  <GlizzyMark />
+</a>
+
+{/*
+  Smooth back-to-top, done per-click.
+
+  NOT `html { scroll-behavior: smooth }`, which is the obvious way and the
+  wrong one here: that property applies to every scroll on the page including
+  the ones ScrollTrigger performs itself, and GSAP documents it as
+  incompatible. It was tried, and it broke the Acquire buttons' draw-in.
+
+  `preventDefault` only once the scroll is actually taken over, so with no JS
+  — or under reduced motion — the plain `#top` link still does its job.
+*/}
+<script is:inline>
+  (function () {
+    var icon = document.querySelector('.site-icon[href="#top"]');
+    if (!icon) return;
+    icon.addEventListener('click', function (event) {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (typeof window.scrollTo !== 'function') return;
+      event.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+</script>

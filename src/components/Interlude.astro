@@ -1,0 +1,29 @@
+---
+/**
+ * A line of type between the repeats, in the same panel as the pitch.
+ *
+ * Same wrapper as IntroGlizzy — an untitled WindowPanel, so dot screen and
+ * bone card — with a CTA-blue keyline instead of the dark one, and the line
+ * flanked by a rule of asterisks.
+ *
+ * The asterisks are `aria-hidden`: they are typographic ornament, and a screen
+ * reader announcing "asterisk asterisk asterisk" either side of every line is
+ * noise, not content.
+ *
+ * Sequoia Light rather than Magnolia — the wordmark face is the page's, and
+ * these lines are asides between the repeats, not more wordmarks.
+ */
+import WindowPanel from './WindowPanel.astro';
+---
+
+<section class="interlude">
+  <div class="interlude__panel">
+    <WindowPanel>
+      <div class="interlude__stack">
+        <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
+        <p class="interlude__line f-sequoia-light"><slot /></p>
+        <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
+      </div>
+    </WindowPanel>
+  </div>
+</section>

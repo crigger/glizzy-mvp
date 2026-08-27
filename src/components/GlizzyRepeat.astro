@@ -1,0 +1,15 @@
+---
+/** A screenful of the word, four times. */
+interface Props {
+  count?: number;
+}
+const { count = 4 } = Astro.props;
+---
+
+<section class="glizzy-repeat">
+  {Array.from({ length: count }, (_, i) => (
+    <span class:list={[i % 2 === 1 && 'repeat--alt']}>
+      Glizzy{i % 2 === 1 ? '?' : ''}
+    </span>
+  ))}
+</section>

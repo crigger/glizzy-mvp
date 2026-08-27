@@ -1,0 +1,119 @@
+---
+/**
+ * The contact form, ported from vinton.land.
+ *
+ * A plain HTML form posting to Netlify Forms. No JavaScript, no fetch, no
+ * third-party origin — the browser posts to this site and Netlify's edge
+ * intercepts it, which is what makes a form possible at all on a static build.
+ *
+ * HOW NETLIFY FINDS IT: their build bot parses the DEPLOYED HTML for a form
+ * carrying `data-netlify`. The form has to be in the static output — it cannot
+ * be rendered by client JS, and it cannot sit behind a build-time conditional
+ * that is false. The hidden `form-name` input is what identifies the
+ * submission once the browser posts it, and its value MUST equal the form's
+ * `name`; they are two separate strings that have to agree, and if they drift
+ * the submission is accepted and then filed under nothing.
+ *
+ * `action` sends a success straight to /thanks. Without it Netlify serves its
+ * own generic confirmation page, which is off-brand and a dead end.
+ *
+ * The honeypot is Netlify's: `netlify-honeypot` names a field a human never
+ * sees and never fills. A bot that fills every input it finds gets dropped
+ * silently. It is the cheap first pass, not the only one — Netlify's own spam
+ * filtering still runs behind it.
+ *
+ * Wrapped in the same untitled panel as the interludes, but KEEPING the bone
+ * card, which they turn off. The dog runs behind this section, and that is
+ * exactly the case the card exists for: labels, rules and typed text are
+ * readable copy, and readable copy never sits on the glass over a moving dog.
+ *
+ * Unlike vinton.land's, this one is NOT wired to a Shopify subscribe function.
+ * That site creates a subscribed customer on every submission through
+ * `netlify/functions/shopify-subscribe.mjs`; doing the same here would need
+ * SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET in this site's Netlify env, so it
+ * is a deliberate omission rather than a missing piece.
+ */
+import WindowPanel from './WindowPanel.astro';
+---
+
+<section class="contact-block" aria-labelledby="contact-title">
+  <div class="contact__panel">
+    <WindowPanel>
+      <div class="contact">
+        <h2 class="contact__title f-sequoia-light" id="contact-title">Hit us up</h2>
+
+        <!-- <p class="contact__intro f-bricolage">Questions, comments, concerns?</p> -->
+
+        <form
+          class="contact__form"
+          name="contact"
+          method="post"
+          action="/thanks"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+          autocomplete="on"
+        >
+          {/*
+            Netlify's required hidden field. It has to be a real input rather
+            than an attribute, because what Netlify reads is the urlencoded
+            BODY of the post, not the markup.
+          */}
+          <input type="hidden" name="form-name" value="contact" />
+
+          {/*
+            The honeypot. `hidden` rather than a visually-hidden utility on
+            purpose: a screen reader should not meet a field it cannot
+            understand, and `tabindex="-1"` keeps it out of the keyboard order
+            for anyone whose browser ignores `hidden`. `autocomplete="off"`
+            stops a password manager filling it and getting a real person's
+            message thrown away.
+          */}
+          <p class="contact__pot" hidden aria-hidden="true">
+            <label>
+              Leave this field empty
+              <input name="bot-field" tabindex="-1" autocomplete="off" />
+            </label>
+          </p>
+
+          <div class="contact__pair">
+            <div class="contact__field">
+              <label class="contact__label f-sequoia" for="contact-name">Name</label>
+              <input
+                class="contact__input f-bricolage"
+                type="text"
+                id="contact-name"
+                name="name"
+                autocomplete="name"
+                required
+              />
+            </div>
+
+            <div class="contact__field">
+              <label class="contact__label f-sequoia" for="contact-email">Email</label>
+              <input
+                class="contact__input f-bricolage"
+                type="email"
+                id="contact-email"
+                name="email"
+                autocomplete="email"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="contact__field">
+            <label class="contact__label f-sequoia" for="contact-message">Message</label>
+            <textarea
+              class="contact__input contact__input--area f-bricolage"
+              id="contact-message"
+              name="message"
+              rows="8"
+              required></textarea>
+          </div>
+
+          <button class="shop-button contact__submit" type="submit">Send</button>
+        </form>
+      </div>
+    </WindowPanel>
+  </div>
+</section>

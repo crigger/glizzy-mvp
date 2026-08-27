@@ -1,12 +1,19 @@
 // Glizzy service worker
 // Strategy:
-//   - On install: pre-cache the app shell + assets (HTML, CSS-in-HTML, fonts, icons).
+//   - On install: pre-cache the app shell + assets (HTML, fonts, icons, the
+//     unhashed scripts).
 //   - On activate: clean out caches from old versions.
 //   - On fetch (same-origin):
 //       * navigations / HTML  → network-first, cache fallback (so deploys land fast).
-//       * everything else      → cache-first, network fallback + write-through.
+//       * everything else     → cache-first, network fallback + write-through.
+//
+// The stylesheet and the bundled 3D module are deliberately NOT in PRECACHE:
+// Astro content-hashes them, so their URLs change whenever they do and a
+// hard-coded list here would go stale on every deploy. Cache-first with
+// write-through picks them up on the first visit and can never serve a stale
+// one, because a stale one has a different name.
 
-const VERSION    = 'v4';
+const VERSION    = 'v8';   // bumped for the Astro port — v7 cached the old hand-written index.html
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [
@@ -23,6 +30,13 @@ const PRECACHE = [
   '/icon-192.png',
   '/icon-512.png',
   '/icon-1024.png',
+  // the vendored GSAP + the two classic scripts (unhashed, stable URLs)
+  '/js/gsap.min.js',
+  '/js/ScrollTrigger.min.js',
+  '/js/Draggable.min.js',
+  '/js/InertiaPlugin.min.js',
+  '/js/glizzy-path.js',
+  '/js/glizzy-windows.js',
   // fonts (woff2)
   '/fonts/SequoiaSans-Thin.woff2',
   '/fonts/SequoiaSans-Light.woff2',

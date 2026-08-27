@@ -164,6 +164,172 @@
   h2 { font-size: 1.4rem; margin: 0 0 12px; }
   p  { margin: 0 0 10px; }
 
+  /* ───── glizzy-window sections ─────
+     Pattern (after crest.red): a tall section with a sticky bounds box that
+     defines the drag-arena, and a sticky window pinned to one side. The
+     window's inner element is the draggable target.                            */
+  section.glizzy-window {
+    position: relative;
+    min-height: 220svh;          /* tall enough for the sticky window to feel pinned */
+    padding: 24px 16px;
+  }
+  @media (min-width: 768px) {
+    section.glizzy-window { padding: 48px 32px; }
+  }
+  /* Matches the crest.red pattern: an absolute box inside the section, with a
+     sticky inner that gives Draggable a viewport-sized bounds while the section
+     is in view. Section is much taller than viewport, so the sticky inner has
+     plenty of room to stay pinned. */
+  .window-bounds {
+    position: absolute;
+    inset: 4rem 2rem 2rem;
+    z-index: -1;
+    pointer-events: none;
+  }
+  @media (min-width: 768px) {
+    .window-bounds { inset: 4rem 1rem 2rem; }
+  }
+  .window-bounds-inner {
+    position: sticky;
+    top: 1rem;
+    height: calc(100svh - 2rem);
+    pointer-events: none;
+  }
+  .window-wrapper {
+    position: sticky;
+    top: max(env(safe-area-inset-top, 0px), 1rem);
+    max-height: calc(50svh - 2rem);    /* mobile: half-viewport (crest pattern) */
+    width: 100%;
+    z-index: 5;
+    /* Long, soft transition so maximize/restore + post-resize settle feels gradual. */
+    transition:
+      width      1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      max-width  1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      height     1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      max-height 1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      margin     1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      transform  1.4s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  @media (min-width: 768px) {
+    .window-wrapper {
+      width: min(560px, 50vw);
+      top: max(env(safe-area-inset-top, 0px), 4rem);
+      max-height: calc(100svh - 8rem);   /* desktop: forced fixed-height window */
+      min-height: calc(100svh - 8rem);
+    }
+    section.glizzy-window--right .window-wrapper { margin-left: auto;  margin-right: 0; }
+    section.glizzy-window--left  .window-wrapper { margin-left: 0;     margin-right: auto; }
+  }
+  .window-wrapper-inner {
+    position: relative;
+    will-change: transform;
+    touch-action: none;          /* required so Draggable consumes pointer events on mobile */
+  }
+  .window {
+    position: relative;          /* anchor for the bottom-corner resize handles */
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition:
+      max-width  1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      width      1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      max-height 1.4s cubic-bezier(0.65, 0, 0.35, 1),
+      box-shadow 1.4s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .window-chrome {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px 8px 14px;
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    cursor: grab;
+    user-select: none;
+  }
+  .window-wrapper-inner:active .window-chrome { cursor: grabbing; }
+  .window-title {
+    font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+  .window-controls { display: flex; gap: 6px; }
+  .window-btn {
+    width: 22px; height: 22px;
+    padding: 0; margin: 0;
+    background: rgba(255,255,255,0.08);
+    border: 0; border-radius: 50%;
+    color: #fff;
+    font: 14px/1 ui-monospace, monospace;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .window-btn:hover { background: rgba(255,255,255,0.18); }
+  .window-content {
+    padding: 18px 22px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .window-canvas-wrap {
+    display: flex; justify-content: center;
+    aspect-ratio: 1/1;
+    width: 60%;
+    max-width: 260px;
+    margin: 4px auto 6px;
+  }
+  .window-canvas-wrap svg, .window-canvas-wrap canvas {
+    width: 100%; height: 100%; display: block;
+  }
+  .window-content h2 { font-size: 1.4rem; margin: 0; }
+  .window-content p  { font-size: 0.95rem; margin: 0; opacity: 0.85; }
+
+  /* Maximized state: window fills (most of) the section bounds. */
+  .glizzy-window.is-maximized .window-wrapper { width: 100%; max-width: none; }
+  .glizzy-window.is-maximized .window         { max-height: calc(50svh - 2rem); }
+  .glizzy-window.is-maximized .window-content { flex: 1; }
+  @media (min-width: 768px) {
+    .glizzy-window.is-maximized .window { max-height: calc(100svh - 8rem); }
+  }
+
+  /* Bottom-corner resize handles. Hit area is 28px square; the visual is a
+     small angle bracket inset 6px from the corner. */
+  .resize-handle {
+    position: absolute;
+    bottom: 0;
+    width: 28px;
+    height: 28px;
+    z-index: 3;
+    user-select: none;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .resize-handle--bl { left: 0;  cursor: nesw-resize; }
+  .resize-handle--br { right: 0; cursor: nwse-resize; }
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    width: 10px;
+    height: 10px;
+    border-color: rgba(255, 255, 255, 0.35);
+    border-style: solid;
+    border-width: 0;
+    transition: border-color 0.2s;
+  }
+  .resize-handle--br::before { right: 6px; border-right-width: 2px; border-bottom-width: 2px; }
+  .resize-handle--bl::before { left:  6px; border-left-width:  2px; border-bottom-width: 2px; }
+  .resize-handle:hover::before { border-color: rgba(255, 255, 255, 0.7); }
+  .glizzy-window.is-resizing .resize-handle::before { border-color: rgba(255, 255, 255, 0.95); }
+
+  /* While a corner is being dragged, kill the easing on size — otherwise the
+     1.4s transition lags behind the cursor. Snaps back on release. */
+  .glizzy-window.is-resizing .window-wrapper,
+  .glizzy-window.is-resizing .window { transition: none; }
+
   /* hero 3D capsule canvas */
   .hero-canvas-wrap {
     align-self: center;
@@ -404,6 +570,93 @@
       <a class="btn-acquire" href="#">Acquire</a>
     </div>
   </section>
+
+  <!-- Draggable glizzy-window sections. Each section is a tall scroll-area; the
+       sticky window is anchored to one side (alternating right/left), with a
+       chrome bar (title + - / + buttons) and content (placeholder glizzy art +
+       copy). The inner wrapper is the GSAP Draggable target, bounded by the
+       sticky .window-bounds-inner. -->
+  <section class="glizzy-window glizzy-window--left js-glizzy-window" data-window-idx="0">
+    <div class="window-bounds"><div class="window-bounds-inner"></div></div>
+    <div class="window-wrapper">
+      <div class="window-wrapper-inner">
+        <div class="window">
+          <div class="window-chrome js-drag-handle">
+            <span class="window-title">Glizzy · 01</span>
+            <div class="window-controls">
+              <button type="button" class="window-btn js-window-min" aria-label="Restore window">−</button>
+              <button type="button" class="window-btn js-window-max" aria-label="Maximize window">+</button>
+            </div>
+          </div>
+          <div class="window-content">
+            <div class="window-canvas-wrap">
+              <img src="icon-2c.svg" alt="" aria-hidden="true">
+            </div>
+            <h2 class="f-magnolia">The first glizzy</h2>
+            <p>Inside the casing, a remarkable consensus forms. Meat and seasoning agree, briefly, on a single point of view: that they would prefer to be eaten.</p>
+            <p>The bun, a passive participant in this transaction, has its own opinions which it keeps to itself, the way bread tends to.</p>
+          </div>
+          <div class="resize-handle resize-handle--bl js-resize-handle" data-edge="bl" aria-hidden="true"></div>
+          <div class="resize-handle resize-handle--br js-resize-handle" data-edge="br" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="glizzy-window glizzy-window--right js-glizzy-window" data-window-idx="1">
+    <div class="window-bounds"><div class="window-bounds-inner"></div></div>
+    <div class="window-wrapper">
+      <div class="window-wrapper-inner">
+        <div class="window">
+          <div class="window-chrome js-drag-handle">
+            <span class="window-title">Glizzy · 02</span>
+            <div class="window-controls">
+              <button type="button" class="window-btn js-window-min" aria-label="Restore window">−</button>
+              <button type="button" class="window-btn js-window-max" aria-label="Maximize window">+</button>
+            </div>
+          </div>
+          <div class="window-content">
+            <div class="window-canvas-wrap">
+              <img src="icon-2c.svg" alt="" aria-hidden="true">
+            </div>
+            <h2 class="f-magnolia">Twisted by hand</h2>
+            <p>Each glizzy ends in a small asterisk of pressure, three crossing lines pressed into the casing by a flat-edged tool wielded with mild contempt for symmetry.</p>
+            <p>This is on purpose. A perfect twist is somebody else's hot dog.</p>
+          </div>
+          <div class="resize-handle resize-handle--bl js-resize-handle" data-edge="bl" aria-hidden="true"></div>
+          <div class="resize-handle resize-handle--br js-resize-handle" data-edge="br" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="glizzy-window glizzy-window--left js-glizzy-window" data-window-idx="2">
+    <div class="window-bounds"><div class="window-bounds-inner"></div></div>
+    <div class="window-wrapper">
+      <div class="window-wrapper-inner">
+        <div class="window">
+          <div class="window-chrome js-drag-handle">
+            <span class="window-title">Glizzy · 03</span>
+            <div class="window-controls">
+              <button type="button" class="window-btn js-window-min" aria-label="Restore window">−</button>
+              <button type="button" class="window-btn js-window-max" aria-label="Maximize window">+</button>
+            </div>
+          </div>
+          <div class="window-content">
+            <div class="window-canvas-wrap">
+              <img src="icon-2c.svg" alt="" aria-hidden="true">
+            </div>
+            <h2 class="f-magnolia">Service</h2>
+            <p>You hold the glizzy. The glizzy holds the line, the line you drew across the page just by scrolling. There is a quiet collaboration in this.</p>
+            <p>You may drag this window. It will obey within reason and then, when you look away, it will go back to where it came from. That is the deal.</p>
+          </div>
+          <div class="resize-handle resize-handle--bl js-resize-handle" data-edge="bl" aria-hidden="true"></div>
+          <div class="resize-handle resize-handle--br js-resize-handle" data-edge="br" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="glizzy-repeat">
     <span>Glizzy</span>
     <span>Glizzy</span>
@@ -598,10 +851,12 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/Draggable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/InertiaPlugin.min.js"></script>
 <script>
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, Draggable, InertiaPlugin);
 // Prevent mobile URL-bar show/hide from re-triggering the path animation.
 ScrollTrigger.config({ ignoreMobileResize: true });
 
@@ -1022,6 +1277,143 @@ if (document.fonts && document.fonts.ready) {
     ScrollTrigger.refresh();
   });
 }
+
+// ───── Glizzy-window sections: draggable windows with bounds + reset ──────
+// Per section: GSAP Draggable on .window-wrapper-inner, bounded by the sticky
+// .window-bounds-inner. ScrollTrigger watches the section so we can disable +
+// reset the drag position when it leaves view, and re-enable on enter.
+// + / − buttons toggle a `is-maximized` class on the section (purely CSS-driven).
+document.querySelectorAll('.js-glizzy-window').forEach((section) => {
+  const target  = section.querySelector('.window-wrapper-inner');
+  const wrapper = section.querySelector('.window-wrapper');
+  const bounds  = section.querySelector('.window-bounds-inner');
+  const handle  = section.querySelector('.js-drag-handle');
+  const btnMin  = section.querySelector('.js-window-min');
+  const btnMax  = section.querySelector('.js-window-max');
+  if (!target || !bounds) return;
+
+  const [drag] = Draggable.create(target, {
+    bounds,                     // window can't be thrown past its section's box
+    trigger: handle,            // drag only via the chrome bar (so + / − buttons still click)
+    type: 'x,y',
+    inertia: true,              // throw on release with momentum decay (InertiaPlugin)
+    throwResistance: 1000,      // lower = drifts farther after release
+    edgeResistance: 0.78,       // rubber-band resistance near the bounds while dragging
+    allowEventDefault: true,
+  });
+  drag.disable();
+
+  // Clear any inline size + translateX set by the corner-resize handles.
+  function clearResize() {
+    wrapper.style.width = '';
+    wrapper.style.maxWidth = '';
+    wrapper.style.height = '';
+    wrapper.style.maxHeight = '';
+    wrapper.style.transform = '';
+  }
+
+  function reset() {
+    // Long, gentle return — matches the reset duration crest uses, so the
+    // drag→reset transition reads as gradual rather than snappy.
+    gsap.to(target, { x: 0, y: 0, duration: 1.8, ease: 'power1.inOut', overwrite: 'auto' });
+  }
+
+  ScrollTrigger.create({
+    trigger: section,
+    start: 'top bottom',
+    end:   'bottom top',
+    onEnter:     () => drag.enable(),
+    onEnterBack: () => drag.enable(),
+    onLeave:     () => { drag.disable(); reset(); clearResize(); section.classList.remove('is-maximized'); },
+    onLeaveBack: () => { drag.disable(); reset(); clearResize(); section.classList.remove('is-maximized'); },
+  });
+
+  btnMax?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearResize();              // inline px sizes would override the maximized CSS
+    section.classList.add('is-maximized');
+    reset();
+  });
+  btnMin?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    section.classList.remove('is-maximized');
+    clearResize();
+    reset();
+  });
+
+  // ───── Bottom-corner drag-to-resize ─────
+  // Each corner grows the window TOWARD that corner. Because the wrapper is
+  // margin-anchored (left or right), when we drag from the "wrong" side we
+  // need to compensate with a translateX so the opposite edge stays put.
+  // Hard caps: min 240x180, max = the section's bounds box.
+  const MIN_W = 240;
+  const MIN_H = 180;
+  const isRightAligned = section.classList.contains('glizzy-window--right');
+
+  section.querySelectorAll('.js-resize-handle').forEach((h) => {
+    const isLeftHandle = h.dataset.edge === 'bl';
+    let active = null;
+
+    h.addEventListener('pointerdown', (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      h.setPointerCapture(e.pointerId);
+      const r = wrapper.getBoundingClientRect();
+      const b = bounds.getBoundingClientRect();
+      active = {
+        pointerId: e.pointerId,
+        startX: e.clientX, startY: e.clientY,
+        startW: r.width,   startH: r.height,
+        startLeft:  r.left, startRight: r.right, startTop: r.top,
+        boundsLeft: b.left, boundsRight: b.right, boundsBottom: b.bottom,
+      };
+      section.classList.add('is-resizing');
+    });
+
+    h.addEventListener('pointermove', (e) => {
+      if (!active || e.pointerId !== active.pointerId) return;
+      const dx = e.clientX - active.startX;
+      const dy = e.clientY - active.startY;
+      const proposedW = active.startW + (isLeftHandle ? -dx : dx);
+      const proposedH = active.startH + dy;
+
+      // Width: clamp by min + by how much room is left toward the dragged corner.
+      const maxW = isLeftHandle
+        ? active.startRight - active.boundsLeft   // BL: room to the left
+        : active.boundsRight - active.startLeft;  // BR: room to the right
+      const w = Math.max(MIN_W, Math.min(maxW, proposedW));
+
+      // Height: clamp by min + by room downward to the bounds box.
+      const maxH = active.boundsBottom - active.startTop;
+      const hh = Math.max(MIN_H, Math.min(maxH, proposedH));
+
+      // Shift the wrapper horizontally to keep the OPPOSITE edge in place,
+      // but only for the (alignment, handle) combos where natural anchor
+      // doesn't already keep it fixed:
+      //   --left  + BL  → right edge is the "free" one; pin it via -shift
+      //   --right + BR  → left  edge is the "free" one; pin it via +shift
+      let shiftX = 0;
+      if (isLeftHandle && !isRightAligned)      shiftX = -(w - active.startW);
+      else if (!isLeftHandle && isRightAligned) shiftX =  (w - active.startW);
+
+      wrapper.style.width     = w  + 'px';
+      wrapper.style.maxWidth  = w  + 'px';
+      wrapper.style.height    = hh + 'px';
+      wrapper.style.maxHeight = hh + 'px';
+      wrapper.style.transform = shiftX ? `translateX(${shiftX}px)` : '';
+    });
+
+    const end = (e) => {
+      if (!active || e.pointerId !== active.pointerId) return;
+      try { h.releasePointerCapture(active.pointerId); } catch (_) {}
+      active = null;
+      section.classList.remove('is-resizing');
+    };
+    h.addEventListener('pointerup',     end);
+    h.addEventListener('pointercancel', end);
+  });
+});
 
 
 // Rebuild on resize, but ignore mobile URL-bar height changes — only width changes

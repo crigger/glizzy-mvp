@@ -1,0 +1,169 @@
+---
+/**
+ * The document shell.
+ *
+ * Was the <head> of a single hand-written index.html. Everything it used to
+ * inline now lives somewhere with a name: the styles in src/styles, the two
+ * classic scripts in public/js, the 3D module in src/scripts.
+ *
+ * Comments in .astro files must be {/* … *\/} — Astro passes HTML comments
+ * straight through to the built page.
+ */
+import '../styles/main.scss';
+import CartDrawer from '../components/shop/CartDrawer.astro';
+import SiteNote from '../components/SiteNote.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Share-card image. Absolute, or a path resolved against the site origin. */
+  ogImage?: string;
+  /** schema.org nodes for this page; see src/lib/productJsonLd.ts. */
+  jsonLdNodes?: unknown[];
+  /**
+   * Load the dog: the GSAP scripts, the 3D module, and the four-screen body
+   * height they assume. Off for routes that have no path to draw.
+   */
+  scripts?: boolean;
+  /**
+   * Render the cart drawer.
+   *
+   * Opt-in rather than everywhere, the same way mmmornings does it — but for a
+   * different reason. That site's whole character is shipping no JavaScript, so
+   * the drawer is its only script. This one already ships GSAP and three.js, so
+   * the saving is real but modest; what it actually buys is that the floating
+   * cart button doesn't sit over the hero on a page with nothing to sell.
+   *
+   * Set it on any page rendering a ShopCard or the product page. Forgetting is
+   * not fatal — shop-card.js finds no `window.GlizzyCart` and sends the click
+   * to the product page — but it warns in the console, because silently turning
+   * Add to cart into a link is the kind of downgrade nobody notices.
+   */
+  cart?: boolean;
+  /**
+   * Keep the page out of search results.
+   *
+   * For /thanks, which is only ever reached by Netlify redirecting a
+   * successful form post: a thank-you page in a result list is a dead end for
+   * whoever clicks it, and it competes with the homepage for the site's name.
+   */
+  noindex?: boolean;
+}
+
+const {
+  title = 'Glizzy Store',
+  description = 'Glizzy?',
+  ogImage,
+  jsonLdNodes = [],
+  scripts = true,
+  cart = false,
+  noindex = false,
+} = Astro.props;
+
+/**
+ * One `<script type="application/ld+json">` per document rather than several:
+ * a single `@graph` is how the nodes get to reference each other by `@id`.
+ */
+const jsonLd = jsonLdNodes.length
+  ? { '@context': 'https://schema.org', '@graph': jsonLdNodes }
+  : null;
+
+const ogImageUrl = ogImage
+  ? new URL(ogImage, Astro.site ?? 'https://glizzy-mvp.netlify.app').href
+  : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+    <link rel="icon" type="image/svg+xml" href="/icon-2c.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="1024x1024" href="/apple-touch-icon-1024.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#000731" />
+
+    {/* PWA / installable web app hints */}
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Glizzy" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Glizzy" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
+    <meta name="twitter:card" content={ogImageUrl ? 'summary_large_image' : 'summary'} />
+
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+
+  <body class:list={{ 'has-dog': scripts }}>
+    <slot />
+
+    {/*
+      Outside <main>, because it is site chrome rather than page content — and
+      after it, because it is the last thing on every route.
+    */}
+    <SiteNote />
+
+    {cart && <CartDrawer />}
+
+    {
+      scripts && (
+        <>
+          {/*
+            GSAP, self-hosted. These were four cdnjs <script> tags; the files are
+            vendored from the `gsap` dependency into public/js so the page
+            contacts no third-party origin at runtime.
+
+            Load order is the contract: gsap first, then the plugins that
+            register against it, then our two scripts, which are classic
+            scripts reading those globals. `defer` keeps them in order and runs
+            them after parse, which is where they ran before — at the end of
+            <body>.
+          */}
+          <script is:inline src="/js/gsap.min.js" defer />
+          <script is:inline src="/js/ScrollTrigger.min.js" defer />
+          <script is:inline src="/js/Draggable.min.js" defer />
+          <script is:inline src="/js/InertiaPlugin.min.js" defer />
+          <script is:inline src="/js/glizzy-path.js" defer />
+          <script is:inline src="/js/glizzy-windows.js" defer />
+          <script is:inline src="/js/acquire-squiggle.js" defer />
+        </>
+      )
+    }
+
+    {/*
+      The 3D dog. A real module import rather than the old jsdelivr importmap,
+      so Vite bundles three and hashes it alongside everything else.
+    */}
+    {scripts && <script>import '../scripts/hero-dog.js';</script>}
+
+    {/*
+      `?inspect` — the DevTools capture panel. Dev only, and it does nothing at
+      all unless the query parameter is present, so it costs a script tag on a
+      dev page and nothing anywhere else. See public/js/inspect-capture.js.
+    */}
+    {import.meta.env.DEV && <script is:inline src="/js/inspect-capture.js" defer />}
+
+    {/*
+      Register the service worker. Only meaningful over HTTPS or on localhost;
+      silently no-ops elsewhere.
+    */}
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

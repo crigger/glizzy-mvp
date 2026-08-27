@@ -1,0 +1,43 @@
+---
+/**
+ * The type specimens, on their own route.
+ *
+ * They were a section on the homepage because the hand-written index.html had
+ * them there — a working reference sitting inside the finished page. This is
+ * where FontSamples.astro's own comment always said they belonged.
+ *
+ * At /type, not /fonts: `public/fonts/` already owns that URL space (the five
+ * woff2 files are served from /fonts/…), and a route there would put a page
+ * and the font binaries in the same built directory.
+ *
+ * `scripts={false}`: no dog. That switch also drops the four-screen body
+ * height the dog assumes (`body.has-dog` in base.scss), which on a page this
+ * short would otherwise open onto empty screens — the same reason /shop sets
+ * it.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import FontSamples from '../components/FontSamples.astro';
+---
+
+<Layout
+  title="Type — Glizzy Store"
+  description="Every .f-* utility, set."
+  scripts={false}
+>
+  <SiteIcon />
+
+  {/*
+    The h1 is not decoration — it is also what keeps FontSamples out of
+    `section:first-child`, which base.scss gives `display: flex`. That rule is
+    there for the homepage hero, but it matches ANY section opening a <main>,
+    and a flex ROW is what it makes: with the specimens first on this route the
+    heading and the card list sat side by side. specimen.scss cannot simply
+    override it — main.scss loads specimen BEFORE base on purpose, so at equal
+    specificity base wins.
+  */}
+  <main>
+    <h1 class="f-magnolia">Type</h1>
+    <FontSamples />
+  </main>
+</Layout>

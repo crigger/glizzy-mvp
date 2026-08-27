@@ -1,0 +1,74 @@
+---
+/**
+ * A draggable window pinned to one side of a very tall section.
+ *
+ * The nesting is load-bearing:
+ *
+ *   section            — much taller than the viewport, so the sticky child
+ *                        stays pinned for a good stretch of scrolling
+ *   .window-wrapper    — sticky slot, anchored left or right, panel centred in it
+ *     .window-wrapper-inner — the Draggable target itself
+ *
+ * There was a `.window-bounds` / `.window-bounds-inner` pair here giving
+ * Draggable its arena. It was inset from the section, so its sticky range was
+ * SHORTER than the wrapper's: measured 45% through a section, the arena's top
+ * had scrolled to -59 while the panel's was still at 133. The arena had left
+ * and the window could follow it off the top of the screen. The arena is
+ * computed from the viewport at drag time now — see glizzy-windows.js.
+ *
+ * The `js-` classes are the contract with glizzy-windows.js. `data-window-idx`
+ * is what it stamps drag state against.
+ *
+ * The chrome bar is a label and a grab handle, nothing else — the same job
+ * crest.red's gold bar does.
+ *
+ * It used to carry + / − (maximize and restore) and the panel used to have
+ * bottom-corner resize handles. Both are gone, and both were the same mistake:
+ * anything that changes the panel's size without changing the drag target's
+ * breaks Draggable's bounds, which measure the TARGET. That is how the window
+ * ended up throwable off the side of the screen.
+ */
+import WindowMark from './WindowMark.astro';
+import WindowPanel from './WindowPanel.astro';
+
+interface Props {
+  /** 0-based; also what the chrome bar's number is derived from. */
+  index: number;
+  side: 'left' | 'right';
+  heading: string;
+  /** The last step points at nothing that follows, so it omits the arrow. */
+  hint?: boolean;
+}
+const { index, side, heading, hint = true } = Astro.props;
+const label = String(index + 1).padStart(2, '0');
+---
+
+<section
+  class:list={['glizzy-window', `glizzy-window--${side}`, 'js-glizzy-window']}
+  data-window-idx={index}
+>
+  <div class="window-wrapper">
+    <div class="window-wrapper-inner">
+      <WindowPanel title={`Our Process · ${label}`} draggable>
+        <div class="window-content__logo"><WindowMark /></div>
+        <h2 class="f-sequoia-light">{heading}</h2>
+        <slot />
+      </WindowPanel>
+
+      {/*
+        A step marker, under the panel and tucked into the corner nearest the
+        NEXT window: a left-anchored panel points down-right, a right-anchored
+        one points down-left, so the arrows zigzag the way the sections do.
+
+        Bricolage because it is the only face here with a real U+2193 — see
+        HeroSection. Decorative, so `aria-hidden`. The LAST step passes
+        `hint={false}`: there is no next window for it to point at.
+
+        It lives inside the drag target but is absolutely positioned, so it
+        rides along when the window is thrown WITHOUT growing the target's
+        border box — which is what Draggable measures its arena from.
+      */}
+      {hint && <span class="window-hint f-bricolage" aria-hidden="true">↓</span>}
+    </div>
+  </div>
+</section>

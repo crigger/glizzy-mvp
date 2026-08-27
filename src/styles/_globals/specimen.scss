@@ -1,0 +1,14 @@
+// Layout for the font-specimen cards. Used by FontSamples.astro only.
+
+/* font-sample card layout */
+.font-samples { display: flex; flex-direction: column; gap: 18px; }
+.font-sample {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px 0; border-top: 1px solid rgba(255,255,255,0.15);
+}
+.font-sample .label {
+  font: 10px/1.4 ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.55;
+}
+.font-sample .specimen { font-size: 2.4rem; line-height: 1.1; margin: 0; }
+.font-sample .pangram  { font-size: 1rem;   line-height: 1.5; opacity: 0.8; margin: 0; }

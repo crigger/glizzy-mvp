@@ -1,0 +1,160 @@
+---
+/**
+ * One product, as a card that sells.
+ *
+ * Used in both places the shop appears — the homepage block and /shop — so the
+ * two can't drift. Pick an option, add it, the drawer opens; the product page
+ * still exists for a deep link or a share, but nobody has to go there to buy
+ * the one thing on sale.
+ *
+ * Vinton's version of this drew each colorway as a coloured disc, sampled from
+ * that variant's own artwork. That works when the option IS a colour. Here the
+ * chips are the option's own words, which is the version that survives a
+ * product whose options are sizes, or nothing at all — and the first glizzy
+ * has no options at all, so `hasRealOptions` sends this straight past them.
+ */
+import {
+  cdnImage,
+  cdnSrcset,
+  formatPrice,
+  hasRealOptions,
+  type ShopProduct,
+} from '../../lib/fetchShopifyProducts';
+
+interface Props {
+  product: ShopProduct;
+  /** `h2` inside a section that already has a heading, `h3` under one more. */
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { product, headingLevel = 'h2' } = Astro.props;
+const Heading = headingLevel;
+
+/**
+ * The variant everything opens on: the first one that can actually be bought,
+ * matching the product page's rule. Opening on a sold-out variant would put a
+ * dead end in the shop window.
+ */
+const initial = product.variants.find((v) => v.availableForSale) ?? product.variants[0];
+
+/** Absent for a product Shopify gave a synthetic `Title` / `Default Title`. */
+const option = hasRealOptions(product) ? product.options[0] : null;
+
+/**
+ * `gid://shopify/ProductVariant/44750215086122` → `44750215086122`.
+ *
+ * The short form is what travels in the `?variant=` link to the product page.
+ * A variant ID is public catalogue data — unlike the CART id, which carries a
+ * secret and never goes in a URL.
+ */
+const variantParam = (id: string) => id.split('/').pop() ?? '';
+const hrefFor = (variantId: string) => `/shop/${product.handle}/?variant=${variantParam(variantId)}`;
+
+const imageFor = (v: ShopProduct['variants'][number]) => v.image ?? product.featuredImage;
+
+/**
+ * Shopify's alt text if it's there, ours only if it isn't — written alt beats
+ * generated alt, because it describes the picture rather than naming the
+ * product. The fallback stays for images that carry none: an empty alt on the
+ * ONLY picture of the thing being sold is the wrong kind of silence.
+ */
+const altFor = (v: ShopProduct['variants'][number]) =>
+  v.image?.altText?.trim() || product.featuredImage?.altText?.trim() || product.title;
+---
+
+<div class="shop-card" data-handle={product.handle}>
+  {/*
+    The art and the title both go to the product page. The art's link is
+    `tabindex="-1"`: it's the same destination as the title right below it, so
+    it would otherwise be a second tab stop announcing the same thing twice.
+    NOT `aria-hidden` — that would take the image's alt text with it, and the
+    alt is the only description of the product a screen reader gets.
+  */}
+  <a class="shop-card__art-link" data-shop-card-link tabindex="-1" href={hrefFor(initial.id)}>
+    <img
+      class="shop-card__art"
+      data-shop-card-art
+      src={cdnImage(imageFor(initial)?.url ?? '', 640)}
+      srcset={cdnSrcset(imageFor(initial)?.url ?? '', imageFor(initial)?.width)}
+      sizes="(max-width: 40rem) calc(100vw - 4rem), 20rem"
+      alt={altFor(initial)}
+      width={imageFor(initial)?.width ?? 2000}
+      height={imageFor(initial)?.height ?? 2000}
+      loading="lazy"
+      decoding="async"
+    />
+  </a>
+
+  <Heading class="shop-card__name h3">
+    <a class="shop-card__name-link" data-shop-card-link href={hrefFor(initial.id)}>{product.title}</a>
+  </Heading>
+
+  {
+    option && (
+      <fieldset class="shop-card__versions">
+        {/*
+          Off-screen, not deleted. The chips read for themselves on screen and
+          say nothing about what they are a choice BETWEEN — the legend is what
+          names the group, so it stays in the accessibility tree even once it is
+          out of the layout.
+        */}
+        <legend class="visually-hidden">{option.name}</legend>
+        <div class="shop-card__chips">
+          {product.variants.map((variant) => (
+            <label class="shop-card__chip">
+              <input
+                type="radio"
+                name={`card-variant-${product.handle}`}
+                value={variant.id}
+                checked={variant.id === initial.id}
+                disabled={!variant.availableForSale}
+                data-image={cdnImage(imageFor(variant)?.url ?? '', 640)}
+                data-srcset={cdnSrcset(imageFor(variant)?.url ?? '', imageFor(variant)?.width)}
+                data-price={formatPrice(variant.price)}
+                data-available={String(variant.availableForSale)}
+                data-href={hrefFor(variant.id)}
+              />
+              <span>{variant.title}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    )
+  }
+
+  {/*
+    Shopify's description, verbatim, as HTML — the plain-text field welds
+    paragraphs together, so the markup is the only faithful version. It is
+    authored in the store admin by us, which is what makes rendering it as
+    markup reasonable. `<meta>` tags the editor leaves behind are stripped in
+    the fetch layer.
+
+    No fallback copy: an empty description should read as nothing, not as a
+    sentence someone has to notice is wrong before they can fix it.
+  */}
+  {product.descriptionHtml && <div class="shop-card__body" set:html={product.descriptionHtml} />}
+
+  <p class="shop-card__price" data-shop-card-price>{formatPrice(initial.price)}</p>
+
+  {/*
+    Rendered for the first available variant and enabled without JS having run
+    — but it needs the cart script to do anything, so `shop-card.js` wires the
+    click. `data-href` rides along as the no-JS destination.
+  */}
+  <button
+    class="shop-button"
+    type="button"
+    data-shop-card-add
+    data-variant-id={initial.id}
+    data-href={hrefFor(initial.id)}
+    disabled={!initial.availableForSale}
+  >
+    {initial.availableForSale ? 'Add to cart' : 'Sold out'}
+  </button>
+
+  <p class="shop-card__note" data-shop-card-note role="status" aria-live="polite"></p>
+
+  <noscript>
+    <a class="shop-button shop-button--quiet" href={hrefFor(initial.id)}>Take a look</a>
+  </noscript>
+</div>

@@ -1,0 +1,198 @@
+---
+/**
+ * One product page per product, generated at build from the same catalogue
+ * fetch the shop index uses.
+ *
+ * Everything here is static HTML: the picker, the price and the button are all
+ * rendered for the FIRST available variant, and `cart.js` takes over from
+ * there. A visitor on a slow connection sees the real product before any
+ * script runs.
+ */
+import Layout from '../../layouts/Layout.astro';
+import SiteIcon from '../../components/SiteIcon.astro';
+import { breadcrumbNode, productNode } from '../../lib/productJsonLd';
+import {
+  cdnImage,
+  cdnSrcset,
+  fetchShopifyProducts,
+  formatPrice,
+  hasRealOptions,
+  type ShopProduct,
+} from '../../lib/fetchShopifyProducts';
+
+export async function getStaticPaths() {
+  const products = await fetchShopifyProducts();
+
+  // `null` only happens in a dev build with no credentials — see
+  // fetchShopifyProducts(). No catalogue, no product pages, and the rest of
+  // the site still builds.
+  if (!products) return [];
+
+  return products.map((product) => ({
+    params: { handle: product.handle },
+    props: { product },
+  }));
+}
+
+interface Props {
+  product: ShopProduct;
+}
+
+const { product } = Astro.props;
+
+/**
+ * The variant the page opens on: the first one that can actually be bought.
+ * Opening on a sold-out variant would render a disabled button as the page's
+ * first impression.
+ */
+const initial = product.variants.find((v) => v.availableForSale) ?? product.variants[0];
+
+/** Absent for a product Shopify gave a synthetic `Title` / `Default Title`. */
+const option = hasRealOptions(product) ? product.options[0] : null;
+
+const imageFor = (v: ShopProduct['variants'][number]) => v.image ?? product.featuredImage;
+const art = imageFor(initial);
+
+const body = product.descriptionHtml.trim();
+
+const jsonLdNodes = [productNode(product, Astro.site), breadcrumbNode(product, Astro.site)];
+
+const alt =
+  initial.image?.altText?.trim() || product.featuredImage?.altText?.trim() || product.title;
+
+// Plain text here, not the HTML: a meta tag can't carry markup, and the
+// flattened field is good enough for a share card.
+const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${product.description}`
+  .trim()
+  .slice(0, 200);
+---
+
+<Layout
+  title={`${product.title} — Glizzy Store`}
+  description={ogDescription}
+  ogImage={art?.url}
+  jsonLdNodes={jsonLdNodes}
+  scripts={false}
+  cart
+>
+  <SiteIcon />
+
+  {/* The dog's own module — this page does not load the hero's `scripts`. */}
+  <script>import '../../scripts/pdp-dog.js';</script>
+
+  <main class="shop-page pdp">
+    <div class="pdp__inner">
+      {/*
+        The product's own dog, live — the same model as the homepage hero, at
+        the same near-orthographic 5-degree lens, spinning and draggable.
+
+        The still image is kept UNDERNEATH as the no-JS fallback and as the
+        thing a crawler and a share card see: `pdp-dog.js` only reveals the
+        canvas once it has actually built the scene, so a WebGL failure or a
+        blocked module leaves a real photograph rather than a blank square.
+
+        The canvas carries the photo's own `alt` because revealing it hides the
+        <img>, and `visibility: hidden` takes that element out of the
+        accessibility tree with its description — leaving the canvas as the
+        only thing left to name the product.
+      */}
+      <div class="pdp__art-frame">
+        <img
+          class="pdp__art"
+          id="pdp-art"
+          fetchpriority="high"
+          src={cdnImage(art?.url ?? '', 960)}
+          srcset={cdnSrcset(art?.url ?? '', art?.width)}
+          sizes="(max-width: 48rem) calc(100vw - 2rem), calc(50vw - 3.5rem)"
+          alt={alt}
+          width={art?.width ?? 2000}
+          height={art?.height ?? 2000}
+        />
+        <canvas id="pdp-stage" class="pdp__stage" role="img" aria-label={alt}></canvas>
+      </div>
+
+      <div class="pdp__detail">
+        <h1 class="pdp__title f-magnolia">{product.title}</h1>
+        <p class="pdp__price" id="pdp-price">{formatPrice(initial.price)}</p>
+
+        {body && <div class="pdp__body" set:html={body} />}
+
+        {
+          option && (
+            <fieldset class="pdp__options">
+              <legend class="pdp__legend">{option.name}</legend>
+              <div class="pdp__chips">
+                {product.variants.map((variant) => (
+                  <label class="pdp__chip">
+                    <input
+                      type="radio"
+                      name="variant"
+                      value={variant.id}
+                      checked={variant.id === initial.id}
+                      disabled={!variant.availableForSale}
+                      data-price={formatPrice(variant.price)}
+                      data-image={cdnImage(imageFor(variant)?.url ?? '', 960)}
+                      data-srcset={cdnSrcset(imageFor(variant)?.url ?? '', imageFor(variant)?.width)}
+                      data-available={String(variant.availableForSale)}
+                    />
+                    <span>{variant.title}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )
+        }
+
+        {/*
+          The ode. Opt-in first, because most orders will not carry one and an
+          empty textarea sitting under the price reads as a required field.
+
+          The reveal is pure CSS (`.pdp__ode-opt:checked ~ .pdp__ode-field`),
+          so it does not wait on a script and the textarea is `display: none`
+          until asked for — which also keeps it out of the tab order rather
+          than leaving a hidden focus stop between the picker and the button.
+
+          `maxlength` is the browser's own floor and it covers paste; the real
+          rule (3 lines, and what counts as a character) is in cart.js, because
+          a line limit is not something the platform can express.
+        */}
+        <div class="pdp__ode">
+          <input class="pdp__ode-opt" type="checkbox" id="ode-opt" />
+          <label class="pdp__ode-toggle" for="ode-opt">Add a note</label>
+
+          <div class="pdp__ode-field">
+            <label class="pdp__ode-label" for="ode-text">
+              Your ode — 3 lines, 100 characters
+            </label>
+            <textarea
+              class="pdp__ode-text f-sequoia"
+              id="ode-text"
+              name="ode"
+              rows="3"
+              maxlength="100"
+              spellcheck="true"
+              autocomplete="off"
+              placeholder="Nothing unbecoming."></textarea>
+            <p class="pdp__ode-count" id="ode-count">100 left</p>
+          </div>
+        </div>
+
+        <button
+          class="shop-button"
+          id="pdp-add"
+          type="button"
+          data-variant-id={initial.id}
+          disabled={!initial.availableForSale}
+        >
+          {initial.availableForSale ? 'Add to cart' : 'Sold out'}
+        </button>
+
+        <p class="pdp__note" id="pdp-note" role="status" aria-live="polite"></p>
+
+        <noscript>
+          <p class="pdp__nojs">The cart needs JavaScript.</p>
+        </noscript>
+      </div>
+    </div>
+  </main>
+</Layout>

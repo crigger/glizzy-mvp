@@ -1,0 +1,31 @@
+---
+/**
+ * The last line on every page: what this site does not do.
+ *
+ * Every clause is measured, not aspirational, and it is worth knowing what
+ * each one rests on before editing either the copy or the thing it describes:
+ *
+ *   "loads nothing from anyone else"  the build mirrors Shopify's product
+ *                                     images into this origin — see
+ *                                     shopImageMirror() in astro.config.mjs.
+ *                                     Remove that and this sentence is false.
+ *   "no cookies"                      verified: zero cookies set, at any point
+ *                                     including after adding to cart.
+ *   "no analytics, no trackers"       there is no analytics library in the
+ *                                     repo at all.
+ *   "until you add something"         the Storefront API call happens on that
+ *                                     click and not before, and checkout is
+ *                                     Shopify's own domain from there.
+ *
+ * Deliberately NOT "doesn't track you in any way whatsoever": Netlify logs
+ * requests server-side and Shopify's checkout is Shopify's. The claim stops
+ * exactly where it stops being true.
+ */
+---
+
+<footer class="site-note">
+  <p class="site-note__text f-bricolage">
+    This site loads nothing from anyone else. No cookies, no analytics, no
+    trackers. Nothing leaves this domain until you add something to your cart.
+  </p>
+</footer>

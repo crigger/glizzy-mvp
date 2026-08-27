@@ -1,0 +1,127 @@
+---
+/**
+ * The tuning panel for the SVG dog and the 3D one.
+ *
+ * Rendered in `astro dev` only. It is `display: none` in the stylesheet and
+ * always has been — it gets unhidden from devtools when it is wanted — so on
+ * the live site it was ~90 lines of markup nobody could ever see.
+ *
+ * Both scripts that read it (glizzy-path.js, hero-dog.js) tolerate every one
+ * of these controls being absent. If a control is added here, it does NOT need
+ * a guard added there; if a control is REMOVED, check that nothing reads it
+ * without `?.`.
+ */
+---
+
+<div id="debug-panel" class="collapsed">
+  <div id="debug-head">
+    <span>GLIZZY DEBUG</span>
+    <span class="chev">+</span>
+  </div>
+  <div id="debug-body">
+    <label><span>bg top</span>
+      <input id="ctrl-bgtop" type="color" value="#000731"></label>
+    <label><span>bg bottom</span>
+      <input id="ctrl-bgbottom" type="color" value="#000724"></label>
+    <label><span>dog color</span>
+      <input id="ctrl-dogcolor" type="color" value="#dc512a"></label>
+    <label><span>dog highlight</span>
+      <input id="ctrl-doghi" type="color" value="#ff945a"></label>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="svg">SVG</button>
+      <button class="tab" data-tab="3d">3D</button>
+    </div>
+
+    <div class="tab-content" data-tab="svg">
+      <pre id="debug"></pre>
+      <label><span>top margin (vmin)</span>
+        <input id="ctrl-topmargin" type="range" min="0" max="200" step="5" value="50">
+        <output id="out-topmargin">50</output></label>
+      <label><span>dog height (vmin)</span>
+        <input id="ctrl-dogheight" type="range" min="50" max="400" step="5" value="120">
+        <output id="out-dogheight">120</output></label>
+      <label><span>scroll trigger (vmin)</span>
+        <input id="ctrl-scrolltrigger" type="range" min="0" max="600" step="5" value="100">
+        <output id="out-scrolltrigger">100</output></label>
+      <label><span>end stub (vmin)</span>
+        <input id="ctrl-endstub" type="range" min="0" max="300" step="5" value="75">
+        <output id="out-endstub">75</output></label>
+      <label><span>end margin (vmin)</span>
+        <input id="ctrl-endmargin" type="range" min="0" max="400" step="5" value="100">
+        <output id="out-endmargin">100</output></label>
+      <label><span>stroke (% vw)</span>
+        <input id="ctrl-stroke" type="range" min="10" max="140" step="1" value="50">
+        <output id="out-stroke">50</output></label>
+      <label><span>U-turn (× stroke)</span>
+        <input id="ctrl-uturn" type="range" min="0.5" max="3" step="0.05" value="0.75">
+        <output id="out-uturn">0.75</output></label>
+      <label><span>u-turn bleed (% vw)</span>
+        <input id="ctrl-bleed" type="range" min="0" max="50" step="1" value="20">
+        <output id="out-bleed">20</output></label>
+      <label><span>body min-height (svh)</span>
+        <input id="ctrl-body" type="range" min="200" max="2400" step="25" value="800">
+        <output id="out-body">800</output></label>
+      <button id="copy-stats" class="action-btn">copy stats</button>
+    </div>
+
+    <div class="tab-content hidden" data-tab="3d">
+      <label><span>capsule width</span>
+        <input id="ctrl-radius" type="range" min="0.3" max="2.5" step="0.05" value="1.0">
+        <output id="out-radius">1.00</output></label>
+      <label><span>capsule length</span>
+        <input id="ctrl-length"  type="range" min="0.5" max="8"   step="0.1" value="5.0">
+        <output id="out-length">5.0</output></label>
+      <label><span>tilt X (°)</span>
+        <input id="ctrl-tiltx"  type="range" min="-90" max="90" step="1" value="15">
+        <output id="out-tiltx">15</output></label>
+      <label><span>tilt Z (°)</span>
+        <input id="ctrl-tiltz"  type="range" min="-90" max="90" step="1" value="-25">
+        <output id="out-tiltz">-25</output></label>
+      <label><span>spin speed (rad/s)</span>
+        <input id="ctrl-speed"  type="range" min="0" max="3" step="0.05" value="0.8">
+        <output id="out-speed">0.80</output></label>
+      <label><span>roughness</span>
+        <input id="ctrl-rough"  type="range" min="0" max="1" step="0.02" value="0.66">
+        <output id="out-rough">0.66</output></label>
+      <label><span>lumpiness</span>
+        <input id="ctrl-lump"   type="range" min="0" max="0.50" step="0.005" value="0.10">
+        <output id="out-lump">0.100</output></label>
+      <label><span>lump scale</span>
+        <input id="ctrl-lumpfreq" type="range" min="0.2" max="5" step="0.1" value="0.6">
+        <output id="out-lumpfreq">0.6</output></label>
+      <label><span>tip notch depth</span>
+        <input id="ctrl-notch" type="range" min="0" max="0.20" step="0.005" value="0.175">
+        <output id="out-notch">0.175</output></label>
+      <label><span>notch spokes (1=dimple)</span>
+        <input id="ctrl-notchpts" type="range" min="1" max="10" step="1" value="6">
+        <output id="out-notchpts">6</output></label>
+      <label><span>line thickness (°)</span>
+        <input id="ctrl-notchsharp" type="range" min="0.5" max="20" step="0.5" value="13.5">
+        <output id="out-notchsharp">13.5</output></label>
+      <label><span>cap fullness</span>
+        <input id="ctrl-capfull" type="range" min="0.2" max="1" step="0.05" value="1.0">
+        <output id="out-capfull">1.00</output></label>
+      <label><span>key light X</span>
+        <input id="ctrl-keyx" type="range" min="-10" max="10" step="0.5" value="10">
+        <output id="out-keyx">10.0</output></label>
+      <label><span>key light Y</span>
+        <input id="ctrl-keyy" type="range" min="-10" max="10" step="0.5" value="-10">
+        <output id="out-keyy">-10.0</output></label>
+      <label><span>key light Z</span>
+        <input id="ctrl-keyz" type="range" min="-10" max="10" step="0.5" value="10">
+        <output id="out-keyz">10.0</output></label>
+      <label><span>key intensity</span>
+        <input id="ctrl-keyi" type="range" min="0" max="4" step="0.1" value="4">
+        <output id="out-keyi">4.0</output></label>
+      <label><span>ambient</span>
+        <input id="ctrl-amb" type="range" min="0" max="1.5" step="0.05" value="1.5">
+        <output id="out-amb">1.50</output></label>
+      <label><span>rim intensity</span>
+        <input id="ctrl-rimi" type="range" min="0" max="2" step="0.05" value="0.2">
+        <output id="out-rimi">0.20</output></label>
+      <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
+      <button id="reset-drag"  class="action-btn">reset drag tilt</button>
+    </div>
+  </div>
+</div>

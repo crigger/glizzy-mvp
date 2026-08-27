@@ -1,0 +1,119 @@
+---
+import AcquireButton from '../AcquireButton.astro';
+/**
+ * The minicart: an opener that appears once there's something to open, and a
+ * drawer that renders whatever Shopify says the cart contains.
+ *
+ * The markup is a shell — every line in it is drawn by `public/js/cart.js` from
+ * the API's response rather than from local state, so the drawer can't drift
+ * out of step with the cart the checkout will actually charge for.
+ *
+ * Config rides on data attributes because `public/` is copied verbatim and
+ * never sees Vite, so `import.meta.env` inside `cart.js` would stay a literal
+ * string. Reading it off the element is what gets the values across the line.
+ *
+ * The token here is the glizzy-store Headless storefront's PUBLIC token. It is
+ * designed to be readable in the browser and grants only what a shopper can
+ * already do — it is NOT the `shpat_` private token, which must never appear in
+ * this repo or in any PUBLIC_ variable.
+ */
+const domain = import.meta.env.PUBLIC_SHOPIFY_STORE_DOMAIN;
+const token = import.meta.env.PUBLIC_SHOPIFY_STOREFRONT_TOKEN;
+
+/** Must match the version `fetchShopifyProducts.ts` pins. */
+const API_VERSION = '2026-07';
+
+const configured = Boolean(domain && token);
+---
+
+{
+  configured && (
+    <Fragment>
+      {/*
+        The word "Cart" stays in the accessibility tree and leaves the screen.
+        A bare number announced on its own is meaningless out of context, and
+        `aria-label` would have to be rewritten by the cart script every time
+        the count changed — real text can't drift out of step with itself.
+      */}
+      <button class="cart-fab shop-button" id="cart-open" type="button" hidden>
+        <span class="visually-hidden">Cart,&nbsp;</span><span class="cart-fab__count" id="cart-count">0</span>
+      </button>
+
+      <div
+        class="cart"
+        id="cart"
+        hidden
+        data-domain={domain}
+        data-token={token}
+        data-api-version={API_VERSION}
+      >
+        {/*
+          A flat wash. The drawer is already a glass panel over whatever the
+          page is showing, and behind it on the product page is a photograph of
+          a hot dog — anything more decorative than a dim would be competing
+          with the thing being bought.
+        */}
+        <button class="cart__scrim" id="cart-scrim" type="button" tabindex="-1" aria-hidden="true" />
+
+        <aside class="cart__panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+          <div class="cart__head">
+            <h2 class="cart__title h3" id="cart-title">Cart</h2>
+            {/*
+              A real multiplication sign, U+00D7 — Bricolage HAS it where
+              Sequoia does not (checked against both fonts' cmaps), which is
+              the only reason this was a capital X before. Swap the face back
+              and the glyph has to go back with it, or it falls through to a
+              system font at the one size where that is obvious.
+
+              `aria-hidden` on the glyph and the real name on the button, so a
+              screen reader hears "Close cart" rather than "times".
+            */}
+            <button class="cart__close" id="cart-close" type="button" aria-label="Close cart">
+              <span class="f-bricolage" aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <ul class="cart__lines" id="cart-lines" />
+
+          {/*
+            A <div>, not the <p> it was: it now holds a button as well as a
+            line of copy. cart.js only ever sets `.hidden` on this element, so
+            the tag is free to change.
+          */}
+          <div class="cart__empty" id="cart-empty">
+            <p class="cart__empty-line f-sequoia-light">Bun's empty</p>
+            <AcquireButton />
+          </div>
+
+          {/* Live region: the steppers can be refused by Shopify (stock ran out
+              between opening the drawer and pressing +), and a number that
+              silently springs back explains nothing. */}
+          <p class="cart__note" id="cart-note" role="status" aria-live="polite" />
+
+          <div class="cart__foot" id="cart-foot" hidden>
+            <p class="cart__total">
+              <span>Subtotal</span>
+              <span id="cart-subtotal">—</span>
+            </p>
+            <a class="shop-button cart__checkout" id="cart-checkout" href="#">Checkout</a>
+            {/*
+              Said once, here, rather than on every card: the checkout is
+              vinton.land's. Same Shopify store, same order — but the domain
+              changes at the click, and that should not be a surprise on a
+              page where someone is about to type a card number. Splitting it
+              per brand needs Shopify Plus; this sentence is the cheap fix and
+              the honest one.
+
+              The exact host, not the brand: `shop.vinton.land` is what the
+              address bar will read, and naming something else is the kind of
+              near-miss that reads as a redirect somewhere it shouldn't be.
+            */}
+            <p class="cart__whose">Checkout is handled by shop.vinton.land</p>
+          </div>
+        </aside>
+      </div>
+
+      <script is:inline src="/js/cart.js" defer />
+    </Fragment>
+  )
+}

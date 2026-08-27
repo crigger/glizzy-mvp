@@ -1,0 +1,409 @@
+// The repeated-wordmark sections and the intro CTA.
+
+/*
+ * Two measurements that more than one rule below needs.
+ *
+ * They live on :root rather than on .interlude__line because a custom property
+ * holding an `em` resolves against whatever element USES it — and the button
+ * that has to match the headline's air does not share the headline's
+ * font-size. As a calc off --q-size the value is the same number in both
+ * places, which is the point.
+ */
+:root {
+  /* The big-question type size, shared by "Glizzy?" and the interlude lines. */
+  --q-size: clamp(2.75rem, 9vw, 7rem);
+  /* The air above and below an interlude line — 2em of its own type. */
+  --interlude-air: calc(var(--q-size) * 2);
+}
+
+.glizzy-repeat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.glizzy-repeat span {
+  font-size: clamp(5rem, 20.5vw, 50rem);
+  font-family: 'Sequoia Sans';
+  font-weight: 400;
+  font-stretch: expanded;
+  line-height: .85;
+  letter-spacing: 0.02em;
+}
+
+.glizzy-repeat .repeat--alt {
+  color: var(--cta);
+  font-weight: 300;
+  font-stretch: normal;
+  letter-spacing: 0.05em;
+}
+
+/*
+ * A line of type alone on a screen, between the repeats. Centred both ways —
+ * unlike .intro-cta, which sits in the left half to keep clear of the dog
+ * stub, this one has a whole screen to itself.
+ */
+.interlude {
+  /*
+   * `min-height: 0` overrides the `section` default of nearly a full
+   * viewport, the same way .acquire-break and .intro-glizzy do. This is one
+   * line of type — given a screen to itself it read as a mostly-empty gap
+   * between the repeats rather than a beat between them.
+   */
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  /*
+   * The air now sits on the SECTION, around the panel, rather than on the line
+   * inside it — the card brings its own padding, and 2em of a 7rem type inside
+   * a 2rem card is not air, it is a hole. Same token either way, so the "Fine"
+   * button below still matches it.
+   */
+  padding: var(--interlude-air) 0;
+}
+
+/*
+ * `width: auto` so the panel HUGS its line rather than being a fixed slab the
+ * text sits inside — the measure is set by the line's own `max-width` below,
+ * and the frame follows it. This is what .intro-glizzy__panel does NOT do,
+ * because that one holds two paragraphs and wants a stable column.
+ *
+ * It centres because .interlude is `justify-content: center`, so an auto-width
+ * flex item lands in the middle on its own.
+ */
+.interlude__panel { width: auto; }
+
+/*
+ * The bone card, kept — the same opaque ground every other panel uses, which
+ * is what makes the line readable wherever the background dog happens to be.
+ * A transparent version was tried and abandoned: on the interlude that lands
+ * over flat navy there is nothing behind it to give the type an edge, and
+ * neither a doubled backdrop blur (a blurred flat colour is the same flat
+ * colour) nor a text outline was worth the complication.
+ *
+ * Only the ink is overridden, to the deeper of the two navies. (0,2,0), so it
+ * beats `.window-content__inner` at (0,1,0) without depending on the order
+ * sections.scss happens to load in.
+ */
+.interlude .window-content__inner {
+  color: var(--bg-bottom);
+  text-wrap: balance;
+}
+
+/*
+ * The interlude's keyline is the CTA blue — the Acquire pill's blue, and the
+ * same blue as the dot screen behind the card, so the frame and the texture
+ * inside it are one idea rather than two.
+ *
+ * Only the COLOUR is set; the 2px comes from `.window`, so this cannot drift
+ * from the other panels' weight.
+ *
+ * (0,3,0) on purpose — `.window.window--untitled` sets the dark border at
+ * (0,2,0), and a bare `.interlude .window` would only TIE with it and be
+ * settled by which file loaded last. That tiebreak has quietly gone wrong in
+ * this repo before.
+ */
+.interlude .window.window--untitled {
+  border-color: var(--cta);
+}
+
+/*
+ * The stack: asterisks, line, asterisks.
+ *
+ * Its own flex column rather than leaning on `.window-content__inner`'s. That
+ * one is the CARD's layout and carries the card's 14px gap, which is spacing
+ * for paragraphs — the rule wants to sit closer to the line than that, and a
+ * wrapper is where to say so without reaching into the shared panel.
+ *
+ * `align-items: center` is what actually centres the three items. The line
+ * also has `margin-inline: auto` for the same job; both are needed, because
+ * that one centres a block inside a stretched item and this one stops the
+ * items stretching in the first place.
+ */
+.interlude__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+}
+
+/*
+ * The rules either side, set at the LINE'S OWN SIZE — same token, no
+ * multiplier, so they read as part of the setting rather than a caption on it.
+ */
+.interlude__stars {
+  font-size: var(--q-size);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  /*
+   * Drop the asterisks onto the caps' optical centre.
+   *
+   * `*` is drawn near the cap line in Sequoia — measured, its ink centre sits
+   * 58px above the cap-height centre at 200px type, so 0.29em is the exact
+   * correction, not a guess. Sequoia has no centred alternative to switch to:
+   * U+2217, U+2731, U+22C6 and the rest are all absent, and any of them would
+   * fall back to a system face that matches nothing at this size.
+   *
+   * `transform` rather than a margin, deliberately: it moves the ink without
+   * touching the layout, so the stack's gaps stay the ones set above. It works
+   * on a <span> here only because a flex item is blockified — a transform on a
+   * genuinely inline box is ignored.
+   */
+  transform: translateY(0.29em);
+}
+
+/*
+ * The screen behind an interlude is the CTA blue, not the mustard every other
+ * panel uses — the same blue as the Acquire pill.
+ *
+ * BOTH following lines are load-bearing, for the reason `.window::before`
+ * itself spells out: `background` is a SHORTHAND, so setting it here resets
+ * `background-position` and `background-size` to their initial values. Without
+ * restating them the 3px tile becomes one gradient stretched across the whole
+ * panel — a soft blue wash, not a dot screen. They must come after, exactly as
+ * they do in the rule this overrides.
+ *
+ * (0,2,0) beats that rule's (0,1,0) without depending on load order.
+ */
+.interlude .window::before {
+  background: radial-gradient(var(--cta), 30%, transparent 0);
+  background-position: 50%;
+  background-size: 3px 3px;
+}
+
+/* Intro CTA: the question again + acquire button. The dog stub occupies the
+   right half of the viewport, so the content lives in the left half on
+   desktop and centers on phones. */
+.intro-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  // min-height: 0;
+  // min-height: calc(75svh - 96px - 24px);
+}
+.intro-cta__inner {
+  /* Full width by default; the dog-stub clearance arrives at 701 below. */
+  max-width: 100%;
+  padding-top: 50svh;
+}
+/*
+ * ONE declaration of the big-question type, shared by the intro's "Glizzy?"
+ * and the interlude lines between the repeats. They are the same voice at the
+ * same size; splitting the rule is how they would quietly stop being that.
+ */
+.intro-cta__q,
+.interlude__line {
+  font-size: var(--q-size);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+/*
+ * `font-weight: normal` belongs to the intro's ONLY, because that one is an
+ * <h2> and the UA makes it bold. The interlude line is a <p> and is already
+ * normal — and while this sat in the shared rule above it silently outranked
+ * the `.f-sequoia-light` class on the element: same (0,1,0) specificity, and
+ * sections.scss loads after fonts.scss, so `normal` won and the line rendered
+ * at 400 no matter which weight class it carried.
+ */
+.intro-cta__q {
+  font-weight: normal;
+  margin-bottom: 1.25rem;
+}
+
+/*
+ * The line inside the card.
+ *
+ * QUALIFIED WITH THE CARD ON PURPOSE, and it is not optional. The panel styles
+ * its body copy with `.window-content__inner p` — 0.95rem, margin 0, 85%
+ * opacity — at (0,1,1), and a bare `.interlude__line` at (0,1,0) loses to it
+ * however late it is declared. Unqualified, the display line rendered at
+ * 15.2px and its `margin-inline: auto` never applied, so it did not centre
+ * either. Same shape of trap as `.window.window--untitled` in windows.scss.
+ *
+ * So this restates exactly the three things that rule takes: the size (off the
+ * shared token, so it still cannot drift from "Glizzy?"), the auto margins,
+ * and full opacity — display type is not body copy at 85%.
+ *
+ * It centres with `margin-inline: auto` rather than `text-align` alone,
+ * because the card is a flex COLUMN: text-align would move the glyphs and
+ * leave the block full width, so the measure would not sit in the middle.
+ */
+/*
+ * ONE declaration of the panel's display line, shared by the interlude and the
+ * contact form's title, so "same treatment" is a fact rather than two sets of
+ * numbers that agree today.
+ *
+ * The weight, letter-spacing and word-spacing are RESTATED here on purpose.
+ * They are not interlude-specific and never were: the interlude line is a <p>,
+ * so it was picking them up from `.window-content__inner p` — the panel's BODY
+ * COPY rule — which at (0,1,1) also outranks the `.f-sequoia-light` class on
+ * the element. The contact title is an <h2> and inherited none of it, which is
+ * how the two came to differ (300 / 0.02em against 500 / 0.01em). Stating them
+ * here decouples both from the body-copy rule.
+ *
+ * Qualified with the card because that same `p` rule has to be beaten — see
+ * the note further up on what it takes from an unqualified selector.
+ */
+.window-content__inner .interlude__line,
+.window-content__inner .contact__title {
+  font-size: var(--q-size);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  word-spacing: 0.05em;
+  line-height: 1;
+  max-width: 10em;
+  margin-inline: auto;
+  text-align: center;
+  opacity: 1;
+}
+.btn-acquire {
+  display: inline-block;
+  background: var(--cta);
+  color: var(--bg-top);
+  text-decoration: none;
+  font-family: 'Sequoia Sans';
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 0.85em 1.6em;
+  border-radius: 999px;
+  transition: transform .15s ease, filter .15s ease;
+}
+.btn-acquire:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-acquire:active { transform: translateY(0); }
+
+/*
+ * Mobile-first: the narrow layout is the default and this is what the wide one
+ * opts into, so there is no `max-width` query. It is the exact inverse of the
+ * `max-width: 700px` block that used to be here — the phone rules moved up
+ * into the base and the desktop cap moved down here.
+ */
+@media (min-width: 701px) {
+  /* keep clear of the right-half dog stub */
+  .intro-cta__inner { max-width: min(46%, 30rem); }
+}
+
+/*
+ * The pitch. `min-height: 0` overrides the `section` default of very nearly a
+ * full viewport — this block is a couple of paragraphs, not a screen, and
+ * without it there is a screenful of nothing under it.
+ */
+.intro-glizzy {
+  min-height: 0;
+}
+
+/*
+ * The static panel's width, mirroring what the sticky slot gives the others:
+ * full width on a phone, capped above 768. It arrived inline as
+ * `min(560px, 50vw)` with no breakpoint, which is 215px on a 430px screen.
+ */
+.intro-glizzy__panel { width: 100%; }
+
+@media (min-width: 768px) {
+  .intro-glizzy__panel { width: min(560px, 50vw); }
+}
+
+/*
+ * The button that closes the process. `min-height: 0` overrides the `section`
+ * default of nearly a full viewport — this is one button, not a screen.
+ */
+.acquire-break {
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+/*
+ * The "Fine" that follows the second headline carries the headline's own
+ * bottom air, so the two read as one unit rather than a line and a button that
+ * happen to be near each other.
+ *
+ * Written as an adjacency rather than an nth-child so it stays true if the run
+ * is re-ordered: it is "the button under a headline", and only that one. The
+ * other two Fines follow a repeat and keep the standard section margin.
+ */
+.interlude + .acquire-break {
+  margin-bottom: var(--interlude-air);
+}
+
+/* ───── the squiggle Acquire ─────────────────────────────────────────────── */
+
+/*
+ * vinton.land's squiggle underline with the stroke fattened until the line is
+ * a band. Same path, same eight periods; only the weight changes.
+ *
+ * The SVG is INLINE rather than a masked data URI for the reason vinton.land
+ * gives: the wave's shape belongs to the box and the stroke belongs to the
+ * design, and one scaled tile cannot separate them.
+ */
+/*
+ * Still the blue pill from the hero — the squiggle draws OVER it rather than
+ * replacing it. Undrawn, this is an ordinary Acquire button; the wave is what
+ * arrives.
+ *
+ * That is also why the label carries `position: relative` (below): it has to
+ * stay above the wave, so the dark ink reads on the blue before the line
+ * arrives and on the mustard after it.
+ */
+.btn-acquire--squiggle {
+  position: relative;
+  padding: 1.5em 2.6em;
+}
+
+.btn-acquire__wave {
+  /*
+   * The overhang lives in ONE variable, but it genuinely needs all three
+   * declarations below — `inset` alone is not enough.
+   *
+   * An <svg> is a REPLACED element, so with `height: auto` it takes its
+   * intrinsic ratio rather than stretching to the inset box: measured 302x151
+   * (302 / 2, the viewBox ratio) where 302x202 was wanted. The explicit width
+   * and height are what actually size it; `inset` positions it.
+   */
+  --wave-overhang: 4rem;
+  /*
+   * The weight, and a 0-1 multiplier on it. acquire-squiggle.js animates
+   * `--wave-grow` from 0 so the line can swell into being instead of appearing
+   * at full width in a single frame.
+   *
+   * A multiplier rather than animating `stroke-width` directly, so the `em`
+   * survives: tweening the property itself would freeze it at whatever pixel
+   * value it resolved to on load, and silently stop tracking the label.
+   *
+   * It defaults to 1, so with no JS the wave is simply full weight.
+   */
+  --wave-weight: 0.75em;
+  --wave-grow: 1;
+  position: absolute;
+  inset: calc(var(--wave-overhang) * -1);
+  width: calc(100% + var(--wave-overhang) * 2);
+  height: calc(100% + var(--wave-overhang) * 2);
+  overflow: visible;
+  pointer-events: none;
+
+  path {
+    fill: none;
+    stroke: var(--mustard);
+    /*
+     * No `non-scaling-stroke` here, unlike the first attempt at this button.
+     * It was needed when the SVG box hugged the label, because the box and the
+     * viewBox had very different aspects and `preserveAspectRatio="none"`
+     * stretched the stroke into ellipses. With the overhang the box is close
+     * enough to the viewBox's own 2:1 that the stretch is near-uniform, so the
+     * stroke can scale with the box — which is what makes `em` behave.
+     */
+    stroke-width: calc(var(--wave-weight) * var(--wave-grow));
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.btn-acquire__label {
+  position: relative;   /* above the wave */
+}

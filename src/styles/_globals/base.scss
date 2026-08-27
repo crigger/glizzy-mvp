@@ -1,0 +1,154 @@
+// Document, page frame, and the bare elements.
+
+* { box-sizing: border-box; }
+
+/*
+ * `hidden` has to actually hide.
+ *
+ * The UA sheet's `[hidden] { display: none }` loses to ANY author rule that
+ * sets `display`, whatever its specificity — and the cart's opener carries
+ * `.shop-button`, which sets `display: inline-block`. The result was a cart
+ * button sitting over the shop reading "0" on a page with an empty cart, with
+ * the `hidden` attribute correctly set the whole time.
+ *
+ * `!important` on purpose. This is not a specificity skirmish to be won by
+ * writing a longer selector — it is a document-level invariant, and the next
+ * element given a `display` and a `hidden` should not have to rediscover it.
+ */
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+html {
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom)) fixed;
+  min-height: 100%;
+  /* prevent iOS/Android rubber-band at scroll boundaries from re-firing the ScrollTrigger */
+  overscroll-behavior-y: none;
+}
+
+/*
+ * NO `scroll-behavior: smooth` here, and it is not an oversight.
+ *
+ * It was added for the site icon's back-to-top and it broke the squiggle
+ * buttons. GSAP documents the CSS property as incompatible with ScrollTrigger,
+ * which on this page drives the dog's path, all four Acquire draw-ins and the
+ * hero canvas FLIP: the property applies to EVERY scroll, including the ones
+ * ScrollTrigger performs itself, so its reads and writes desync.
+ *
+ * Back-to-top is smooth anyway — SiteIcon.astro animates that one scroll with
+ * `scrollTo({ behavior: 'smooth' })` on the click, which is a single scroll
+ * this page asked for rather than a standing rule over all of them.
+ */
+body {
+  color: var(--mustard);
+  /*
+   * Better line breaking: `pretty` pulls a stranded last word back up, so a
+   * paragraph does not end on an orphan.
+   *
+   * ON `body`, NEVER ON `*`. text-wrap is INHERITED, so this one declaration
+   * already reaches every element — while a universal selector re-declares it
+   * on each one and SILENTLY BREAKS INHERITANCE. Measured: with
+   * `* { text-wrap: pretty }` and `h2 { text-wrap: balance }`, the h2 balances
+   * but a <span> inside it comes out `pretty`, so one line breaks by two
+   * different rules. Same trap as `* { box-sizing }` versus the inherit
+   * pattern.
+   *
+   * Degrades to ordinary wrapping where unsupported; nothing depends on it.
+   */
+  text-wrap: pretty;
+
+  font: 16px/1.6 system-ui, -apple-system, sans-serif;
+  background: transparent;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/*
+ * Only the page with the dog on it is four screens tall before anything is in
+ * it. glizzy-path.js overwrites this the moment it runs — it sizes the body to
+ * fit the path — but the value has to be here for the first paint, and it has
+ * to be OFF the shop pages, which have no path and would otherwise open onto
+ * three empty screens.
+ *
+ * The class is set by Layout.astro from the same prop that loads the dog
+ * scripts, so the two can't disagree.
+ */
+body.has-dog { min-height: 400svh; }
+
+/* SVG sits in normal flow but absolutely positioned to overlay the full page.
+   Behind content via z-index, no pointer events. */
+#glizzy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+main {
+  position: relative;
+  /*
+   * NO z-index. It was 1, which made this a stacking context and capped
+   * everything inside it — including the pinned mini dog, which is meant to
+   * float above the cart and the site icon.
+   *
+   * `position: relative` alone is enough for what the z-index was doing:
+   * #glizzy is positioned at z-index 0 and comes FIRST in the document, so a
+   * positioned `main` with `z-index: auto` still paints over it.
+   */
+  /* max-width: 640px; */
+  margin: 0 auto;
+  /* The page gutter lives here and nowhere else — see --page-gutter. */
+  padding: 24px var(--page-gutter);
+}
+
+/* Vertical only. The horizontal inset comes from `main`. */
+section {
+  box-sizing: border-box;
+  min-height: calc(100svh - 96px - 24px);
+  margin: 24px 0;
+  padding: 48px 0;
+}
+
+section:first-child {
+  margin-top: 0;
+  display: flex;
+}
+h1 { font-size: 2.8rem; margin: 0 0 8px; }
+h2 { font-size: 1.4rem; margin: 0 0 12px; }
+p  { margin: 0 0 10px; }
+
+/*
+ * The privacy line, last on every page.
+ *
+ * Shell furniture like `main`, so it lives here rather than with the homepage
+ * sections — and being a sibling of `main` it does not inherit that element's
+ * gutter and has to bring its own.
+ *
+ * The rule above it is a `border-top` rather than an `<hr>`: it is a boundary
+ * belonging to this block, not a thematic break between two pieces of content.
+ */
+.site-note {
+  border-top: 2px solid var(--mustard);
+  margin: 0 var(--page-gutter);
+  padding: 1rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.site-note__text {
+  /*
+   * `ch` for the measure — the limit that matters for a line of small type is
+   * how many characters fit, not how many pixels.
+   *
+   * `margin-inline: auto` as well as `text-align`, because centring the glyphs
+   * inside a block that is still hard against the left edge is not centring:
+   * the measure has to sit in the middle before the text inside it can.
+   */
+  max-width: 78ch;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}

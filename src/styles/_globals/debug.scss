@@ -1,0 +1,68 @@
+// The debug panel. Dev-only markup (see DebugPanel.astro), so none of this
+// reaches a production build's HTML — but the rules are cheap and keeping
+// them in the normal cascade is what stops them drifting from the panel.
+//
+// `display: none` on #debug-panel is deliberate and long-standing: the panel
+// is unhidden from devtools when it is wanted.
+
+#debug-panel {
+  position: fixed;
+  top:  calc(env(safe-area-inset-top,  0px) + 8px);
+  left: calc(env(safe-area-inset-left, 0px) + 8px);
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  font: 11px/1.4 monospace;
+  z-index: 99;
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 380px;
+  overflow: hidden;
+
+  display: none;
+}
+#debug-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255,255,255,0.06);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+#debug-head .chev { font-family: monospace; opacity: 0.7; }
+#debug-body { padding: 10px 12px; }
+#debug-panel.collapsed #debug-body { display: none; }
+#debug-panel.collapsed { min-width: 0; }
+#debug-panel pre { display: none; }    /* hidden — content still feeds the copy button */
+#debug-panel label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#debug-panel label span { width: 140px; }
+#debug-panel label input { flex: 1; }
+#debug-panel label input[type="color"] {
+  flex: none;
+  width: 56px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+#debug-panel label output { width: 56px; text-align: right; }
+#debug-panel .action-btn {
+  width: 100%; padding: 6px;
+  background: var(--dog-color); color: #fff; border: 0;
+  border-radius: 4px; font: inherit; cursor: pointer;
+  margin-top: 4px;
+}
+#debug-panel .tabs {
+  display: flex; gap: 4px; margin-bottom: 10px;
+}
+#debug-panel .tab {
+  flex: 1; padding: 6px;
+  background: rgba(255,255,255,0.08); color: #fff;
+  border: 0; border-radius: 4px;
+  font: inherit; cursor: pointer; letter-spacing: 0.05em;
+}
+#debug-panel .tab.active {
+  background: var(--dog-color);
+}
+#debug-panel .tab-content.hidden { display: none; }

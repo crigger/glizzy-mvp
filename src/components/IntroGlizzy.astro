@@ -1,0 +1,42 @@
+---
+/**
+ * The pitch, between the CTA and the windows — the same panel as those, but
+ * static: no sticky slot, no drag.
+ *
+ * No chrome bar, and therefore a dark keyline rather than the gold one — see
+ * `.window--untitled`.
+ *
+ * It first arrived pasted out of the live DOM, which brought three things with
+ * it that are NOT part of the design and are deliberately not here:
+ *
+ *   translate/rotate/scale: none    GSAP's idle transform on a drag target
+ *   user-select / cursor: grab      GSAP stamps these on a Draggable's trigger
+ *   js-drag-handle                  inert without a .js-glizzy-window section,
+ *                                   and it carries `touch-action: none`, which
+ *                                   would eat a swipe over the title bar
+ *
+ * The width also came inline as `min(560px, 50vw)`, measured at a desktop
+ * window. That is 215px on a 430px phone — see .intro-glizzy__panel, which
+ * mirrors what the sticky slot does: full width on mobile, capped above 768.
+ */
+import WindowPanel from './WindowPanel.astro';
+---
+
+<section class="intro-glizzy">
+  <div class="intro-glizzy__inner">
+    <div class="intro-glizzy__panel">
+      <WindowPanel>
+        <h2 class="f-sequoia">...What Now?</h2>
+        <p class="f-bricolage">
+          Old Vinton Glizzys are ceramic keepsakes built to last eons longer than any meat-based
+          frankfurters. They're conveniently small enough to pocket a handful without strangers being
+          any the wiser.
+        </p>
+        <p class="f-bricolage">
+          Hand-built, fired, and stored in Vinton, VA, until they're called to their forever
+          homes. They are the perfect gift for the person who has everything (or nothing at all).
+        </p>
+      </WindowPanel>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,336 @@
+/* ───── glizzy-window sections ─────
+   Pattern (after crest.red): a tall section with a sticky bounds box that
+   defines the drag-arena, and a sticky window pinned to one side. The
+   window's inner element is the draggable target.                            */
+section.glizzy-window {
+  position: relative;
+  /*
+   * How long the window stays pinned: roughly (this - 100svh) of scrolling.
+   * At 220svh that was 1.2 screens per window and 6.6 screens for the three of
+   * them, most of it spent watching a stationary panel. 170 leaves ~0.7 of a
+   * screen — enough to grab the thing and throw it, without the wait.
+   *
+   * This is the tuning knob for the whole section. Changing it also changes how
+   * much dog gets drawn per screen, because glizzy-path.js sizes the path
+   * against the document's natural height.
+   */
+  min-height: 170svh;
+  padding: 24px 0;
+}
+@media (min-width: 768px) {
+  section.glizzy-window { padding: 48px 0; }
+}
+/*
+ * The SLOT, not the panel.
+ *
+ * It used to declare a size the panel never took: `min-height: 100svh - 8rem`
+ * on desktop with nothing binding the panel to it, so the panel shrink-wrapped
+ * its content and left the bottom 40% of the viewport as dead navy. The mobile
+ * `max-height: 50svh` was ignored the same way — the panel measured 65% of the
+ * viewport straight through it.
+ *
+ * Now the slot really is the full sticky arena and the panel is CENTRED in it.
+ * Whatever space is left over reads as margin on both sides rather than as a
+ * hole underneath.
+ */
+.window-wrapper {
+  position: sticky;
+  /*
+   * The offset and the height are derived from ONE value on purpose. Set
+   * independently they drift: `top: 6rem` with `height: calc(100svh - 2rem)` is
+   * 996px of slot in a 932px viewport, so the slot overflows, sticky runs out
+   * of travel early and the panel scrolls off the top. Measured panel top: -5.
+   */
+  --slot-top: max(env(safe-area-inset-top, 0px), 6rem);
+  --slot-gap: 1rem;   /* breathing room under the slot */
+  top: var(--slot-top);
+  height: calc(100svh - var(--slot-top) - var(--slot-gap));
+  width: 100%;
+  display: flex;
+  /*
+   * Mobile hangs the panel from the top of the slot; desktop centres it in the
+   * override below. On a phone the panel nearly fills the slot anyway, so
+   * centring only pushed it down past the fold.
+   *
+   * `flex-start`, never simply removed. Removing it means `stretch`, which
+   * makes .window-wrapper-inner — the Draggable TARGET — fill the whole slot
+   * even though the panel inside is content-height. The arena is measured from
+   * the target, so the window loses most of its room: at 1440x900, a 772px
+   * target against a 536px panel took vertical travel from 340px to 96px, and a
+   * hard drag down moved it 48px with 236px of visible space still under it.
+   */
+  align-items: flex-start;
+  z-index: 5;
+}
+@media (min-width: 768px) {
+  .window-wrapper {
+    width: min(560px, 50vw);
+    --slot-top: max(env(safe-area-inset-top, 0px), 4rem);
+    --slot-gap: 4rem;
+    /* Centred here, top-anchored on mobile — there is room for it at this size. */
+    align-items: center;
+  }
+  /*
+   * `.window { max-height: calc(100svh - 8rem) }` was here — an UNSCOPED rule
+   * sitting inside the sticky-slot block, so it capped every panel on the site
+   * at >=768px, the interludes and the contact form included. That is the cap
+   * that produced the scroll trap on a short desktop window: the panel clipped
+   * and the card inside became the only way to reach the rest.
+   *
+   * Removed rather than scoped. Without the inner `overflow-y: auto` that used
+   * to accompany it, a cap on a panel with `overflow: hidden` does not clip
+   * gracefully — it hides the copy with no way to get to it. The slot below
+   * still bounds the sticky ARENA; the panel itself is content-height.
+   */
+  section.glizzy-window--right .window-wrapper { margin-left: auto;  margin-right: 0; }
+  section.glizzy-window--left  .window-wrapper { margin-left: 0;     margin-right: auto; }
+}
+.window-wrapper-inner {
+  position: relative;
+  width: 100%;
+  will-change: transform;
+  /*
+   * NO `touch-action: none` here.
+   *
+   * It was, and this element wraps the whole panel — which is 65% of a phone
+   * screen, three sections running. Measured: a swipe over the panel moved the
+   * page 0px while the same swipe beside it moved 359px. And it dragged
+   * nothing either, because Draggable's trigger is only the chrome bar. Two
+   * thirds of the screen did nothing at all.
+   *
+   * The property belongs on the elements that actually consume a drag — the
+   * chrome bar — and nowhere else. See .window-chrome below. (The bottom-corner
+   * resize handles carried it too, until they were removed.)
+   */
+}
+.window {
+  position: relative;          /* the hatch layer and the chrome stack on this */
+  width: 100%;
+
+  /*
+   * Glass again, but not the glass it started as.
+   *
+   * The first version was `rgba(0,0,0,0.55)` under `blur(14px)`, and the copy
+   * sat directly on it — which is how body text measured 4.19:1 over the
+   * brightest part of the dog. Then it was opaque navy, which fixed the
+   * contrast and lost the depth.
+   *
+   * This is the third answer and it keeps both: the PANEL is glass — no
+   * background at all, a 96px backdrop blur, gold hatch lines over it — and the
+   * copy sits on an opaque card inside it (`.window-content__inner`). Nothing
+   * readable is ever on the glass.
+   */
+  color: var(--bg-bottom);
+  border: 2px solid var(--mustard);
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Only the shadow moves now — nothing resizes the panel. Kept because the
+     drag lifts it. */
+  transition: box-shadow 1.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/*
+ * The hatch. crest.red's `.art-bg` is a 2px line every 6px under a 1.4px blur,
+ * and the blur is the whole trick — unblurred, the lines alias into moiré as
+ * the window moves. Same geometry here, in the dog's orange at low alpha so it
+ * reads as a warm screen over the navy rather than as stripes.
+ *
+ * Absolutely positioned so it does not become a flex item; chrome and content
+ * sit above it on z-index.
+ */
+.window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  /*
+   * A 3px tile of dots, not a repeating gradient.
+   *
+   * The hatch that was here was a `repeating-linear-gradient`, and it banded on
+   * iOS Safari — hard-edged rectangles where it dropped out — while rendering
+   * perfectly in desktop Chrome at the same DPR. Three CSS fixes were tried
+   * against that (a 1.4px blur, a scrim under the gaps, and the backdrop blur
+   * off / smaller / gone) and none of them touched it, which left the repeating
+   * gradient itself as the suspect.
+   *
+   * This is the replacement: ONE radial-gradient stop, tiled by `background-size`
+   * rather than repeated by the gradient function. Same screen-print texture,
+   * a completely different thing for the compositor to draw.
+   *
+   * ORDER MATTERS. `background` is a shorthand and resets position and size, so
+   * those two have to come after it, exactly as they do here.
+   *
+   * Unprefixed `backdrop-filter` only; the -webkit- copy is added at build time
+   * from the browser targets in astro.config.mjs.
+   */
+  background: radial-gradient(var(--mustard), 30%, transparent 0);
+  background-position: 50%;
+  background-size: 3px 3px;
+  backdrop-filter: blur(5rem);
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+/*
+ * Solid gold, edge to edge, continuous with the keyline — crest.red's bar is
+ * the same black as its 4px border, so the two read as one drawn box rather
+ * than a strip sitting on a panel. Here that colour is the mustard.
+ */
+.window-chrome {
+  position: relative;
+  z-index: 1;
+  display: flex; align-items: center;
+  padding: 7px 12px;
+  background: var(--mustard);
+  color: var(--bg-top);
+  user-select: none;
+}
+
+/*
+ * A panel with no bar takes a dark keyline instead of the gold one.
+ *
+ * The gold keyline exists to be CONTINUOUS with the gold bar — that is the
+ * crest.red trick, where bar and border are the same colour so the two read as
+ * one drawn box. With no bar there is nothing to continue, and a gold rectangle
+ * on its own shouts louder than the copy inside it.
+ *
+ * Qualified as `.window.window--untitled` on purpose: a bare modifier would tie
+ * with `.window` on specificity and be settled by source order, which has
+ * quietly gone wrong in this repo before.
+ */
+.window.window--untitled {
+  border-color: var(--bg-bottom);
+}
+
+/*
+ * Only a bar that can actually be dragged claims to be draggable, and only that
+ * bar swallows a swipe. These used to sit on every `.window-chrome`, which was
+ * harmless while every panel was draggable — the static pitch panel made it
+ * wrong: a grab cursor over something that does not move, and `touch-action:
+ * none` eating a swipe on a strip nothing can drag.
+ */
+/*
+ * The grab affordances arrive at 768 and are ABSENT below it, because the
+ * windows are not draggable on a phone — see glizzy-windows.js.
+ *
+ * `touch-action: none` is the one that matters. It tells the browser this
+ * element handles its own touch gestures, so a swipe that starts on the chrome
+ * bar does not scroll the page. That is correct for a bar you can drag and
+ * actively hostile on a bar you cannot: a thumb landing there finds the page
+ * stuck. `cursor: grab` is the same promise made to a pointer.
+ *
+ * Mobile-first: the base rule says nothing, and this adds them.
+ */
+@media (min-width: 768px) {
+  .window-chrome.js-drag-handle {
+    cursor: grab;
+    touch-action: none;
+  }
+  .window-wrapper-inner:active .window-chrome.js-drag-handle { cursor: grabbing; }
+}
+.window-title {
+  font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: inherit;
+  font-weight: 600;
+}
+/*
+ * A plain wrapper now. Everything it used to do — the flex column, the gap, the
+ * scroll valve, sitting above the hatch — moved to the card inside it, because
+ * the card is the thing with a background and the padding has to be outside it.
+ */
+.window-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * The opaque card. This is what makes the glass safe: the panel behind it can be
+ * as transparent and as busy as it likes, because no readable text is ever on
+ * it. Bone on navy, measured below.
+ */
+.window-content__inner {
+  background: var(--bone);
+  color: var(--bg-top);
+  padding: 2rem 1.25rem;
+  position: relative;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  z-index: 1;
+}
+
+/*
+ * NO viewport cap, and no inner scroll. Both are gone on purpose.
+ *
+ * `.window` used to carry `max-height: calc(100svh - 2rem)` and
+ * `.window-content__inner` an `overflow-y: auto` to go with it — a safety
+ * valve so copy taller than the cap could still be reached. What it actually
+ * produced was a SCROLL TRAP: the panel clipped, the card inside became a
+ * scroll container, and a wheel over it moved the card instead of the page.
+ * Scoping the pair to the sticky windows fixed the static panels and left the
+ * trap in the sticky ones on any short viewport, which is no better.
+ *
+ * A panel taller than the viewport does not need rescuing. In normal flow the
+ * page is simply as tall as the panel. In the sticky slot, `position: sticky`
+ * stops pinning once the element exceeds its container's visible height and
+ * scrolls with the page like anything else — so the bottom of the copy is
+ * reached by scrolling, which is what a reader was going to do anyway.
+ *
+ * If a cap is ever wanted back, it has to come with a way out that is not an
+ * inner scroll container.
+ */
+
+/* The mark at the top of the card. */
+.window-content__logo {
+  width: 8rem;
+  height: auto;
+  margin-bottom: 1rem;
+}
+.window-content__logo svg { width: 100%; height: 100%; display: block; }
+.window-content__inner h2 { font-size: 1.4rem; margin: 0; line-height: 1; }
+.window-content__inner p  { 
+  font-size: 1rem;
+  margin: 0;
+  letter-spacing: .01em;
+  word-spacing: .05em;
+  line-height: 1.35;
+  font-weight: 500;
+  text-wrap: balance;
+}
+
+/* Maximized state: window fills (most of) the section bounds. */
+@media (min-width: 768px) {
+  }
+
+
+
+/* ───── step markers ─────────────────────────────────────────────────────── */
+
+.window-hint {
+  position: absolute;
+  top: 100%;
+  margin-top: 0.35rem;
+  color: var(--mustard);
+  /* Same size and same bob as the hero hint — see hero.scss, which owns the
+     keyframes. They are the same gesture, so they should read as one thing. */
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  animation: scroll-hint-bob 2.4s ease-in-out infinite;
+}
+
+/* Tucked into the corner facing the next window along. */
+.glizzy-window--left  .window-hint { right: 0.25rem; }
+.glizzy-window--right .window-hint { left: 0.25rem; }

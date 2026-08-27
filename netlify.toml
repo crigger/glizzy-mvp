@@ -1,0 +1,41 @@
+# Build settings live here, not in the Netlify UI.
+#
+# The UI is where they were for the sibling repos, and a stale UI setting is
+# the kind of thing that deploys something subtly wrong for months. Keeping
+# them in the repo means a change to the build is a change in a diff.
+#
+# NODE_VERSION matters: Netlify's image defaults to Node 18 and Astro 7 needs
+# >= 22.12. Node 18 does not fail the install — it prints a wall of EBADENGINE
+# warnings and carries on.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# `/shop/glizzy/` invites trimming — a visitor lopping off the last segment, a
+# crawler walking up the path — and with the index route deleted that landed on
+# a 404. This makes the parent work without bringing back a page that would
+# hold a single card.
+#
+# 302, NOT 301, and deliberately: the plan on record is to restore a real
+# `/shop/` index the day a second product exists (see CLAUDE.md). A 301 is
+# cached hard by browsers and would keep sending people past that page long
+# after it came back.
+#
+# No `force`: with no file at /shop/ Netlify falls through to this rule on its
+# own, and leaving force off means the day an index.astro DOES exist it simply
+# wins, with no redirect to remember to delete.
+# Exactly `/shop/`, NOT `/shop/*`: a wildcard would swallow a mistyped or
+# retired handle and land it on the one product as though nothing were wrong,
+# when a 404 is the honest answer.
+[[redirects]]
+  from = "/shop/"
+  to = "/shop/glizzy/"
+  status = 302
+
+[[redirects]]
+  from = "/shop"
+  to = "/shop/glizzy/"
+  status = 302

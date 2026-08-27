@@ -1,0 +1,58 @@
+// Design tokens. Every colour is declared twice: an sRGB hex fallback, then
+// a Display P3 override behind @supports. Read the tokens, never the hex.
+
+:root {
+  /* sRGB fallback values — used everywhere if the browser doesn't grok P3 */
+  --bg-top: #000d60;
+  --bg-bottom: #000d48;
+  --dog-color: #dc512a;
+  --dog-highlight: #ff945a;
+
+  --mustard: #ffa300;
+  --cta: #30a2ff;
+
+  /* The card inside each window. Pulled off the capture, where it arrived as a
+     literal #f7e0c5 on an inline style. */
+  --bone: #f7e0c5;
+
+  /*
+   * The page gutter — the ONE horizontal inset, and the only place it is set.
+   *
+   * It used to be assembled per section: `main` gave 24px and then every
+   * section added its own on top, 48px for most and 32px for the window ones.
+   * At desktop that put the pitch panel at 72px and the window panels at 56px,
+   * 16px out of line with each other. Sections contribute nothing horizontal
+   * now; they inherit this from `main`.
+   *
+   * The desktop value is 56 because that is where the window panels already
+   * sat, and there are three of them — standardising on their position moves
+   * only the odd ones out.
+   */
+  /*
+   * The top-right corner: the brand mark's inset and size, and the gap beneath
+   * it where the cart button sits.
+   *
+   * Here rather than on `.site-icon` because both readers are FIXED-position
+   * siblings with no shared ancestor — a custom property on the icon would not
+   * reach the cart button at all.
+   */
+  --corner-inset: 16px;
+  --corner-size: 56px;
+  --corner-gap: 12px;
+
+  --page-gutter: 24px;
+
+}
+@media (min-width: 768px) {
+  :root { --page-gutter: 56px; }
+}
+
+@supports (color: color(display-p3 0 0 0)) {
+  :root {
+    --bg-top: color(display-p3 0 0.04 0.27);
+    --bg-bottom: color(display-p3 0 0.04 0.22);
+    --mustard: color(display-p3 1 0.64 0.12);
+    --cta: color(display-p3 0.15 0.58 1);
+    --bone: color(display-p3 0.96 0.88 0.78);
+  }
+}

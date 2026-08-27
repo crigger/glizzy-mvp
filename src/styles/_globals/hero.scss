@@ -1,0 +1,323 @@
+// The hero: the 3D canvas, its pinned-mini state, the fixed brand icon,
+// and the masthead behind them.
+
+/* hero 3D capsule canvas */
+.hero-canvas-wrap {
+  align-self: center;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0 auto;
+  /* Reserve layout space so the page doesn't shift when the canvas detaches
+     into the fixed mini state. */
+  width: calc(100vmin - 96px - 24px);
+  aspect-ratio: 1/1;
+  max-width: 100%;
+  /*
+   * NO z-index here, and that is deliberate.
+   *
+   * This is a FLEX ITEM, and a flex item with a z-index other than `auto`
+   * creates a stacking context even though it is `position: static` — the one
+   * place the usual "z-index needs positioning" rule does not hold. It had
+   * `z-index: 2`, which sealed the canvas inside a box at level 2, and the
+   * window panels at level 5 painted straight over the pinned mini dog. Raising
+   * the CANVAS did nothing: 9999 inside a level-2 box is still level 2.
+   *
+   * What the z-index was there for — keeping the dog in FRONT of the wordmark —
+   * moved onto #hero-stage itself, below. It cannot be done from here: dropping
+   * it put the dog behind the letters, because .hero__masthead is absolutely
+   * positioned at z-index 0 and a positioned element paints above a static flex
+   * item whatever the source order.
+   */
+}
+#hero-stage {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+
+  top: -2rem;
+  /*
+   * In front of .hero__masthead (absolute, z-index 0) — this is what puts the
+   * dog through the middle of the wordmark.
+   *
+   * On the CANVAS rather than on .hero-canvas-wrap, because whichever element
+   * carries a z-index becomes a stacking context, and the canvas has to be able
+   * to reach z-index 500 when it pins. A context on the wrapper capped it at 2
+   * and the window panels painted over it.
+   */
+  position: relative;
+  z-index: 2;
+}
+#hero-stage:active { cursor: grabbing; }
+/* Mini pinned state: fixed 148px box in the top-right corner.
+   Stays on top of all other content (z-index above the debug panel). */
+/*
+ * Above everything. The layering on this site, low to high:
+ *
+ *   0    #glizzy (the dog's path)      5    .window-wrapper
+ *   99   #debug-panel                  200  .site-icon
+ *   210  .cart-fab                     300  .cart
+ *   400  .inspect-capture              500  THIS
+ *
+ * For 500 to mean anything, nothing between here and the root may create a
+ * stacking context — see the note on .hero-canvas-wrap above, and `main` in
+ * base.scss. Both were sealing it in.
+ */
+#hero-stage.mini {
+  position: fixed;
+  top:  env(safe-area-inset-top, 0px);
+  left: env(safe-area-inset-left, 0px);
+  width: 96px;
+  height: 96px;
+  z-index: 500;
+  cursor: grab;
+}
+
+@media screen and (min-aspect-ratio: 1/1) {
+  #hero-stage.mini {
+    width: 148px;
+    height: 148px;
+  }
+}
+
+/*
+ * Top-right brand icon. Inlined so the path's fill="currentColor" picks up the
+ * token below, which resolves to its display-p3 value on supporting browsers
+ * (wider-gamut orange when available).
+ *
+ * The box holds the mark AND its ground ring: the artwork carries a circle one
+ * knockout-endcap wider than the disc, so its viewBox is 96.82 where the disc
+ * alone is 73.35. The orange disc therefore renders at width × (73.35 / 96.82)
+ * — about 76% of whatever is set here.
+ *
+ *   74px  disc 56px, matching what it was before the ring existed
+ *   64px  disc 48px  ← here
+ *   56px  disc 42px, the whole mark inside the original footprint
+ */
+.site-icon {
+  /*
+   * `--corner-*` live on :root in vars.scss. `.cart-fab` stacks directly under
+   * this and reads the same values, so resizing or moving the mark moves the
+   * cart with it rather than leaving the two to drift.
+   */
+  position: fixed;
+  top:   calc(env(safe-area-inset-top,  0px) + var(--corner-inset));
+  right: calc(env(safe-area-inset-right, 0px) + var(--corner-inset));
+  width: var(--corner-size);
+  height: var(--corner-size);
+  z-index: 200;
+  color: var(--dog-color);
+  user-select: none;
+
+  /*
+   * It is a LINK now — back to top on the homepage, home everywhere else — so
+   * the `pointer-events: none` that used to be here is gone. Nothing sits
+   * under it to shadow: the mini dog pins top-LEFT and the cart button is
+   * bottom-right, so this corner is its own.
+   */
+  display: block;
+  -webkit-tap-highlight-color: transparent;
+
+  /*
+   * `:focus-visible`, so a mouse click on a decorative mark does not leave a
+   * ring behind, while a keyboard arrival is unmistakable. Offset outward —
+   * the artwork already fills its box edge to edge.
+   */
+  &:focus-visible {
+    outline: 2px solid var(--mustard);
+    outline-offset: 3px;
+    border-radius: 50%;
+  }
+}
+.site-icon svg { width: 100%; height: 100%; display: block; }
+
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+
+  // min-height: 0;
+  min-height: calc(80svh - 96px - 24px);
+}
+
+.hero-section--closing {
+  padding-bottom: 4rem;
+  min-height: calc(60svh - 96px - 24px);
+  // min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .hero-section--closing {
+    padding-bottom: 0;
+  }
+}
+
+.hero__masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: absolute;
+  inset: 0 0 2rem;
+  z-index: 0;
+}
+
+/*
+ * Matched on the CLASS, not the tag: the closing hero's reprise is a <p>
+ * rather than a second <h1>, and the size belongs to the wordmark either way.
+ * At (0,2,0) it also clears base.scss's `h1` and `p` rules without help.
+ */
+.hero__masthead .masthead__title {
+  font-size: clamp(6.5rem, 22.5vw, 24rem);
+  letter-spacing: 0.02em;
+  font-weight: normal;
+  line-height: 1;
+  margin: 0;
+}
+
+/* Holds the top of the masthead and pushes the rest down to the baseline. */
+.hero__masthead .masthead__subtitle--top {
+  flex: 1;
+  padding-top: 1.25em;
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+/*
+ * `display: block` so it fills the flex item rather than sitting inline, and
+ * 0.75em OF the subtitle's clamped size. See HeroSection.astro for why this is
+ * a nested element and not a font-size on the parent.
+ */
+/*
+ * Qualified with the block on purpose. `.hero__masthead span` above is a
+ * descendant selector at (0,1,1) and catches this element too — a bare
+ * `.masthead__subtitle-text` at (0,1,0) loses to it and the 0.75em silently
+ * does nothing. Measured: inner and outer both came out at 100.8px.
+ */
+.hero__masthead .masthead__subtitle-text {
+  display: block;
+  font-size: 0.75em;
+}
+
+.hero__masthead span {
+  font-size: clamp(1.5rem, 5vw, 7rem);
+  line-height: 1;
+  letter-spacing: 0.1em;
+  margin: -0.25em 0 0;
+}
+
+/*
+ * The scroll hint: under "Store" on a phone, in the bottom-right corner from
+ * 768 up.
+ *
+ * Qualified with the block because `.hero__masthead span` above is a descendant
+ * selector at (0,1,1) — a bare `.hero__scroll-hint` at (0,1,0) loses to it and
+ * the arrow comes out at the subtitle's clamped size. That has already caught
+ * one element in this masthead.
+ */
+.hero__masthead .hero__scroll-hint {
+  color: var(--mustard);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  /*
+   * The negative bottom margin is what drops it toward the fold. The masthead
+   * is `justify-content: flex-end`, so its last child sits ON the container's
+   * bottom edge — adding TOP margin would only push STORE up, not the arrow
+   * down. Pulling the bottom margin negative lets the glyph hang past that edge
+   * and past the masthead's own 2rem inset.
+   */
+  margin: 0.6em 0 -1.25rem;
+  animation: scroll-hint-bob 2.4s ease-in-out infinite;
+}
+
+/*
+ * The hero group sits lower on a phone, and comes back up from 768.
+ *
+ * Mobile-first: the drop is the DEFAULT and the wide screens opt out of it, so
+ * there is no `max-width` query. `--hero-drop: 0` at the breakpoint reproduces
+ * the original geometry exactly — `top: 0` with `bottom: 2rem`.
+ *
+ * ONE value moves both halves, and they are moved by different mechanisms for
+ * a reason.
+ *
+ * The masthead is absolute, so it shifts with a top/bottom PAIR rather than
+ * `top` alone — moving only the top edge would shorten the box, and its
+ * contents are bottom-aligned, so "Glizzy / Store" would have stayed put while
+ * "Old Vinton" slid down on its own.
+ *
+ * The canvas wrap shifts with `position: relative` + `top`, and NOT with a
+ * transform, which is the obvious alternative and would break the pinned mini
+ * dog: a transformed ancestor becomes the containing block for `position:
+ * fixed` descendants, and `#hero-stage.mini` is fixed. `position: relative`
+ * establishes no such thing, and with `z-index: auto` no stacking context
+ * either — see the note on .hero-canvas-wrap above for why that matters here.
+ * It stays `relative` at every width; only the offset is zeroed.
+ */
+.hero-section { --hero-drop: 15svh; }
+
+.hero__masthead {
+  top: var(--hero-drop);
+  bottom: calc(2rem - var(--hero-drop));
+}
+
+.hero-canvas-wrap {
+  position: relative;
+  top: var(--hero-drop);
+}
+
+/*
+ * The CLOSING hero takes no drop, and this is not a style choice — with one it
+ * breaks.
+ *
+ * The drop works by shifting the masthead's absolute box down: `top` gains it
+ * and `bottom` loses it. Once the drop exceeds the 2rem bottom inset that
+ * bottom goes NEGATIVE (measured −73px at 543x703, −95px at 390x844) and the
+ * box hangs below its section. Mid-page that is invisible — there are sections
+ * underneath. The closing hero is the LAST thing in `main`, so the overhang
+ * runs off the end of the document and clips "Store" (measured 25px and 46px
+ * past `main`'s bottom edge).
+ *
+ * A drop is meaningless here anyway: it exists to push the opening hero clear
+ * of the top of the window, and nothing is above this one.
+ *
+ * Same (0,1,0) as `.hero-section` and later in the file, so it wins on order —
+ * the tiebreak this repo has been bitten by. If either rule moves, qualify
+ * this one rather than trusting the order.
+ */
+.hero-section--closing { --hero-drop: 0px; }
+
+@media (min-width: 768px) {
+  /* The hero comes back up: 0 reproduces the original top:0 / bottom:2rem. */
+  .hero-section { --hero-drop: 0px; }
+
+  .hero__masthead .hero__scroll-hint {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+  }
+}
+
+/* A nudge, not a bounce — it should read as a suggestion you can ignore. */
+/* Shared with the process-step arrows in windows.scss. */
+@keyframes scroll-hint-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(0.35em); }
+}
+
+/*
+ * Anything that loops forever is exactly what this setting is for. The arrow
+ * still shows — it is the MOTION that is the hint's decoration, not the mark.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hero__masthead .hero__scroll-hint,
+  .window-hint { animation: none; }
+}

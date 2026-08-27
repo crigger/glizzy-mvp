@@ -1,0 +1,16 @@
+// Entry point. Vite compiles this; Astro emits a hashed stylesheet.
+//
+// The order below is the order these rules had as one <style> block in the old
+// index.html, and it is kept on purpose — several of these files style the same
+// elements at the same specificity, where source order is the whole tiebreak.
+@use '_globals/fonts';
+@use '_globals/specimen';
+@use '_globals/vars';
+@use '_globals/base';
+@use '_globals/windows';
+@use '_globals/hero';
+@use '_globals/sections';
+@use '_globals/shop';
+@use '_globals/contact';
+@use '_globals/debug';
+@use '_globals/inspect';

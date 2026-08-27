@@ -1,0 +1,83 @@
+---
+/**
+ * The whole site, for now.
+ *
+ * Section order matters to the dog: glizzy-path.js sizes its path against the
+ * document's natural height, so adding or removing a section changes how much
+ * of the dog is drawn per screen of scrolling.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import HeroSection from '../components/HeroSection.astro';
+import ContactBlock from '../components/ContactBlock.astro';
+import IntroCta from '../components/IntroCta.astro';
+import IntroGlizzy from '../components/IntroGlizzy.astro';
+import GlizzyWindow from '../components/GlizzyWindow.astro';
+import AcquireBreak from '../components/AcquireBreak.astro';
+import GlizzyRepeat from '../components/GlizzyRepeat.astro';
+import Interlude from '../components/Interlude.astro';
+import DebugPanel from '../components/DebugPanel.astro';
+---
+
+{/*
+  `cart` so the drawer and its button exist here too. The button ships `hidden`
+  and cart.js only reveals it once a stored cart comes back with something in
+  it — so an empty cart costs the homepage a hidden button and nothing else.
+*/}
+<Layout cart>
+  <SiteIcon />
+
+  {/* The dog. Built procedurally by glizzy-path.js into this empty element. */}
+  <svg id="glizzy" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+
+  <main>
+    <HeroSection />
+    <IntroCta />
+    <IntroGlizzy />
+
+    <GlizzyWindow index={0} side="left" heading="Mud is sourced from the United States, somewhere">
+      <p>All of the materials in our clay are mined in the USA. We don't know exactly which holes in the ground. Could be kaolin from the Georgia belt, ball clay out of west Tennessee, talc from Montana.</p>
+    </GlizzyWindow>
+
+    <GlizzyWindow index={1} side="right" heading="Hot Dog is hand-crafted in Vinton">
+      <p>A skilled artisan with limited pottery experience builds each one-of-a-kind piece in the uncomparablely conceptive Vintonland atmosphere.</p>
+    </GlizzyWindow>
+
+    <GlizzyWindow index={2} side="left" heading="Weiner is roasted">
+      <p>Our soft and squishy friend is hardened by the harsh cruelty of existence, fired in a 1000°F kiln, and cooled with the sweetest Virginia breeze.</p>
+    </GlizzyWindow>
+
+    <GlizzyWindow index={3} side="right" heading="Tube is tucked-in">
+      <p>Each tired dawg is wrapped in a paper bun, individually packed into a cozy, recyclable, cardboard box, and sent on its way to your home.</p>
+    </GlizzyWindow>
+
+    <GlizzyWindow index={4} side="left" heading="Ode is Added" hint={false}>
+      <p>We add a personal note as a blanket for your cold clay hog-dart, if you care. Up to 100 characters of plaintext. Nothing unbecoming.</p>
+    </GlizzyWindow>
+
+    <AcquireBreak />
+
+    <Interlude>Get in on the ground level</Interlude>
+
+    <GlizzyRepeat />
+
+    <Interlude>The currency of the future</Interlude>
+
+    <AcquireBreak label="Fine" />
+    <GlizzyRepeat />
+    <AcquireBreak label="You're Right" />
+    <GlizzyRepeat />
+    <AcquireBreak label="Why not?" />
+    <GlizzyRepeat />
+
+    <ContactBlock />
+
+    {/*
+      The hero again, closing the page. It renders an EMPTY canvas wrap — the
+      one canvas moves out of the corner and into it. See HeroSection.astro.
+    */}
+    <HeroSection closing />
+  </main>
+
+  {import.meta.env.DEV && <DebugPanel />}
+</Layout>

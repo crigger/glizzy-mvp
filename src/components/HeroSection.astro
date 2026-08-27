@@ -1,0 +1,79 @@
+---
+/**
+ * The masthead, and the canvas the 3D dog renders into.
+ *
+ * `.hero-canvas-wrap` reserves the canvas's layout box on purpose: when the
+ * hero scrolls away the canvas goes `position: fixed` into the corner, and
+ * without the reserved space the page would jump at that moment.
+ *
+ * Rendered TWICE — once opening the page and once closing it. There is still
+ * only ONE canvas: hero-dog.js moves the element between the two wraps and
+ * FLIPs it, so the dog that has been pinned in the corner all the way down the
+ * page swells back to full size when the closing hero arrives. Duplicating the
+ * canvas would mean a second WebGL context and a second dog, and `id` is
+ * unique anyway — hence `closing`, which renders the wrap and leaves it empty
+ * for the canvas to arrive in.
+ */
+interface Props {
+  /**
+   * The copy at the end of the page: no canvas of its own, no scroll hint,
+   * and the end of the background dog's journey.
+   */
+  closing?: boolean;
+}
+const { closing = false } = Astro.props;
+---
+
+{/*
+  `data-dog-end` stops the background dog at this element's top —
+  glizzy-path.js looks for it. The dog runs the whole page including behind the
+  contact form, and finishes here: the closing hero is the sign-off, and it has
+  the 3D dog in it already.
+*/}
+<section
+  class:list={['hero-section', closing && 'hero-section--closing']}
+  data-dog-end={closing ? true : undefined}
+>
+  {/*
+    The closing masthead is the same words a second time. It is hidden from
+    assistive tech because it is a reprise, not new content — the page has
+    already announced "Old Vinton / Glizzy / Store" as its h1, and hearing it
+    again at the bottom tells a screen-reader user nothing.
+  */}
+  <div class="hero__masthead" aria-hidden={closing ? 'true' : undefined}>
+    {/*
+      Old Vinton · Glizzy · Store, reading down the page. The first line takes
+      `flex: 1` so it holds the top while the other two stay bottom-aligned
+      with the masthead — which is what puts the gap above "Glizzy" rather than
+      below it.
+
+      The nested span is not decoration. The outer one carries the subtitle's
+      clamped size and the `flex: 1`; the inner scales to 0.75em OF that. Moving
+      the font-size onto the outer element would replace the clamp rather than
+      scale it, and resolve against the masthead instead.
+    */}
+    <span class="masthead__subtitle masthead__subtitle--top f-sequoia">
+      <span class="masthead__subtitle-text">Old Vinton</span>
+    </span>
+    {
+      closing
+        ? <p class="masthead__title f-magnolia">Glizzy</p>
+        : <h1 class="masthead__title f-magnolia">Glizzy</h1>
+    }
+    <span class="masthead__subtitle f-sequoia">Store</span>
+
+    {/*
+      The scroll hint. Bricolage because it is the ONLY face here with a real
+      U+2193 — Sequoia and Magnolia have no arrows at all and would silently
+      fall back to whatever the OS supplies, which differs per platform and
+      matches nothing on the page.
+
+      Decorative, so `aria-hidden`: it reports the page scrolls, which a screen
+      reader already knows, and it is not a control.
+    */}
+    {!closing && <span class="hero__scroll-hint f-bricolage" aria-hidden="true">↓</span>}
+  </div>
+  <div class="hero-canvas-wrap">
+    {!closing && <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>}
+  </div>
+</section>

@@ -1,0 +1,43 @@
+---
+/**
+ * The window panel: keyline, dot screen, bone card, and a gold title bar when
+ * it has a title.
+ *
+ * Shared by every panel on the page, because they differ in how they are
+ * POSITIONED and not in what they are made of:
+ *
+ *   GlizzyWindow  sticky in a tall section, draggable by the bar
+ *   IntroGlizzy   static, sitting in the flow, no bar at all
+ *
+ * `draggable` is what adds `js-drag-handle`, and that class is the only thing
+ * glizzy-windows.js keys off — it also carries `cursor: grab` and
+ * `touch-action: none`. A static panel must NOT have it: the bar would claim to
+ * be draggable and would swallow a swipe over a strip nothing can drag.
+ */
+interface Props {
+  /** Omit for a panel with no chrome bar — see `.window--untitled`. */
+  title?: string;
+  draggable?: boolean;
+}
+const { title, draggable = false } = Astro.props;
+---
+
+<div class:list={['window', !title && 'window--untitled']}>
+  {
+    title && (
+      <div class:list={['window-chrome', draggable && 'js-drag-handle']}>
+        <span class="window-title">{title}</span>
+      </div>
+    )
+  }
+  <div class="window-content">
+    {/*
+      The copy sits on an opaque card, never on the glass. That is what lets the
+      panel behind it be as transparent and as busy as it likes — the contrast
+      is between the type and the card, and nothing else.
+    */}
+    <div class="window-content__inner">
+      <slot />
+    </div>
+  </div>
+</div>

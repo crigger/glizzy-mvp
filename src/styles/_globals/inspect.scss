@@ -1,0 +1,51 @@
+// The ?inspect capture panel. A dev affordance and nothing more — DevTools is
+// the editor, this is only the notebook, so it stays plain and out of the way.
+//
+// Never in a production build: the script is loaded under `import.meta.env.DEV`
+// in Layout.astro. These rules do ship (they are part of the one stylesheet),
+// which is a few hundred bytes for the benefit of the panel looking the same in
+// dev as it is written here.
+.inspect-capture {
+  position: fixed;
+  right: calc(env(safe-area-inset-right, 0px) + 1rem);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  z-index: 400;            // above the cart drawer (300) and the mini dog (200)
+  width: 26rem;
+  max-width: calc(100vw - 2rem);
+  max-height: 60svh;
+  overflow: auto;
+  padding: 0.75rem;
+  background: var(--bg-top);
+  color: var(--mustard);
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.inspect-capture__hint { margin: 0 0 0.5rem; opacity: 0.75; }
+.inspect-capture__row { display: flex; gap: 0.35rem; align-items: center; }
+
+.inspect-capture button {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.inspect-capture button:hover { background: var(--mustard); color: var(--bg-top); }
+
+.inspect-capture__status { margin-left: auto; opacity: 0.7; text-align: right; }
+.inspect-capture__status[data-bad="1"] { color: var(--dog-highlight); opacity: 1; }
+
+.inspect-capture__out {
+  margin: 0.6rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.85;
+}

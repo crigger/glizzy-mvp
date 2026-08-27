@@ -1,0 +1,50 @@
+---
+/**
+ * The one call-to-action button, used everywhere one appears, so the shape and
+ * the destination cannot drift apart between them.
+ *
+ * The label is a prop because the closing button says "Fine" rather than
+ * "Acquire" — but it DEFAULTS to "Acquire", so every button that means the
+ * usual thing still gets the word from here and only here.
+ *
+ * Two shapes:
+ *   pill      the blue lozenge in the hero
+ *   squiggle  a very bold take on vinton.land's squiggle underline — the same
+ *             wave, in mustard, with the stroke fattened until the line becomes
+ *             a band you can put a word on
+ */
+import { squigglePath, squiggleViewBox } from '../lib/squiggle';
+import { buyHref } from '../lib/fetchShopifyProducts';
+
+/* Three periods in a tall band: see squiggle.ts for why a button is not a headline. */
+const WAVE_PERIODS = 3;
+const WAVE_BAND = 24;
+
+interface Props {
+  /** Override the destination. Omit it — see `buyHref()` for what it resolves. */
+  href?: string;
+  variant?: 'pill' | 'squiggle';
+  /** Override the word. Leave it alone unless the button means something else. */
+  label?: string;
+}
+const { href, variant = 'pill', label = 'Acquire' } = Astro.props;
+
+/*
+ * Resolved HERE rather than defaulted to a literal, so every CTA on the site
+ * lands on the same page and none of them can drift. With one product that is
+ * the product page itself; the shop index would be a click-through with a
+ * single card on it.
+ */
+const target = href ?? (await buyHref());
+---
+
+<a class:list={['btn-acquire', variant === 'squiggle' && 'btn-acquire--squiggle']} href={target}>
+  {
+    variant === 'squiggle' && (
+      <svg class="btn-acquire__wave" viewBox={squiggleViewBox(WAVE_PERIODS, WAVE_BAND)} preserveAspectRatio="none" aria-hidden="true">
+        <path d={squigglePath(WAVE_PERIODS, WAVE_BAND)} />
+      </svg>
+    )
+  }
+  <span class="btn-acquire__label">{label}</span>
+</a>

@@ -1,0 +1,189 @@
+// The contact form. Ported from vinton.land's contact.scss and re-dressed in
+// this build's palette and faces.
+//
+// It lives on the panel's BONE card, so its ink is the card's navy and its
+// rules are navy at low alpha — not the page's mustard, which all but
+// disappears on bone. The blue pill is the shared `.shop-button` and reads on
+// either ground.
+
+.contact-block {
+  // `min-height: 0` overrides the `section` default of nearly a full viewport,
+  // the same way .acquire-break and .interlude do. This is a form, not a
+  // screen.
+  min-height: 0;
+  align-items: flex-start;
+  display: flex;
+  justify-content: center;
+}
+
+.contact__panel {
+  width: 100%;
+  max-width: 48rem;
+}
+
+.contact { width: 100%; }
+
+/*
+ * QUALIFIED WITH THE CARD, and for the third time in this file's neighbourhood
+ * it is not optional: `.window-content__inner h2` and `… p` style the panel's
+ * copy at (0,1,1), so a bare `.contact__title` at (0,1,0) loses and the
+ * display title renders at the panel's 1.4rem heading size. Anything dropped
+ * into a WindowPanel that is not ordinary body copy has to say so here.
+ */
+/*
+ * The title's type lives in sections.scss, in the rule it SHARES with the
+ * interlude line — one declaration for both, so they cannot drift. Nothing
+ * about it is repeated here.
+ */
+
+/*
+ * The panel's own h2 treatment — 1.4rem, line-height 1 — at full opacity and
+ * centred. Matched by hand rather than by selector because this is a <p>, and
+ * `.window-content__inner h2` cannot reach it.
+ */
+.window-content__inner .contact__intro {
+  // font-size: 1.4rem;
+  line-height: 1;
+  // letter-spacing: 0.02em;
+  opacity: 1;
+  margin: 0.75rem auto 1rem;
+  text-align: center;
+  text-transform: uppercase;
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 1rem;
+  // font-weight: 300;
+}
+
+.window-content__inner .contact__title {
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.contact__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+// Name and email share a row on anything but a phone.
+.contact__pair {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .contact__pair { grid-template-columns: 1fr 1fr; }
+}
+
+.contact__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Full opacity: a field label is not decoration, it is what the field is. */
+.contact__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/*
+ * `color: inherit` and a transparent ground rather than a painted box: the
+ * page's navy already IS the field's background, and giving the input its own
+ * dark fill puts a second, slightly different navy inside the first.
+ *
+ * NO `font: inherit` here, though a form control genuinely does need its type
+ * restated — the UA stylesheet puts `font: 400 13.33px Arial` on inputs and
+ * textareas. The shorthand was the first thing tried and it is the WRONG tool:
+ * it sets font-family too, so it beat the `.f-sequoia` class on the element
+ * (same specificity, and contact.scss loads after fonts.scss) and every field
+ * rendered in system-ui — the exact failure it was meant to prevent.
+ *
+ * The class is enough on its own for the family, because ANY author rule beats
+ * the UA stylesheet regardless of specificity. Only the size has to be stated,
+ * and stating just the size leaves the family to the class where it belongs —
+ * `.f-bricolage`, so what someone types is set in the same face as the note at
+ * the foot of the page rather than in the display sans.
+ *
+ * The rules are full-opacity `--bg-top`. They were a 30% tint, which on the
+ * bone card reads as a disabled field rather than an empty one. There is no
+ * hover shift any more: from solid there is nowhere darker to go, and the
+ * focus ring is the state that matters.
+ */
+.contact__input {
+  font-size: 1rem;
+  line-height: 1.4;
+  color: inherit;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--bg-top);
+  border-radius: 0;
+  padding: 0.6em 0;
+  transition: border-color 0.15s ease;
+
+  &::placeholder { color: inherit; opacity: 0.4; }
+}
+
+/*
+ * A textarea is `display: inline-block` by default, which leaves a descender
+ * gap under it that reads as a misaligned rule. It also defaults to
+ * `resize: both`, and horizontal resize is what lets someone drag a field out
+ * past the page gutter.
+ */
+.contact__input--area {
+  display: block;
+  resize: vertical;
+  min-height: 8em;
+  border: 2px solid var(--bg-top);
+  padding: 0.6em 0.75em;
+}
+
+/*
+ * `:focus-visible`, not `:focus`. A mouse click on a text field is already
+ * obvious from the caret; the ring is for keyboard arrival. The outline is
+ * offset so it does not sit on top of the border it is announcing.
+ */
+.contact__input:focus-visible {
+  outline: 2px solid var(--mustard);
+  outline-offset: 3px;
+  border-color: var(--mustard);
+}
+
+/*
+ * Full width. `.shop-button` is an inline-block sized to its label, so this
+ * needs the stretch AND `text-align: center` — without the latter the word
+ * "Send" would sit at the left end of a full-width pill.
+ */
+.contact__submit {
+  align-self: stretch;
+  width: 100%;
+  text-align: center;
+  margin-top: 0.5rem;
+  /*
+   * The Acquire / Fine buttons' height, not the plain pill's.
+   *
+   * `.shop-button`'s own 0.85em already made this 53px, exactly matching the
+   * intro CTA link — measured identical at 390, 430, 767 and 1440. But the
+   * buttons a visitor actually sees around this form are the squiggle ones,
+   * and those are 74px because `.btn-acquire--squiggle` sets `1.5em 2.6em`.
+   * The vertical value is repeated here to match them; the horizontal is not,
+   * because this button is full width.
+   */
+  padding-block: 1.5em;
+}
+
+/*
+ * The honeypot carries `hidden`, and `display: none` is what that attribute
+ * means — but ANY layout rule with a display value beats the UA's
+ * `[hidden] { display: none }`, and this form's parent is a flex column. State
+ * it here so the trap cannot become a visible field if the form's layout
+ * changes again.
+ */
+.contact__pot { display: none; }
+
+// The /thanks page reuses the block; there is no form on it to space out.
+.contact--thanks .contact__submit { margin-top: 1.5rem; }

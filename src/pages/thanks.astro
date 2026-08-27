@@ -1,0 +1,36 @@
+---
+/**
+ * Where a successful contact submission lands.
+ *
+ * Netlify redirects here itself, from the form's `action` — this page is never
+ * linked from anywhere. It exists so a sent message ends on the site rather
+ * than on Netlify's generic confirmation screen.
+ *
+ * `scripts={false}`: no dog, and none of the four-screen body height it
+ * assumes. This is four lines of text; the dog would open it onto empty
+ * screens, the same reason /shop and /type set it.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+---
+
+<Layout
+  title="Thanks — Glizzy Store"
+  description="Your message is on its way."
+  scripts={false}
+  noindex
+>
+  <SiteIcon />
+
+  <main>
+    <section class="contact-block" aria-labelledby="thanks-title">
+      <div class="contact contact--thanks">
+        <h1 class="contact__title f-magnolia" id="thanks-title">Thanks</h1>
+        <p class="contact__intro f-sequoia">
+          Your message made it. Someone will read it.
+        </p>
+        <a class="shop-button contact__submit" href="/">Back</a>
+      </div>
+    </section>
+  </main>
+</Layout>

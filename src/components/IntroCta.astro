@@ -1,0 +1,19 @@
+---
+/**
+ * The question again, and the way in.
+ */
+import AcquireButton from './AcquireButton.astro';
+
+interface Props {
+  href?: string;
+}
+/* Undefined on purpose: AcquireButton resolves it — see buyHref(). */
+const { href } = Astro.props;
+---
+
+<section class="intro-cta">
+  <div class="intro-cta__inner">
+    <h2 class="intro-cta__q f-magnolia">Glizzy?</h2>
+    <AcquireButton href={href} />
+  </div>
+</section>

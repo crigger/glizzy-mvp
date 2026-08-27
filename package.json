@@ -1,0 +1,21 @@
+{
+  "name": "glizzy-store",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "dev:lan": "ASTRO_TELEMETRY_DISABLED=1 astro dev --host",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview"
+  },
+  "dependencies": {
+    "astro": "^7.2.6",
+    "sass": "^1.87.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "gsap": "3.13.0",
+    "puppeteer-core": "^25.9.0"
+  }
+}

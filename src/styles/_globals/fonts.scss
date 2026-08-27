@@ -1,0 +1,61 @@
+// Self-hosted faces and the .f-* utility classes that assign them.
+//
+// The utilities are how type is chosen here — there is no mapping from
+// heading level to face. Sources for these woff2 files live in assets/fonts/,
+// deliberately outside public/ so the .otf/.ttf originals never ship.
+
+/* ───── fonts (woff2) ───── */
+@font-face {
+  font-family: 'Sequoia Sans';
+  src: url('/fonts/SequoiaSans-Thin.woff2') format('woff2');
+  font-weight: 100; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sequoia Sans';
+  src: url('/fonts/SequoiaSans-Light.woff2') format('woff2');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sequoia Sans';
+  src: url('/fonts/SequoiaSans-Regular.woff2') format('woff2');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Sequoia Sans';
+  src: url('/fonts/SequoiaSans-Wide.woff2') format('woff2');
+  font-weight: 400; font-stretch: expanded;
+  font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'BN Magnolia';
+  src: url('/fonts/BNMagnolia.woff2') format('woff2');
+  font-weight: normal; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/fonts/BricolageGrotesque-VF.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-stretch:  75% 100%;
+  font-style: normal; font-display: swap;
+}
+
+/* ───── font utility classes ─────
+   Prefix: .f-<family>[-<variant>]
+   For variable-font axis overrides, use the *-display / *-text / *-condensed
+   helpers — they apply font-variation-settings so explicit axes pin even when
+   font-optical-sizing would otherwise interpolate.                          */
+.f-sequoia            { font-family: 'Sequoia Sans'; font-weight: 400; }
+.f-sequoia-thin       { font-family: 'Sequoia Sans'; font-weight: 100; }
+.f-sequoia-light      { font-family: 'Sequoia Sans'; font-weight: 300; }
+.f-sequoia-wide       { font-family: 'Sequoia Sans'; font-weight: 400;
+                        font-stretch: expanded; }
+.f-magnolia           { font-family: 'BN Magnolia'; }
+.f-bricolage          { font-family: 'Bricolage Grotesque'; font-weight: 400; }
+.f-bricolage-light    { font-family: 'Bricolage Grotesque'; font-weight: 300; }
+.f-bricolage-bold     { font-family: 'Bricolage Grotesque'; font-weight: 700; }
+.f-bricolage-condensed{ font-family: 'Bricolage Grotesque';
+                        font-stretch: 75%; }
+.f-bricolage-display  { font-family: 'Bricolage Grotesque';
+                        font-variation-settings: 'opsz' 96, 'wght' 500; }
+.f-bricolage-text     { font-family: 'Bricolage Grotesque';
+                        font-variation-settings: 'opsz' 12, 'wght' 500; }
