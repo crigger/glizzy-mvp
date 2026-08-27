@@ -15,8 +15,13 @@
 .shop-page {
   // `main` sets a 30svh bottom padding for the dog to run out into. There is
   // no dog here. (0,1,0) beats `main`'s (0,0,1), so no source-order tie.
-  padding: 24px 24px 12svh;
-  max-width: 72rem;
+  //
+  // FULL WIDTH: no 72rem cap. The gutter is `--page-gutter`, the same token
+  // `main` uses, rather than the flat 24 this restated — so the shop keeps the
+  // page's own margin (24 on a phone, 56 from tablet up) instead of quietly
+  // running narrower than everything else at the width where it widens.
+  padding: 24px var(--page-gutter) 12svh;
+  max-width: none;
 }
 
 .visually-hidden {
@@ -211,18 +216,29 @@
 .shop-card__body,
 .pdp__body {
   font-size: 1rem;
+  /* Restated: `.pdp__detail` sets `line-height: 1` for the head's big pair,
+     and prose inheriting that would set solid. */
   line-height: 1.55;
 
   p { margin: 0 0 0.6em; }
   p:last-child { margin-bottom: 0; }
 }
 
-.shop-card__price,
-.pdp__price {
+.shop-card__price {
   font-family: 'Sequoia Sans';
   font-weight: 400;
   font-stretch: expanded;
   font-size: 1.4rem;
+  margin: 0;
+}
+
+/* On the PDP the price is half of a pair: it takes the head's size, weight and
+   width from `.pdp__detail` and only keeps the figures lined up. */
+.pdp__price {
+  font-family: 'Sequoia Sans';
+  font-size: var(--pdp-type);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   margin: 0;
 }
 
@@ -239,7 +255,13 @@
 .pdp__inner {
   display: grid;
   gap: 2.5rem;
-  align-items: start;
+  /*
+   * `stretch`, not `start`: the detail column has to be as tall as the
+   * photograph before anything in it can be aligned to the photograph's foot.
+   * The art frame opts back out below, or it would be stretched taller than
+   * the picture it holds on any width where the text is the taller of the two.
+   */
+  align-items: stretch;
 
   @media (min-width: 48rem) {
     grid-template-columns: 1fr 1fr;
@@ -248,6 +270,7 @@
 }
 
 .pdp__art-frame {
+  align-self: start;   /* its own height — see .pdp__inner */
   border-radius: 14px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.04);
@@ -260,21 +283,97 @@
   height: auto;
 }
 
+/*
+ * Weight, width and leading set once for the column, the way `.cart__lines`
+ * does it for the drawer. `font-stretch: normal` is written out because
+ * Sequoia HAS an expanded face at 400 and CSS matches stretch BEFORE weight —
+ * `.pdp__price` asked for expanded and would otherwise drag the whole pair
+ * onto the Wide file at 400, silently dropping the 300.
+ */
 .pdp__detail {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
+  /* Back to flex-start: `stretch` pulled Add to cart out into a full-column
+     blue bar. The two children that DO need the whole column say so. */
   align-items: flex-start;
   gap: 1.1rem;
+
+  font-weight: 300;
+  font-stretch: normal;
+  line-height: 1;
+
+  /*
+   * ONE size for the name and the price. cqi, so it is the COLUMN that governs
+   * — the page is full width now, and off the viewport this would size to the
+   * art beside it as much as to the text.
+   */
+  --pdp-type: clamp(2.5rem, 14cqi, 5rem);
+}
+
+/*
+ * The pair, on one line. See the cart line — same fact, same shape.
+ *
+ * The right end has to clear the brand mark, which is `position: fixed` in the
+ * viewport's top-right corner and knows nothing about this column. Reserved
+ * from the same `--corner-*` tokens the mark itself is placed with, minus the
+ * gutter the row already stops at, and floored at 0 so it can never pull the
+ * price outwards. Only from 48rem up: below that the column is under the art
+ * and the corner is the art's problem, as it always was.
+ */
+.pdp__head {
+  align-self: stretch;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+
+  @media (min-width: 48rem) {
+    padding-right: max(
+      0px,
+      calc(var(--corner-inset) + var(--corner-size) + var(--corner-gap) - var(--page-gutter))
+    );
+  }
 }
 
 .pdp__title {
   min-width: 0;
   overflow-wrap: break-word;
-  font-size: clamp(2.5rem, 14cqi, 5rem);
-  font-weight: normal;
+  font-family: 'Sequoia Sans';
+  font-size: var(--pdp-type);
+  font-weight: inherit;
   line-height: 1;
   margin: 0;
+  /*
+   * One em OF THE TITLE, so the air above the name scales with the name rather
+   * than staying a fixed gap that reads as generous on a phone and mean at
+   * 1440. The price is baseline-aligned to it and comes down with it.
+   */
+  padding-top: 1em;
+}
+
+/*
+ * Everything below the name, pushed to the FOOT of the column — level with the
+ * bottom of the photograph. `margin-top: auto` in a flex column eats the free
+ * space above it, and the free space only exists because `.pdp__inner`
+ * stretches this column to the picture's height.
+ *
+ * Two columns only. Stacked on a phone the column is exactly as tall as its
+ * content, there is no free space to eat, and the picture's foot is simply
+ * where the text begins.
+ */
+.pdp__rest {
+  /* The whole column. Without this it shrink-wraps to its widest child and the
+     note's textarea, which stretches, has only that much to stretch INTO. */
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.1rem;
+
+  @media (min-width: 48rem) {
+    margin-top: auto;
+  }
 }
 
 .pdp__options { border: 0; margin: 0; padding: 0; }
@@ -367,7 +466,7 @@
   appearance: none;
   border: 0;
   padding: 0;
-  background: radial-gradient(var(--mustard), 30%, transparent 0);
+  background: radial-gradient(var(--cta), 30%, transparent 0);
   background-position: 50%;
   background-size: 3px 3px;
   backdrop-filter: blur(5rem);
@@ -379,6 +478,29 @@
   // because the drawer is narrow and the heading was sized off the viewport.
   container-type: inline-size;
 
+  /*
+   * ONE size for the drawer's type: the head's title, and every line's name,
+   * price and count. They were 3.4 / 0.95 / 1 / 1.1rem and read as four
+   * unrelated things stacked up — matching them is the point, so it is a token
+   * rather than the number written out four times.
+   *
+   * FLUID, because the name and the price share a line. At a flat 3.4rem
+   * "GLIZZY" and "$30" measure 333px into a 293px panel and the price walks
+   * off the edge; the drawer is only 77.5% of a narrow viewport. The clamp is
+   * what lets them stay the SAME size as the title rather than being cut back
+   * to fit — the title comes down with them.
+   *
+   * cqi, so the DRAWER's width governs and not the viewport's, which is what
+   * the container above was declared for. 12, not 13: 1cqi is 1% of the
+   * container's CONTENT box, and 13 fitted "GLIZZY $30" into 291.25px by a
+   * quarter of a pixel, for a two-digit price only.
+   *
+   * It resolves against the panel because every USE of it is on a descendant.
+   * A container cannot query itself: set a font-size on `.cart__panel` from
+   * this token and the cqi would silently measure some ancestor instead.
+   */
+  --cart-type: clamp(2.5rem, 12cqi, 3.4rem);
+
   position: absolute;
   top: 0;
   right: 0;
@@ -389,7 +511,7 @@
    * the thing being bought visible behind what is buying it. The 24rem cap
    * still governs from tablet up.
    */
-  width: min(24rem, 80%);
+  width: min(30rem, 77.5%);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -418,11 +540,13 @@
    * inside.
    */
   padding-right: calc(var(--corner-size) + var(--corner-inset));
+  padding-top: .35em;
+  padding-bottom: .35em;
 }
 
 .cart__title {
-  font-family: 'BN Magnolia';
-  font-size: clamp(1.6rem, 11cqi, 2.4rem);
+  font-family: 'Sequoia Sans';
+  font-size: var(--cart-type);
   font-weight: normal;
   line-height: 1;
   margin: 0;
@@ -467,6 +591,17 @@
   path { stroke: currentColor; stroke-width: 2; }
 }
 
+/*
+ * Weight, width and leading are set ONCE here and inherited by every line —
+ * the name, the price, the count and the steppers — rather than repeated on
+ * each. At this size they are the list's voice, not four local decisions.
+ *
+ * `font-stretch: normal` is written out rather than left to the default
+ * because Sequoia HAS an expanded face at 400, and CSS matches stretch BEFORE
+ * weight: ask for expanded anywhere under here and the 300 is silently
+ * dropped on the way to the Wide file. Saying normal is what keeps this on
+ * SequoiaSans-Light.
+ */
 .cart__lines {
   list-style: none;
   margin: 0;
@@ -474,6 +609,10 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+
+  font-weight: 300;
+  font-stretch: normal;
+  line-height: 1;
 }
 
 /*
@@ -498,10 +637,12 @@
  * cart.js emits them as siblings and its DOM order is the contract here.
  */
 .cart__line {
+  font-size: var(--cart-type);
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 0.5rem 1rem;
+  gap: 0.35em 1rem ;
   align-items: center;
+  letter-spacing: 0.04em;
 
   /* The thumbnail: full width, spanning both columns, first row. */
   > div:first-child {
@@ -512,39 +653,83 @@
 
     img { display: block; width: 100%; height: auto; }
   }
+
+  /*
+   * cart.js wraps the name, the variant, the ode and the stepper in ONE
+   * unnamed <div> and appends the price after it. `display: contents`
+   * dissolves that wrapper so its children become items of this grid — which
+   * is what lets the price sit on the name's row while the stepper spans the
+   * full width underneath, without touching cart.js's DOM.
+   *
+   * Everything placed below depends on this. Take it out and the price drops
+   * to its own row at the bottom.
+   */
+  > div:nth-child(2) { display: contents; }
 }
 
 .cart__line-name {
   font-family: 'Sequoia Sans';
-  font-size: 0.95rem;
-  line-height: 1.2;
+  font-size: var(--cart-type);
   margin: 0;
+  grid-column: 1;
+  padding-top: .35em;
 }
 
 .cart__line-variant {
   font-size: 0.8rem;
   opacity: 0.7;
   margin: 0.15em 0 0;
+  /* Its own row. Without the span it would auto-place into the price's cell —
+     the one to the right of the name — and sit there in eight-point type. */
+  grid-column: 1 / -1;
 }
 
+/*
+ * The full width of the line, under the name and price: the two steppers at
+ * the ends and the count between them. `space-between` and nothing else — the
+ * row has exactly three children, so the count lands in the middle on its own.
+ */
 .cart__qty {
+  border-top: 2px solid var(--cta);
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  justify-content: space-between;
+  /* The family too, not just the size — the count inherited system-ui from
+     `body`, which is not the drawer's face. */
+  font-family: 'Sequoia Sans';
+  font-size: var(--cart-type);
+  // margin-top: 0.5rem;
+  padding-top: 2rem;
 
-  /* 36px, not 22 — these are the drawer's only fiddly targets and they were
-     well under the 44px a thumb wants. */
+  /*
+   * Still 36px at the smallest — these are the drawer's only fiddly targets
+   * and they were well under the 44px a thumb wants. Sized off `--cart-type`
+   * above that so they keep their proportion to the numeral, with the old 36
+   * as the floor.
+   */
   button {
     appearance: none;
-    width: 36px;
-    height: 36px;
+    width:  max(36px, calc(var(--cart-type) * 0.72));
+    height: max(36px, calc(var(--cart-type) * 0.72));
     padding: 0;
     background: rgba(255, 255, 255, 0.08);
     border: 0;
     border-radius: 50%;
     color: inherit;
-    font: 20px/1 ui-monospace, monospace;
+    /*
+     * BRICOLAGE, like the close button's × and for the same reason: Sequoia
+     * has no U+2212 MINUS (checked against its cmap), so a Sequoia stepper
+     * would print its minus from a system font beside a Sequoia plus.
+     * Bricolage has both. The weight is INHERITED from `.cart__lines`, not
+     * pinned here — Bricolage is variable 200-800, so it follows the list to
+     * 300 rather than sitting a step heavier than everything around it.
+     *
+     * NOT the `font` shorthand this used to be: that reset the family to
+     * monospace, and would reset it again the moment anyone edited the size.
+     */
+    font-family: 'Bricolage Grotesque';
+    font-size: max(20px, calc(var(--cart-type) * 0.42));
     cursor: pointer;
 
     &:hover { background: rgba(255, 255, 255, 0.18); }
@@ -552,16 +737,25 @@
 
   span {
     font-variant-numeric: tabular-nums;
-    min-width: 1.4em;
     text-align: center;
-    font-size: 1.1rem;
+    line-height: 1;
   }
 }
 
+/*
+ * Explicitly placed, because it is cart.js's LAST child but belongs beside the
+ * name. Row 2 is the first row under the full-width thumbnail, which is always
+ * present — cart.js appends that <div> whether or not the line has an image.
+ */
 .cart__line-price {
+  grid-row: 2;
+  grid-column: 2;
+  justify-self: end;
   font-family: 'Sequoia Sans';
+  font-size: var(--cart-type);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  padding-top: .35em;
 }
 
 /*
@@ -625,11 +819,24 @@
 
 /* ───── the ode: an opt-in note on the product page ───────────────────────── */
 
+/*
+ * ONE rule. This was two `.pdp__ode` blocks and two `.pdp__ode-field` blocks
+ * separated by the checkbox's — a flex column overridden by a two-column grid
+ * further down, resolved by source order and invisible to grep. The grid
+ * existed to sit a native checkbox beside its label; there is no native
+ * checkbox on screen any more.
+ */
 .pdp__ode {
-  margin: 1.5rem 0;
+  /* The whole column: the pill shrink-wraps itself, but the textarea it opens
+     is meant to be as wide as the detail column. */
+  align-self: stretch;
+  margin: 2rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: flex-start;
+  /* The pill and the field it opens are two separate things, not a stack —
+     0.75 read as a caption clinging to a button. */
+  gap: 1.4rem;
 }
 
 /*
@@ -638,38 +845,91 @@
  * animation, because a hidden-but-present textarea is still a tab stop, and a
  * focus stop between the picker and Add to cart that lands on nothing visible
  * is the worst thing a keyboard user can meet on this page.
+ *
+ * Clearing on close is NOT here and is not new: cart.js already empties the
+ * textarea on the checkbox's `change`, so an unchecked ode is never quietly
+ * attached to an order. The pill below drives that same checkbox, which is
+ * why "−" clears without a line of new script.
  */
-.pdp__ode-field { display: none; }
+.pdp__ode-field { display: none; width: 100%; }
 .pdp__ode-opt:checked ~ .pdp__ode-field { display: block; }
 
+/*
+ * Out of sight, still a real checkbox: it keeps the focus ring, the tab stop,
+ * the state a screen reader announces and the `:checked` selector everything
+ * else hangs off. NOT `display: none`, which would take all four away.
+ */
 .pdp__ode-opt {
-  /*
-   * The real control, kept in the layout at 1em so it lines up with its label —
-   * NOT visually hidden. A custom box would have to reimplement focus, the
-   * indeterminate state and the platform's own checked mark for no gain here.
-   */
-  width: 1em;
-  height: 1em;
-  accent-color: var(--cta);
-  margin: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-/* The checkbox and its label share a row; the field takes the next one. */
-.pdp__ode {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  column-gap: 0.6rem;
-  row-gap: 0.75rem;
-}
-.pdp__ode-field { grid-column: 1 / -1; }
-
+/*
+ * The whole pill is the control — it is a <label>, so a click anywhere in it
+ * toggles the checkbox and the browser does that with no script.
+ *
+ * Outlined mustard rather than the blue fill: Add to cart is the page's one
+ * filled button and this must not compete with it. The ring is `inset
+ * box-shadow`, not `border`, so turning it on and off cannot move the text.
+ */
 .pdp__ode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.7em 1.3em;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px currentColor;
+  color: var(--mustard);
+  background: transparent;
   font-family: 'Sequoia Sans';
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
+  font-weight: 300;
+  font-stretch: normal;
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   cursor: pointer;
   user-select: none;
+  transition: background-color 0.15s ease;
+
+  &:hover { background: rgba(255, 163, 0, 0.14); }
+}
+
+/* The focus ring belongs on what is visible, not on the 1px box that has it. */
+.pdp__ode-opt:focus-visible ~ .pdp__ode-toggle {
+  outline: 2px solid var(--mustard);
+  outline-offset: 3px;
+}
+
+/*
+ * BRICOLAGE, like the cart's steppers and the drawer's close: Sequoia has no
+ * U+2212 MINUS, so a Sequoia glyph here would print its minus from a system
+ * font next to a Sequoia plus. Generated content, because the two states are
+ * one decorative mark — the words beside it carry the meaning.
+ */
+.pdp__ode-glyph {
+  font-family: 'Bricolage Grotesque';
+  font-weight: 400;
+  font-size: 1.25em;
+  line-height: 0;      // a taller glyph must not deepen the pill
+
+  &::before { content: '+'; }
+}
+
+.pdp__ode-opt:checked ~ .pdp__ode-toggle .pdp__ode-glyph::before { content: '−'; }
+
+/* One word on screen at a time, and so one accessible name at a time. */
+.pdp__ode-word--clear { display: none; }
+.pdp__ode-opt:checked ~ .pdp__ode-toggle {
+  .pdp__ode-word--add   { display: none; }
+  .pdp__ode-word--clear { display: inline; }
 }
 
 .pdp__ode-label {
@@ -678,8 +938,10 @@
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  opacity: 0.6;
-  margin-bottom: 0.4rem;
+  /* Full strength. It states the rule the box enforces — a dimmed instruction
+     that turns out to be binding is the wrong way round. */
+  opacity: 1;
+  margin-bottom: 1.1rem;
 }
 
 /*
@@ -703,7 +965,7 @@
   background: rgba(255, 255, 255, 0.04);
   border: 2px solid rgba(255, 163, 0, 0.35);
   border-radius: 4px;
-  padding: 0.6em 0.75em;
+  padding: 0.85em 1em;
   resize: vertical;
   transition: border-color 0.15s ease;
 
@@ -726,15 +988,21 @@
   font-family: 'Sequoia Sans';
   font-size: 0.75rem;
   letter-spacing: 0.08em;
-  opacity: 0.5;
-  margin: 0.4rem 0 0;
+  opacity: 1;
+  margin: 1.1rem 0 0;
   text-align: right;
 
-  &.is-full { opacity: 0.9; color: var(--mustard); }
+  /*
+   * `--bone`, not mustard: the page's text colour IS mustard, so once this
+   * runs at full opacity the old `is-full` rule said nothing at all — it set
+   * the colour the element already had. Bone is the palette's one other ink.
+   */
+  &.is-full { color: var(--bone); }
 }
 
 /* The ode echoed back on its cart line. */
 .cart__line-ode {
+  grid-column: 1 / -1;   /* its own row — see .cart__line-variant */
   font-family: 'Sequoia Sans';
   font-size: 0.8rem;
   line-height: 1.35;

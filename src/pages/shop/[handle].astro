@@ -112,9 +112,22 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
       </div>
 
       <div class="pdp__detail">
-        <h1 class="pdp__title f-magnolia">{product.title}</h1>
-        <p class="pdp__price" id="pdp-price">{formatPrice(initial.price)}</p>
+        {/*
+          Name and price on ONE row, `space-between` — the cart drawer's line
+          reads this way and this is the same fact stated twice, so the two
+          should not disagree about how to say it.
+        */}
+        <div class="pdp__head">
+          <h1 class="pdp__title">{product.title}</h1>
+          <p class="pdp__price" id="pdp-price">{formatPrice(initial.price)}</p>
+        </div>
 
+        {/*
+          Everything under the name. It is its own box so it can be pushed to
+          the FOOT of the column — level with the bottom of the photograph —
+          while the name and price stay up at the top with it.
+        */}
+        <div class="pdp__rest">
         {body && <div class="pdp__body" set:html={body} />}
 
         {
@@ -157,8 +170,23 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
           a line limit is not something the platform can express.
         */}
         <div class="pdp__ode">
+          {/*
+            Still a plain checkbox, and still the same one — it is only moved
+            out of sight. The label IS the button, so the whole pill toggles
+            it, and the reveal below stays the CSS sibling rule it always was:
+            no script decides whether the field is open.
+
+            Two real words rather than one swapped by CSS `content`: the label
+            supplies the checkbox's accessible name, and generated content is
+            not dependable there. `display: none` on the unused one keeps the
+            name to exactly what is on screen.
+          */}
           <input class="pdp__ode-opt" type="checkbox" id="ode-opt" />
-          <label class="pdp__ode-toggle" for="ode-opt">Add a note</label>
+          <label class="pdp__ode-toggle" for="ode-opt">
+            <span class="pdp__ode-glyph" aria-hidden="true"></span>
+            <span class="pdp__ode-word pdp__ode-word--add">Add a note</span>
+            <span class="pdp__ode-word pdp__ode-word--clear">Clear note</span>
+          </label>
 
           <div class="pdp__ode-field">
             <label class="pdp__ode-label" for="ode-text">
@@ -172,10 +200,19 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
               maxlength="100"
               spellcheck="true"
               autocomplete="off"
-              placeholder="Nothing unbecoming."></textarea>
+              placeholder="Say something nice"></textarea>
             <p class="pdp__ode-count" id="ode-count">100 left</p>
           </div>
         </div>
+
+        {/*
+          ABOVE the button, not below it. It reserves 1.2em as a live region so
+          a message cannot shove the layout — and under the button that reserved
+          line held the pill 34px clear of the foot of the photograph the column
+          is aligned to. Above it, the button is the last thing in the column
+          and lands level with the picture.
+        */}
+        <p class="pdp__note" id="pdp-note" role="status" aria-live="polite"></p>
 
         <button
           class="shop-button"
@@ -187,11 +224,10 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
           {initial.availableForSale ? 'Add to cart' : 'Sold out'}
         </button>
 
-        <p class="pdp__note" id="pdp-note" role="status" aria-live="polite"></p>
-
         <noscript>
           <p class="pdp__nojs">The cart needs JavaScript.</p>
         </noscript>
+        </div>
       </div>
     </div>
   </main>

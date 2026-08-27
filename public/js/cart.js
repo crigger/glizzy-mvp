@@ -421,6 +421,13 @@
 
     var qty = document.createElement('div');
     qty.className = 'cart__qty';
+    /*
+     * A real minus sign, U+2212 — and it stays one only because the stepper is
+     * set in BRICOLAGE (see `.cart__qty button`). Sequoia Sans has no U+2212,
+     * checked against its cmap the same way the close button's × was. Set this
+     * row in Sequoia and the minus falls through to a system font beside a
+     * Sequoia plus, which is obvious at any size worth reading.
+     */
     qty.appendChild(stepper('−', 'Remove one', line.id, line.quantity - 1));
 
     var count = document.createElement('span');
