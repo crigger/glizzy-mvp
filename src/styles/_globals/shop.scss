@@ -247,7 +247,9 @@
   font-size: 0.85rem;
   min-height: 1.2em;   // reserved, so a message doesn't shove the card taller
   margin: 0;
-  opacity: 0.8;
+  /* Full strength. These are the live regions — "Added to cart", a refused
+     stepper, a trimmed paste. A status nobody can read is worse than none. */
+  opacity: 1;
 }
 
 // ───── /shop/[handle] ─────────────────────────────────────────────────────
@@ -703,20 +705,35 @@
   padding-top: 2rem;
 
   /*
-   * Still 36px at the smallest — these are the drawer's only fiddly targets
-   * and they were well under the 44px a thumb wants. Sized off `--cart-type`
-   * above that so they keep their proportion to the numeral, with the old 36
-   * as the floor.
+   * One size for the two round controls, so the ring and the glyph can be
+   * stated as the fractions of it that `.cart__close` uses. Still 36px at the
+   * smallest — these are the drawer's only fiddly targets and they were well
+   * under the 44px a thumb wants — and sized off `--cart-type` above that, so
+   * they keep their proportion to the numeral between them.
+   */
+  --step-size: max(36px, calc(var(--cart-type) * 0.72));
+
+  /*
+   * THE CLOSE BUTTON'S TREATMENT, not a filled chip: a mustard ring on
+   * nothing, a mustard glyph, and the same `opacity` hover. The ring is
+   * `0.116` of the control's width, which is the fraction the mark's own ring
+   * is of its artwork — `.cart__close` is where that number comes from and
+   * these are now the same control at a different size.
+   *
+   * `box-sizing: border-box` is global here, so the ring eats inward and the
+   * tap target stays the size above.
    */
   button {
     appearance: none;
-    width:  max(36px, calc(var(--cart-type) * 0.72));
-    height: max(36px, calc(var(--cart-type) * 0.72));
+    width:  var(--step-size);
+    height: var(--step-size);
     padding: 0;
-    background: rgba(255, 255, 255, 0.08);
-    border: 0;
+    background: none;
+    border: calc(var(--step-size) * 0.116) solid var(--mustard);
     border-radius: 50%;
-    color: inherit;
+    display: grid;
+    place-items: center;
+    color: var(--mustard);
     /*
      * BRICOLAGE, like the close button's × and for the same reason: Sequoia
      * has no U+2212 MINUS (checked against its cmap), so a Sequoia stepper
@@ -729,10 +746,12 @@
      * monospace, and would reset it again the moment anyone edited the size.
      */
     font-family: 'Bricolage Grotesque';
-    font-size: max(20px, calc(var(--cart-type) * 0.42));
+    font-size: calc(var(--step-size) * 0.42);
+    line-height: 1;
     cursor: pointer;
 
-    &:hover { background: rgba(255, 255, 255, 0.18); }
+    &:hover { opacity: 0.75; }
+    &:focus-visible { outline: 2px solid var(--mustard); outline-offset: 3px; }
   }
 
   span {
@@ -782,12 +801,25 @@
 }
 
 .cart__note {
+  /*
+   * `flex: none`, or a message longer than one line OVERLAPS the foot.
+   *
+   * The panel is a flex column and this is a flex item, so by default it may
+   * shrink below its content: at two lines the box stayed 1.2em, the text
+   * overflowed it, and Shopify's "Only 1 item was added to your cart due to
+   * availability" printed straight through the subtotal rule. The reserved
+   * `min-height` is a floor, not a ceiling — it never stopped this.
+   *
+   * `.cart__lines` above is what should give way instead; the panel scrolls.
+   */
+  flex: none;
   font-size: 0.85rem;
   min-height: 1.2em;
   margin: 0;
 }
 
 .cart__foot {
+  flex: none;   /* the money never compresses — see .cart__note */
   margin-top: auto;
   padding-top: 1rem;
   /* The CTA blue at full strength, not a 12% white hairline — it is the one
