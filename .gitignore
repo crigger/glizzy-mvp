@@ -16,3 +16,6 @@ npm-debug.log
 
 # ?inspect captures — DevTools edits waiting to be ported into the source
 .inspect
+
+# Local Netlify folder
+.netlify
