@@ -1,5 +1,5 @@
 import { defineConfig } from 'astro/config';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 /*
  * Dev-only save for the /email design studio. The studio is where email
@@ -14,6 +14,15 @@ const emailDesignSave = () => ({
   name: 'email-design-save',
   configureServer(server) {
     server.middlewares.use('/__email-design-save', (req, res) => {
+      if (req.method === 'GET') {
+        // The studio FETCHES its state instead of importing it: an import
+        // puts the file in Vite's module graph, and every save then
+        // full-reloads the page — which is what kept eating inspector edits.
+        readFile(new URL('./studio/email-design.json', import.meta.url), 'utf8')
+          .then((text) => { res.setHeader('content-type', 'application/json'); res.end(text); })
+          .catch((e) => { res.statusCode = 500; res.end(String(e)); });
+        return;
+      }
       if (req.method !== 'POST') {
         res.statusCode = 405;
         res.end();
@@ -23,16 +32,19 @@ const emailDesignSave = () => ({
       req.on('data', (chunk) => (body += chunk));
       req.on('end', async () => {
         try {
-          const { design, note = '' } = JSON.parse(body);
+          const { design, note = '', inlineStyles = [] } = JSON.parse(body);
           if (!design || typeof design !== 'object') throw new Error('no design in payload');
-          const url = new URL('./src/data/email-design.json', import.meta.url);
-          const { readFile } = await import('node:fs/promises');
+          const url = new URL('./studio/email-design.json', import.meta.url);
           const file = JSON.parse(await readFile(url, 'utf8'));
-          file.history.unshift({ saved: file.saved, note: file.note, design: file.design });
+          file.history.unshift({ saved: file.saved, note: file.note, design: file.design, inlineStyles: file.inlineStyles });
           file.history = file.history.slice(0, 20);
           file.saved = new Date().toISOString().slice(0, 10);
           file.note = note;
           file.design = design;
+          // Every style="" in the mock, verbatim — DevTools element.style
+          // edits land there, so nothing the inspector did is lost even when
+          // it falls outside the harvest's schema.
+          file.inlineStyles = inlineStyles;
           await writeFile(url, JSON.stringify(file, null, 2) + '\n');
           res.setHeader('content-type', 'application/json');
           res.end(JSON.stringify({ ok: true }));

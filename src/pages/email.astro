@@ -3,7 +3,7 @@
  * The email design studio, dev-only in substance: a faithful 600px mock of
  * the Shopify order-confirmation email (glizzy branch) where every colour is
  * a picker, every line of copy is editable in place, and Save writes the
- * whole state to src/data/email-design.json via the dev server
+ * whole state to studio/email-design.json via the dev server
  * (`__email-design-save` in astro.config.mjs). The JSON is the handoff —
  * whoever ports the design into the real notification template reads it
  * instead of a description in prose.
@@ -27,10 +27,11 @@
  * The built page is a stub — the studio exists only where its save endpoint
  * does, on the dev server.
  */
-import designFile from '../data/email-design.json';
 import varsRaw from '../styles/_globals/vars.scss?raw';
 
-const saved = designFile.design;
+/* The design state is FETCHED at runtime, never imported: importing the JSON
+ * puts it in Vite's module graph, and every save then full-reloads the page
+ * — which ate Adam's inspector edits twice before this. */
 const DEV = import.meta.env.DEV;
 
 /* Only the base :root hexes — the P3 overrides use color() and fall out of
@@ -138,7 +139,7 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
           <h1>Email studio</h1>
           <p class="sub">
             The order-confirmation email, glizzy branch. Click any text in the
-            mock to rewrite it; Save writes <code>src/data/email-design.json</code>.
+            mock to rewrite it; Save writes <code>studio/email-design.json</code>.
           </p>
 
           <fieldset>
@@ -255,7 +256,9 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
         </main>
 
         <script is:inline src="/js/inspect-capture.js" defer></script>
-        <script define:vars={{ savedDesign: saved, palette }}>
+        <script define:vars={{ palette }}>
+          (async () => {
+          const savedDesign = (await fetch('/__email-design-save').then((r) => r.json())).design;
           /* Old saves load over fresh defaults, so new controls never break a
              file written before they existed. */
           const DEFAULTS = {
@@ -492,11 +495,16 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
             const noteEl = $('#save-note');
             noteEl.textContent = '…';
             harvest();
+            /* every style="" inside the mock, verbatim — element.style is
+               where DevTools edits live, so this catches what the harvest's
+               schema doesn't */
+            const cssPath = (el) => { const parts = []; let n = el; while (n && n.id !== 'email') { parts.unshift(n.id ? '#' + n.id : n.tagName.toLowerCase() + (n.className ? '.' + String(n.className).split(' ')[0] : '')); n = n.parentElement; } return '#email ' + parts.join(' > '); };
+            const inlineStyles = [...document.querySelectorAll('#email [style]')].map((el) => ({ path: cssPath(el), css: el.getAttribute('style') }));
             try {
               const res = await fetch('/__email-design-save', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ design: state, note: $('#note').value }),
+                body: JSON.stringify({ design: state, note: $('#note').value, inlineStyles }),
               });
               const json = await res.json();
               noteEl.textContent = json.ok ? 'saved ✓' : 'failed: ' + json.error;
@@ -507,6 +515,7 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
           });
 
           render();
+          })();
         </script>
       </>
     )}
