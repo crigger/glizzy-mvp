@@ -288,7 +288,7 @@ function buildPath() {
   const endStubEndY = y + endStubStrokeLen;
   d += ` V ${endStubEndY}`;
 
-  state = { vw, vh, vmin, pageH, strokeWidth, R, stubLength, stubStartY, topMargin, leftX, rightX, numRows, endStubStrokeLen, endStubStartY, endStubEndY, breakpoint: newBp };
+  state = { vw, vh, vmin, pageH, strokeWidth, R, stubLength, stubStartY, topMargin, leftX, rightX, numRows, endStubStrokeLen, endStubStartY, endStubEndY, contentBottom, breakpoint: newBp };
   return { d, strokeWidth, stubLength, pageH, vw };
 }
 
@@ -519,14 +519,58 @@ document.getElementById('copy-stats')?.addEventListener('click', () => {
 rebuild();
 window.addEventListener('scroll', updateDebug, { passive: true });
 
-// Font-swap reflow: when our woff2 files finish loading the line metrics shift,
-// content height changes. Rebuild + refresh ScrollTrigger so the path covers
-// the new natural content extent.
-if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(() => {
+// Late reflow: anything that moves the content bottom AFTER the path is
+// built leaves a dog that overhangs the footer — by whole switchback rows,
+// because row count quantises. Two culprits caught on real iPhones, same
+// symptom:
+//
+//   - font swap: the woff2 arrives, line metrics shift, content shrinks;
+//   - the svh race: served from the service worker's cache the page is fast
+//     enough that this script measures BEFORE WebKit settles its viewport
+//     units, and five 170svh sections laid out against the wrong svh measure
+//     thousands of px tall. Private browsing has no SW, loads slower, and
+//     NEVER showed the bug — which is what gave the race away.
+//
+// `fonts.ready` alone did not cover even the font half on iOS: a classic
+// script runs before any font load has begun, and WebKit resolves a
+// fonts.ready taken at that moment immediately. So, three layers, none of
+// which owe anything to knowing the cause:
+//
+//   1. fonts.ready — correct on engines that account for pending loads;
+//   2. the 'loadingdone' event — fires per batch of finished loads, which is
+//      the moment the swap actually reflows;
+//   3. a settle-watch — for the first 8 seconds, compare the LIVE content
+//      bottom against the one the path was built from, and rebuild when they
+//      disagree by more than 24px. This is the backstop that owes nothing to
+//      any font API being truthful.
+//
+// The rebuild is idempotent: it stores the measurement it used, so a tick
+// that finds no drift does nothing, and one reflow costs one rebuild.
+function contentBottomNow() {
+  const endMarker = document.querySelector('[data-dog-end]');
+  const mainEl = document.querySelector('main');
+  const y = window.scrollY || window.pageYOffset;
+  return endMarker
+    ? endMarker.getBoundingClientRect().top + y
+    : mainEl ? mainEl.getBoundingClientRect().bottom + y : 0;
+}
+function rebuildIfContentMoved() {
+  if (!state.contentBottom) return;
+  if (Math.abs(contentBottomNow() - state.contentBottom) > 24) {
     rebuild();
     ScrollTrigger.refresh();
-  });
+  }
+}
+if (document.fonts) {
+  if (document.fonts.ready) document.fonts.ready.then(rebuildIfContentMoved);
+  document.fonts.addEventListener?.('loadingdone', rebuildIfContentMoved);
+}
+{
+  let settleTicks = 8;
+  const settle = setInterval(() => {
+    rebuildIfContentMoved();
+    if (--settleTicks <= 0) clearInterval(settle);
+  }, 1000);
 }
 
 // Rebuild on resize, but ignore mobile URL-bar height changes — only width changes
