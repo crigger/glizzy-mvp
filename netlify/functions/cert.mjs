@@ -251,7 +251,7 @@ const escapeHtml = (value) =>
  * site's own /fonts files, there is no script, and nothing loads from anyone
  * else — the certificate keeps the promise in the site's footer.
  */
-function shell(title, body) {
+function shell(title, body, barTitle = 'Bureau of Provenance') {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -265,7 +265,7 @@ function shell(title, body) {
 @font-face { font-family: 'BN Magnolia'; src: url('/fonts/BNMagnolia.woff2') format('woff2'); font-display: swap; }
 @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/BricolageGrotesque-VF.woff2') format('woff2-variations'); font-weight: 400 500; font-display: swap; }
 :root {
-  --bg: #000d60; --paper: #f7e0c5; --ink: #1a0e04;
+  --bg: #000d60; --bg-bottom: #000d48; --paper: #f7e0c5; --ink: #1a0e04;
   --mustard: #ffa300; --dog: #dc512a; --faint: rgba(26, 14, 4, 0.55);
 }
 @media (color-gamut: p3) {
@@ -277,10 +277,55 @@ body {
   font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
   min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
 }
+
+/*
+ * The standard window treatment, ported from the site's windows.scss: the
+ * mustard chrome bar and the mustard keyline are the same colour so they
+ * read as one drawn box (crest.red's trick), a dot screen over glass behind,
+ * and the readable surface is an opaque bone card — nothing readable is
+ * ever on the glass. Keep in step with WindowPanel.astro / windows.scss.
+ */
+.window {
+  position: relative;
+  max-width: 640px; width: 100%;
+  color: var(--bg-bottom);
+  border: 2px solid var(--mustard);
+  border-radius: 8px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.window::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(var(--mustard), 30%, transparent 0);
+  background-position: 50%;
+  background-size: 3px 3px;
+  backdrop-filter: blur(5rem);
+  -webkit-backdrop-filter: blur(5rem);
+  pointer-events: none;
+  z-index: 0;
+}
+.window-chrome {
+  position: relative; z-index: 1;
+  display: flex; align-items: center;
+  padding: 7px 12px;
+  background: var(--mustard);
+  color: var(--bg);
+  user-select: none;
+}
+.window-title {
+  font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.window-content { padding: 1rem; position: relative; z-index: 1; }
+
+/* the paper is the window's bone card */
 .paper {
-  background: var(--paper); max-width: 640px; width: 100%;
-  padding: 40px 28px; border: 3px solid var(--dog); outline: 2px solid var(--mustard); outline-offset: 5px;
-  text-align: center;
+  background: var(--paper); color: var(--ink);
+  padding: 40px 28px; border-radius: 4px; text-align: center;
 }
 h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
@@ -298,13 +343,20 @@ p { line-height: 1.55; }
 a { color: var(--dog); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
-  .paper { max-width: none; border-color: #000; outline-color: #666; }
+  .window { max-width: none; box-shadow: none; border-color: #000; border-radius: 0; }
+  .window::before { display: none; }
+  .window-chrome { background: #fff; color: #000; border-bottom: 2px solid #000; }
   .no-print { display: none; }
 }
 </style>
 </head>
 <body>
+<div class="window">
+  <div class="window-chrome"><span class="window-title">${escapeHtml(barTitle)}</span></div>
+  <div class="window-content">
 ${body}
+  </div>
+</div>
 </body>
 </html>`;
 }
@@ -336,7 +388,8 @@ export function pageCertificate({ issued, serial, title, unit, count }) {
   <p class="fine">Authenticity is permanent. The mineral log above is real, the kiln does not negotiate, and this record can be re-summoned from its link forever. No blockchain was consulted.</p>
   <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Glizzy Store, glizzy.store</p>
   <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a> &middot; print this if you care</p>
-</main>`
+</main>`,
+    `Certificate · ${serial}`
   );
 }
 
@@ -377,7 +430,8 @@ function page404() {
   <hr class="rule">
   <p class="lede">The bureau has checked its records twice and found no clay companion matching this link. Certificates are issued by the order confirmation email &mdash; follow the link from yours exactly, crumbs and all.</p>
   <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
-</main>`
+</main>`,
+    'No such dog'
   );
 }
 
