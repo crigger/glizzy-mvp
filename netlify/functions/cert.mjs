@@ -26,7 +26,7 @@
  * still being assigned rather than inventing one.
  */
 import crypto from 'node:crypto';
-import { adminGraphql, credentials } from '../shopify-admin.mjs';
+import { adminGraphql, credentials, getAdminToken } from '../shopify-admin.mjs';
 
 export const config = { path: '/cert/:id' };
 
@@ -90,7 +90,18 @@ export default async function cert(request, context) {
 
   let order;
   try {
-    const data = await adminGraphql(ORDER_QUERY, { q: `name:#${orderNumber}` }, creds);
+    let data;
+    try {
+      data = await adminGraphql(ORDER_QUERY, { q: `name:#${orderNumber}` }, creds);
+    } catch (error) {
+      // A warm container can hold a token minted BEFORE a scope release for up
+      // to 24h, and a scope failure is a 200-with-errors, so the 401 retry in
+      // adminGraphql never fires. Mint fresh once; if it is genuinely not
+      // granted, the retry fails the same way and the 503 below is honest.
+      if (!/ACCESS_DENIED/.test(error.message)) throw error;
+      await getAdminToken(creds, { force: true });
+      data = await adminGraphql(ORDER_QUERY, { q: `name:#${orderNumber}` }, creds);
+    }
     order = data?.orders?.nodes?.[0] ?? null;
   } catch (error) {
     // Includes "scope not granted" — which check-shopify-admin.mjs exists to
