@@ -549,3 +549,58 @@ window.addEventListener('resize', () => {
     }
   }, 200);
 });
+
+/* ───── ?dog — the on-phone probe ─────────────────────────────────────────
+ *
+ * Everything above behaves identically in installed-PWA and Safari, yet the
+ * drawn dog meets the pinned windows in one and not the other, and nothing
+ * on a Mac can emulate Safari's collapsing URL bar. So: numbers, on the
+ * device, in both contexts. Open /?dog and screenshot while a window is
+ * pinned; the two screenshots ARE the diagnosis.
+ *
+ * TAG is bumped with any change to this file, so a stale service-worker copy
+ * identifies itself — "did the deploy land" and "did the fix work" stop
+ * being the same question.
+ */
+if (location.search.indexOf('dog') !== -1) {
+  const TAG = 'A1-builtvh';
+  const box = document.createElement('pre');
+  box.id = 'dog-probe';
+  box.style.cssText =
+    'position:fixed;left:8px;bottom:8px;z-index:9999;margin:0;padding:8px 10px;' +
+    'background:rgba(0,0,0,.82);color:#7fff9e;font:10px/1.5 ui-monospace,monospace;' +
+    'border-radius:6px;pointer-events:none;white-space:pre';
+  document.body.appendChild(box);
+
+  const fmt = (n) => String(Math.round(n)).padStart(6, ' ');
+  function probe() {
+    if (!mainPath || !pathLen) { box.textContent = 'no path yet'; return; }
+    const off   = parseFloat(getComputedStyle(mainPath).strokeDashoffset) || 0;
+    const drawn = pathLen - off;
+    const head  = mainPath.getPointAtLength(Math.max(0, Math.min(drawn, pathLen)));
+    const y     = window.scrollY;
+
+    let line = 'no window on screen';
+    const wins = document.querySelectorAll('.window-wrapper-inner');
+    for (let i = 0; i < wins.length; i++) {
+      const r = wins[i].getBoundingClientRect();
+      if (r.bottom < 0 || r.top > innerHeight) continue;
+      const topDoc = r.top + y, botDoc = r.bottom + y;
+      const inBand = head.y >= topDoc && head.y <= botDoc && head.x >= r.left && head.x <= r.right;
+      const miss   = head.y < topDoc ? topDoc - head.y : head.y > botDoc ? head.y - botDoc : 0;
+      line = `win ${i}  band ${fmt(topDoc)}..${fmt(botDoc)}  ${inBand ? 'CROSSING' : 'miss by ' + Math.round(miss)}`;
+      break;
+    }
+    box.textContent =
+      `tag   ${TAG}   sw?\n` +
+      `innerH ${fmt(innerHeight)}  builtH ${fmt(state.vh || 0)}\n` +
+      `scroll ${fmt(y)}  end ${fmt(st ? st.end : -1)}\n` +
+      `drawn  ${fmt(drawn)} / ${fmt(pathLen)}\n` +
+      `head   x ${fmt(head.x)}  y ${fmt(head.y)}\n` +
+      line;
+  }
+  addEventListener('scroll', probe, { passive: true });
+  addEventListener('resize', probe);
+  setInterval(probe, 500);   // the bar can collapse without a scroll event
+  probe();
+}
