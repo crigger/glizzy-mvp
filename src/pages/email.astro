@@ -433,9 +433,65 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
             })
           );
 
+          /*
+           * Save HARVESTS the DOM first, because DevTools is a legitimate
+           * design tool here: whatever the inspector did to the mock's
+           * elements — colours, paddings, sizes — is read back off computed
+           * style into the state before it is written. Learned the hard way:
+           * saving writes the JSON the page imports, Vite reloads the page,
+           * and un-harvested inspector edits died with it (Adam, twice,
+           * 2026-08-28).
+           */
+          const toHex = (rgb) => {
+            const m = rgb.match(/rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)/);
+            if (!m) return null;
+            return '#' + [m[1], m[2], m[3]].map((n) => Math.round(Number(n)).toString(16).padStart(2, '0')).join('');
+          };
+          const px = (v) => Math.round(parseFloat(v) || 0);
+          function harvest() {
+            const cs = (el) => getComputedStyle(el);
+            const c = CLIENTS[client];
+            const band = cs($('#band')), wm = cs($('#wordmark')), bodyS = cs($('#embody'));
+            const prim = cs($('#btn-primary')), cert = cs($('#cert')), cb = cs($('#cert-btn'));
+
+            state.band = toHex(band.backgroundColor) ?? state.band;
+            state.bandPad = px(band.paddingTop) || state.bandPad;
+            state.sidePad = px(bodyS.paddingLeft) || state.sidePad;
+            state.ink = toHex(wm.color) ?? state.ink;
+            state.wordmarkSize = px(wm.fontSize) || state.wordmarkSize;
+            const ls = parseFloat(wm.letterSpacing);
+            state.wordmarkTracking = Number.isFinite(ls) ? Number((ls / parseFloat(wm.fontSize)).toFixed(3)) : 0;
+            state.tagInk = toHex(cs($('#ordertag')).color) ?? state.tagInk;
+
+            state.emailBg = toHex(cs($('#email')).backgroundColor) ?? state.emailBg;
+            state.text = toHex(bodyS.color) ?? state.text;
+            state.bodySize = px(bodyS.fontSize) || state.bodySize;
+            state.headlineSize = px(cs($('#headline')).fontSize) || state.headlineSize;
+            state.accent = toHex(prim.backgroundColor) ?? state.accent;
+            state.buttonPadY = px(prim.paddingTop) || state.buttonPadY;
+            if (c.radius) state.buttonRadius = px(prim.borderRadius);
+            state.h3Color = toHex(cs(document.querySelector('.em-summary h3')).color) ?? state.h3Color;
+            state.rule = toHex(cs($('#em-line')).borderBottomColor) ?? state.rule;
+
+            state.cert.paper = toHex(cert.backgroundColor) ?? state.cert.paper;
+            state.cert.border = toHex(cert.borderTopColor) ?? state.cert.border;
+            state.cert.borderWidth = px(cert.borderTopWidth);
+            if (c.radius) state.cert.radius = px(cert.borderRadius);
+            state.cert.pad = px(cert.paddingTop) || state.cert.pad;
+            state.cert.kickerColor = toHex(cs($('#cert-kicker')).color) ?? state.cert.kickerColor;
+            state.cert.headingColor = toHex(cs($('#cert-h')).color) ?? state.cert.headingColor;
+            state.cert.textInk = toHex(cs($('#cert-body')).color) ?? state.cert.textInk;
+            state.cert.buttonBg = toHex(cb.backgroundColor) ?? state.cert.buttonBg;
+            state.cert.buttonInk = toHex(cb.color) ?? state.cert.buttonInk;
+
+            // the rail follows the harvest, so what you saved is what you see
+            document.querySelectorAll('[data-k]').forEach((i) => (i.value = get(i.dataset.k)));
+          }
+
           $('#save').addEventListener('click', async () => {
             const noteEl = $('#save-note');
             noteEl.textContent = '…';
+            harvest();
             try {
               const res = await fetch('/__email-design-save', {
                 method: 'POST',
