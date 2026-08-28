@@ -13,8 +13,9 @@
 // write-through picks them up on the first visit and can never serve a stale
 // one, because a stale one has a different name.
 
-const VERSION    = 'v10';  // v10: the opaque icon plate went navy -> mustard. Same-URL icon swaps need a
-                           // version bump or the cache-first precache serves installed PWAs the old set forever.
+const VERSION    = 'v11';  // v11: glizzy-path.js changed (scrub anchor). It is PRECACHED cache-first, and
+                           // the SW registers in plain Safari too — without a bump, the very browser the
+                           // change exists to fix keeps running the old script and the fix never lands.
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [
