@@ -28,7 +28,7 @@
 import crypto from 'node:crypto';
 import { adminGraphql, credentials, getAdminToken } from '../shopify-admin.mjs';
 
-export const config = { path: '/cert/:id' };
+export const config = { path: ['/cert/:id', '/cert/:id/:unit'] };
 
 /** Which vendor this site certifies. Same boundary as the build's catalogue
  *  filter: an order with none of our line items gets no certificate here. */
@@ -52,26 +52,23 @@ query CertOrder($q: String!) {
 }`;
 
 /*
- * The edition count: walk orders oldest-first and count the ones that hold a
- * glizzy-store line, skipping cancelled orders, until this order is reached.
- * That rank IS the serial — the first dog sold is GLZ-000001.
- *
- * Needs `read_all_orders` to stay correct once the store's history is older
- * than 60 days (plain read_orders is a 60-day window and would silently
- * undercount), and the freeze below is what makes a number permanent the
- * moment it has been seen.
+ * Serials are RANDOM, one per dog, minted the first time the order's
+ * certificate is rendered and frozen into the `glizzy.serial` order
+ * metafield as a comma-separated list — one entry per unit, in line order.
+ * Random on purpose: a sequential number is a guessable pattern and leaks
+ * the sales count; six characters from a 30-symbol alphabet (no 0/O/1/I/L/U)
+ * is unguessable and unambiguous read aloud or written on clay. The
+ * metafield is hand-editable and always wins: overwrite an entry to match a
+ * number written on the piece itself.
  */
-const COUNT_QUERY = `
-query CertOrderRank($after: String) {
-  orders(first: 250, after: $after, sortKey: CREATED_AT) {
-    pageInfo { hasNextPage endCursor }
-    nodes {
-      id
-      cancelledAt
-      lineItems(first: 20) { nodes { vendor } }
-    }
-  }
-}`;
+const SERIAL_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+function mintSerial() {
+  let tail = '';
+  const bytes = crypto.randomBytes(6);
+  for (const b of bytes) tail += SERIAL_ALPHABET[b % SERIAL_ALPHABET.length];
+  return `GLZ-${tail}`;
+}
 
 const FREEZE_MUTATION = `
 mutation CertFreezeSerial($metafields: [MetafieldsSetInput!]!) {
@@ -79,47 +76,6 @@ mutation CertFreezeSerial($metafields: [MetafieldsSetInput!]!) {
     userErrors { field message }
   }
 }`;
-
-async function editionRank(orderId, creds) {
-  let after = null;
-  let rank = 0;
-  for (let page = 0; page < 20; page++) {
-    const data = await adminGraphql(COUNT_QUERY, { after }, creds);
-    const batch = data?.orders;
-    for (const node of batch?.nodes ?? []) {
-      if (node.cancelledAt) continue;
-      const isGlizzy = (node.lineItems?.nodes ?? []).some(
-        (l) => (l.vendor ?? '').trim().toLowerCase() === BRAND
-      );
-      if (!isGlizzy) continue;
-      rank += 1;
-      if (node.id === orderId) return rank;
-    }
-    if (!batch?.pageInfo?.hasNextPage) break;
-    after = batch.pageInfo.endCursor;
-  }
-  return null;
-}
-
-/** The token that proves possession: the path segment Shopify puts after
- *  /orders/ in the buyer's own status-page URL. */
-function tokenFromStatusPageUrl(statusPageUrl) {
-  try {
-    const segments = new URL(statusPageUrl).pathname.split('/');
-    const at = segments.indexOf('orders');
-    return at !== -1 ? segments[at + 1] || null : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Constant-time-ish compare; the tokens are high-entropy so this is belt and
- *  braces, but it costs three lines. */
-function tokensMatch(a, b) {
-  const bufA = Buffer.from(String(a));
-  const bufB = Buffer.from(String(b));
-  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
-}
 
 export default async function cert(request, context) {
   const id = context?.params?.id ?? '';
@@ -174,38 +130,35 @@ export default async function cert(request, context) {
   );
   if (lines.length === 0) return notFound();
 
+  // One unit per physical dog: a line with quantity 3 is three units, three
+  // serials, three papers.
+  const units = [];
+  for (const line of lines) {
+    const qty = Math.max(1, Number(line.quantity) || 1);
+    for (let i = 0; i < qty; i++) units.push({ title: line.title });
+  }
+
   /*
-   * The serial. Frozen (the metafield) beats counted beats fallback:
-   *   1. glizzy.serial on the order — either frozen by a previous render or
-   *      written by hand to match a number on the clay. Never recomputed.
-   *   2. The edition rank, frozen onto the order the first time it renders so
-   *      a later cancellation can never renumber a certificate someone holds.
-   *   3. If counting fails outright, the order number zero-padded — unique
-   *      and honest, just not sequential.
+   * The serials. The stored list always wins entry-for-entry — a previous
+   * render froze it, or a hand wrote it to match the clay. Anything missing
+   * (first render, or the order somehow grew) is minted now and the full
+   * list frozen back. If the freeze fails the page still renders; the same
+   * dogs just get re-minted serials until a freeze sticks, which is why the
+   * freeze failure is loud in the log.
    */
-  let serial = order.serial?.value?.trim() || null;
-  if (!serial) {
-    let rank = null;
+  const stored = (order.serial?.value ?? '').split(/[,\s]+/).filter(Boolean);
+  const serials = units.map((_, i) => stored[i] || mintSerial());
+  if (serials.some((v, i) => v !== stored[i])) {
     try {
-      rank = await editionRank(order.id, creds);
+      const frozen = await adminGraphql(
+        FREEZE_MUTATION,
+        { metafields: [{ ownerId: order.id, namespace: 'glizzy', key: 'serial', type: 'single_line_text_field', value: serials.join(', ') }] },
+        creds
+      );
+      const errs = frozen?.metafieldsSet?.userErrors ?? [];
+      if (errs.length) console.error(`[cert] serial freeze refused: ${JSON.stringify(errs).slice(0, 200)}`);
     } catch (error) {
-      console.error(`[cert] edition count failed: ${error.message}`);
-    }
-    serial = rank ? `GLZ-${String(rank).padStart(6, '0')}` : `GLZ-${orderNumber.padStart(6, '0')}`;
-    if (rank) {
-      try {
-        const frozen = await adminGraphql(
-          FREEZE_MUTATION,
-          { metafields: [{ ownerId: order.id, namespace: 'glizzy', key: 'serial', type: 'single_line_text_field', value: serial }] },
-          creds
-        );
-        const errs = frozen?.metafieldsSet?.userErrors ?? [];
-        if (errs.length) console.error(`[cert] serial freeze refused: ${JSON.stringify(errs).slice(0, 200)}`);
-      } catch (error) {
-        // Missing write_orders lands here; the certificate still renders with
-        // the counted number, it just is not frozen yet.
-        console.error(`[cert] serial freeze failed: ${error.message}`);
-      }
+      console.error(`[cert] serial freeze failed: ${error.message}`);
     }
   }
 
@@ -216,22 +169,49 @@ export default async function cert(request, context) {
     timeZone: 'America/New_York',
   });
 
+  const headers = {
+    'Content-Type': 'text/html; charset=utf-8',
+    // The bearer token is in the URL; nothing shared should cache it.
+    'Cache-Control': 'private, no-store',
+    'X-Robots-Tag': 'noindex',
+  };
+
+  // /cert/<id>/<n> — one dog's paper. n is 1-based and only reachable by
+  // someone already holding the order link, so it carries no secret itself.
+  const unitParam = context?.params?.unit;
+  if (unitParam !== undefined) {
+    const n = Number(unitParam);
+    if (!Number.isInteger(n) || n < 1 || n > units.length) return notFound();
+    return new Response(
+      pageCertificate({
+        orderName: order.name,
+        issued,
+        serial: serials[n - 1],
+        title: units[n - 1].title,
+        unit: n,
+        count: units.length,
+      }),
+      { status: 200, headers }
+    );
+  }
+
+  if (units.length === 1) {
+    return new Response(
+      pageCertificate({
+        orderName: order.name,
+        issued,
+        serial: serials[0],
+        title: units[0].title,
+        unit: 1,
+        count: 1,
+      }),
+      { status: 200, headers }
+    );
+  }
+
   return new Response(
-    pageCertificate({
-      orderName: order.name,
-      issued,
-      serial,
-      lines,
-    }),
-    {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        // The bearer token is in the URL; nothing shared should cache it.
-        'Cache-Control': 'private, no-store',
-        'X-Robots-Tag': 'noindex',
-      },
-    }
+    pageHub({ orderName: order.name, issued, units, serials, id }),
+    { status: 200, headers }
   );
 }
 
@@ -311,18 +291,13 @@ ${body}
 </html>`;
 }
 
-function pageCertificate({ orderName, issued, serial, lines }) {
+function pageCertificate({ orderName, issued, serial, title, unit, count }) {
   // The synonym ladder continues here and coins NEW rungs — nothing the site
   // already says. See glizzy voice notes before adding another.
-  const pieces = lines
-    .map((line) => {
-      const qty = Number(line.quantity) || 1;
-      const count = qty > 1 ? `${qty} × ` : '';
-      return `<p class="piece">${count}${escapeHtml(line.title)}</p>`;
-    })
-    .join('\n');
-
-  const serialBlock = `<div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>`;
+  const paperOf =
+    count > 1
+      ? `<div><dt>Paper</dt><dd>${unit} of ${count}</dd></div>`
+      : '';
 
   return shell(
     `Certificate ${orderName} — Glizzy`,
@@ -331,15 +306,44 @@ function pageCertificate({ orderName, issued, serial, lines }) {
   <h1>Certificate of Authenticity</h1>
   <hr class="rule">
   <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Glizzy: hand-formed from real American ground &mdash; kaolin out of the Georgia belt, ball clay out of West Tennessee, talc out of Montana &mdash; and fired to 1,828&deg;F (cone 06), a temperature no impostor sausage survives.</p>
-  ${pieces}
+  <p class="piece">${escapeHtml(title)}</p>
   <dl class="meta">
+    <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
     <div><dt>Certificate</dt><dd>${escapeHtml(orderName)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
-    ${serialBlock}
+    ${paperOf}
   </dl>
   <p class="fine">Authenticity is permanent. The mineral log above is real, the kiln does not negotiate, and this record can be re-summoned from its link forever. No blockchain was consulted.</p>
   <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Glizzy Store, glizzy.store</p>
   <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a> &middot; print this if you care</p>
+</main>`
+  );
+}
+
+/*
+ * An order holding several dogs gets a hub: each clay associate has its own
+ * serial and its own paper, because framing one certificate for three
+ * different sausages would be an insult to at least two of them.
+ */
+function pageHub({ orderName, issued, units, serials, id }) {
+  const rows = units
+    .map(
+      (u, i) => `<p class="piece"><a href="/cert/${escapeHtml(id)}/${i + 1}">${escapeHtml(
+        serials[i]
+      )}</a> &mdash; ${escapeHtml(u.title)}</p>`
+    )
+    .join('\n');
+
+  return shell(
+    `Certificates ${orderName} — Glizzy`,
+    `<main class="paper">
+  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <h1>Certificates of Authenticity</h1>
+  <hr class="rule">
+  <p class="lede">Order ${escapeHtml(orderName)} (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
+  ${rows}
+  <p class="fine">Authenticity is permanent, and it is per dog.</p>
+  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
 </main>`
   );
 }

@@ -756,17 +756,18 @@ Three properties to preserve:
   number, date, piece, serial — never a name or address.
 - **Single-origin, no script.** The page uses the site's own `/fonts` files
   and loads nothing from anyone; the footer's privacy line covers it too.
-- **Shopify is the only database.** The serial (`GLZ-000001`…) is the
-  EDITION RANK: this order's position among glizzy-containing orders,
-  cancelled ones excluded — the first dog sold is 000001. On first render it
-  is FROZEN into the ORDER metafield `glizzy.serial` (definition exists in
-  the admin), so a later cancellation can never renumber a certificate
-  someone already holds. A hand-written value in that metafield always wins
-  — for when a number is on the clay itself. Counting needs
-  `read_all_orders` once history is older than 60 days, and the freeze needs
-  `write_orders`; without the latter it renders un-frozen and says so in the
-  function log. If counting fails outright the fallback is the order number
-  zero-padded — unique, just not sequential.
+- **Shopify is the only database, and serials are RANDOM, one per dog.**
+  `GLZ-` + six characters from a 30-symbol alphabet (no 0/O/1/I/L/U) —
+  random on purpose: sequential numbers are a guessable pattern and leak the
+  sales count (Adam's call, 2026-08-28). Minted on first render and FROZEN
+  into the ORDER metafield `glizzy.serial` as a comma-separated list, one
+  entry per unit in line order; a line with quantity 3 is three units, three
+  serials, three papers. The stored list always wins entry-for-entry — edit
+  it by hand to match a number written on the clay. Multi-dog orders get a
+  hub page at `/cert/<id>` linking each dog's own paper at `/cert/<id>/<n>`
+  (n is 1-based; the order token in the id is still the only credential).
+  The freeze needs `write_orders`, and `read_all_orders` keeps orders older
+  than 60 days summonable — both granted on app version 5.
 
 The copy is in the site's voice and coins NEW rungs of the synonym ladder
 ("earthenware frankfurter", "clay companion") — never reuse a name the site
