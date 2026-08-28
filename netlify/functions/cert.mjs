@@ -134,7 +134,11 @@ export default async function cert(request, context) {
     pageCertificate({
       orderName: order.name,
       issued,
-      serial: order.serial?.value?.trim() || null,
+      // GLZ-000000: minted from the order number, so it exists the moment
+      // the order does and never needs assigning. The glizzy.serial order
+      // metafield OVERRIDES it — for when a number is written on the clay
+      // itself and the record should match the object.
+      serial: order.serial?.value?.trim() || `GLZ-${orderNumber.padStart(6, '0')}`,
       lines,
     }),
     {
@@ -236,9 +240,7 @@ function pageCertificate({ orderName, issued, serial, lines }) {
     })
     .join('\n');
 
-  const serialBlock = serial
-    ? `<div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>`
-    : `<div><dt>Specimen no.</dt><dd>being assigned</dd></div>`;
+  const serialBlock = `<div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>`;
 
   return shell(
     `Certificate ${orderName} — Glizzy`,

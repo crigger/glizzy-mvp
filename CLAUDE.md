@@ -756,9 +756,11 @@ Three properties to preserve:
   number, date, piece, serial — never a name or address.
 - **Single-origin, no script.** The page uses the site's own `/fonts` files
   and loads nothing from anyone; the footer's privacy line covers it too.
-- **Shopify is the only database.** Nothing is stored anywhere. The serial is
-  the ORDER metafield `glizzy.serial` (single-line text, set by hand on the
-  order once the physical piece is picked); absent shows as "being assigned".
+- **Shopify is the only database.** Nothing is stored anywhere. The serial
+  (`GLZ-000000`) is minted from the order number, zero-padded to six — it
+  exists the moment the order does. The ORDER metafield `glizzy.serial`
+  (single-line text; definition exists in the admin) OVERRIDES it, for when
+  a number is written on the clay itself and the record should match.
 
 The copy is in the site's voice and coins NEW rungs of the synonym ladder
 ("earthenware frankfurter", "clay companion") — never reuse a name the site
