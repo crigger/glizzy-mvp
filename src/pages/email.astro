@@ -254,6 +254,7 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
           </div>
         </main>
 
+        <script is:inline src="/js/inspect-capture.js" defer></script>
         <script define:vars={{ savedDesign: saved, palette }}>
           /* Old saves load over fresh defaults, so new controls never break a
              file written before they existed. */
