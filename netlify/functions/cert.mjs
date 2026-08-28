@@ -77,6 +77,26 @@ mutation CertFreezeSerial($metafields: [MetafieldsSetInput!]!) {
   }
 }`;
 
+/** The token that proves possession: the path segment Shopify puts after
+ *  /orders/ in the buyer's own status-page URL. */
+function tokenFromStatusPageUrl(statusPageUrl) {
+  try {
+    const segments = new URL(statusPageUrl).pathname.split('/');
+    const at = segments.indexOf('orders');
+    return at !== -1 ? segments[at + 1] || null : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Constant-time-ish compare; the tokens are high-entropy so this is belt and
+ *  braces, but it costs three lines. */
+function tokensMatch(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
 export default async function cert(request, context) {
   const id = context?.params?.id ?? '';
 
