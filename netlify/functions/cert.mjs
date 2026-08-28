@@ -179,6 +179,7 @@ function shell(title, body) {
 @font-face { font-family: 'Sequoia Sans'; src: url('/fonts/SequoiaSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Sequoia Sans'; src: url('/fonts/SequoiaSans-Light.woff2') format('woff2'); font-weight: 300; font-display: swap; }
 @font-face { font-family: 'BN Magnolia'; src: url('/fonts/BNMagnolia.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/BricolageGrotesque-VF.woff2') format('woff2-variations'); font-weight: 400 500; font-display: swap; }
 :root {
   --bg: #000d60; --paper: #f7e0c5; --ink: #1a0e04;
   --mustard: #ffa300; --dog: #dc512a; --faint: rgba(26, 14, 4, 0.55);
@@ -189,7 +190,7 @@ function shell(title, body) {
 * { box-sizing: border-box; margin: 0; }
 body {
   background: var(--bg); color: var(--ink);
-  font-family: 'Sequoia Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
   min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
 }
 .paper {
@@ -198,18 +199,18 @@ body {
   text-align: center;
 }
 h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
-.kicker { letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
+.kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
 .piece { font-size: 1.35rem; margin: 18px 0 4px; }
 .meta { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin: 26px 0 6px; }
 .meta div { min-width: 130px; }
-.meta dt { letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; color: var(--faint); }
+.meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; color: var(--faint); }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .fine { font-size: 0.8rem; color: var(--faint); max-width: 52ch; margin: 18px auto 0; }
 .sig { margin-top: 26px; font-size: 0.85rem; color: var(--faint); }
-.sig strong { display: block; color: var(--ink); font-size: 1rem; letter-spacing: 0.04em; }
+.sig strong { font-family: 'Sequoia Sans', sans-serif; display: block; color: var(--ink); font-size: 1rem; letter-spacing: 0.04em; }
 a { color: var(--dog); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
