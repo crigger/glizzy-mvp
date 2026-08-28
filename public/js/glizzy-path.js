@@ -562,8 +562,18 @@ window.addEventListener('resize', () => {
  * identifies itself — "did the deploy land" and "did the fix work" stop
  * being the same question.
  */
-if (location.search.indexOf('dog') !== -1) {
-  const TAG = 'A1-builtvh';
+/*
+ * `?dog` — or ALWAYS in the installed PWA, temporarily: the app's start URL
+ * is `/` with no address bar to add the param to, and iOS gives home-screen
+ * apps storage separate from Safari's, so a flag set there cannot carry
+ * over. The only person with the app installed is the person running the
+ * diagnosis. Remove the standalone clause with the probe when this is done.
+ */
+if (
+  location.search.indexOf('dog') !== -1 ||
+  (window.matchMedia && matchMedia('(display-mode: standalone)').matches)
+) {
+  const TAG = 'A2-standalone';
   const box = document.createElement('pre');
   box.id = 'dog-probe';
   box.style.cssText =
