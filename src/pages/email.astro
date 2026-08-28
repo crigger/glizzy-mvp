@@ -177,13 +177,13 @@ const palette = [...varsRaw.matchAll(/--([a-z-]+):\s*(#[0-9a-fA-F]{3,8})\b/g)].m
 
           <fieldset>
             <legend>TYPE + SPACING</legend>
-            <div class="row"><label>Headline size</label><input type="range" min="17" max="32" data-k="headlineSize" /><output id="o-headlineSize"></output></div>
-            <div class="row"><label>Body size</label><input type="range" min="12" max="18" data-k="bodySize" /><output id="o-bodySize"></output></div>
-            <div class="row"><label>Side padding</label><input type="range" min="14" max="48" data-k="sidePad" /><output id="o-sidePad"></output></div>
-            <div class="row"><label>Block gap</label><input type="range" min="10" max="48" data-k="blockGap" /><output id="o-blockGap"></output></div>
-            <div class="row"><label>Button height</label><input type="range" min="10" max="22" data-k="buttonPadY" /><output id="o-buttonPadY"></output></div>
-            <div class="row"><label>Button radius</label><input type="range" min="0" max="24" data-k="buttonRadius" /><output id="o-buttonRadius"></output></div>
-            <p class="hint">Outlook (Windows) ignores radius — its tab previews that.</p>
+            <p class="hint" style="margin-top:2px">
+              Decided 2026-08-28: the shipped email keeps Shopify's own spacing
+              and sizes — their stylesheet is what makes it hold up across
+              clients, mobile and dark mode. The levers that port are colour,
+              face, case and words. (Button radius rides along at 0 — square —
+              per the saved design.)
+            </p>
           </fieldset>
 
           <fieldset>
