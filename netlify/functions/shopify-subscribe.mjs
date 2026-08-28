@@ -36,7 +36,34 @@ import { adminGraphql, credentials } from '../shopify-admin.mjs';
 
 /** Where Shopify records the subscription as having come from. Shows on the
  *  customer's consent record, so a "why am I getting this?" reply is answerable. */
-const CONSENT_SOURCE = 'vinton.land contact form';
+/*
+ * The tag every submitter gets, naming WHICH SITE's form they came through —
+ * three storefronts share this one customer list, and the tag is the only
+ * thing distinguishing a glizzy person from a vinton person in the admin.
+ *
+ * Derived from Netlify's own runtime URL rather than written per site, which
+ * is what lets this file stay verbatim-identical across the three repos. The
+ * first ported copies hardcoded "vinton.land contact form" and mislabelled
+ * every glizzy and mmmornings signup until this.
+ */
+const SITE_HOST = (() => {
+  try { return new URL(process.env.URL).host; } catch { return 'unknown-site'; }
+})();
+const CONSENT_SOURCE = `${SITE_HOST} contact form`;
+
+/*
+ * tagsAdd, NEVER customerUpdate(tags): update REPLACES the whole tag list,
+ * which would strip Shopify's own tags ("Login with Shop", "Shop") off a
+ * customer for the crime of writing in. tagsAdd is additive and ignores
+ * duplicates, so it is safe to fire on every path.
+ */
+const ADD_TAGS = `
+  mutation TagCustomer($id: ID!, $tags: [String!]!) {
+    tagsAdd(id: $id, tags: $tags) {
+      userErrors { field message }
+    }
+  }
+`;
 
 const CREATE_CUSTOMER = `
   mutation SubscribeCustomer($input: CustomerInput!) {
@@ -188,8 +215,12 @@ export default {
 
       // Don't rewrite consent for someone who already said yes — it would move
       // their consent date forward and overwrite the real one.
+      // Whatever happens to consent below, this site's tag is earned by the
+      // submission itself. Additive and idempotent — see ADD_TAGS.
+      await adminGraphql(ADD_TAGS, { id: existing.id, tags: [CONSENT_SOURCE] }, creds);
+
       if (existing.defaultEmailAddress?.marketingState === 'SUBSCRIBED') {
-        console.log(`[shopify-subscribe] ${existing.id} already SUBSCRIBED — left alone.`);
+        console.log(`[shopify-subscribe] ${existing.id} already SUBSCRIBED — left alone (tagged).`);
         return;
       }
 
