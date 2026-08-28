@@ -661,20 +661,20 @@
   letter-spacing: 0.04em;
 
   /*
-   * The thumbnail: HALF the drawer's width, on its own row. It was full
-   * width, and a square image at the panel's whole width shoved the name,
+   * The thumbnail FRAME is the drawer's full width; the picture is half of
+   * it, centred. A square image at the panel's whole width shoved the name,
    * the stepper and the subtotal below the fold on desktop — the drawer is
    * for checking out, not admiring the artwork; the product page does that.
-   * Still spanning both columns so the name/price row lands beneath it.
+   * Keeping the frame full-bleed means the faint ground still reads as one
+   * panel-wide surface instead of a floating tile.
    */
   > div:first-child {
     grid-column: 1 / -1;
-    width: 50%;
     border-radius: 8px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.06);
 
-    img { display: block; width: 100%; height: auto; }
+    img { display: block; width: 50%; height: auto; margin: 0 auto; }
   }
 
   /*
