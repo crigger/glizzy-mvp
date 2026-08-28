@@ -204,7 +204,6 @@ export default async function cert(request, context) {
     if (!Number.isInteger(n) || n < 1 || n > units.length) return notFound();
     return new Response(
       pageCertificate({
-        orderName: order.name,
         issued,
         serial: serials[n - 1],
         title: units[n - 1].title,
@@ -218,7 +217,6 @@ export default async function cert(request, context) {
   if (units.length === 1) {
     return new Response(
       pageCertificate({
-        orderName: order.name,
         issued,
         serial: serials[0],
         title: units[0].title,
@@ -230,7 +228,7 @@ export default async function cert(request, context) {
   }
 
   return new Response(
-    pageHub({ orderName: order.name, issued, units, serials, id }),
+    pageHub({ issued, units, serials, id }),
     { status: 200, headers }
   );
 }
@@ -311,7 +309,7 @@ ${body}
 </html>`;
 }
 
-function pageCertificate({ orderName, issued, serial, title, unit, count }) {
+function pageCertificate({ issued, serial, title, unit, count }) {
   // The synonym ladder continues here and coins NEW rungs — nothing the site
   // already says. See glizzy voice notes before adding another.
   const paperOf =
@@ -320,7 +318,7 @@ function pageCertificate({ orderName, issued, serial, title, unit, count }) {
       : '';
 
   return shell(
-    `Certificate ${orderName} — Glizzy`,
+    `Certificate ${serial} — Glizzy`,
     `<main class="paper">
   <p class="kicker">Glizzy Store · Bureau of Provenance</p>
   <h1>Certificate of Authenticity</h1>
@@ -329,7 +327,6 @@ function pageCertificate({ orderName, issued, serial, title, unit, count }) {
   <p class="piece">${escapeHtml(title)}</p>
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
-    <div><dt>Certificate</dt><dd>${escapeHtml(orderName)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
     ${paperOf}
   </dl>
@@ -345,7 +342,7 @@ function pageCertificate({ orderName, issued, serial, title, unit, count }) {
  * serial and its own paper, because framing one certificate for three
  * different sausages would be an insult to at least two of them.
  */
-function pageHub({ orderName, issued, units, serials, id }) {
+function pageHub({ issued, units, serials, id }) {
   const rows = units
     .map(
       (u, i) => `<p class="piece"><a href="/cert/${escapeHtml(id)}/${i + 1}">${escapeHtml(
@@ -355,12 +352,12 @@ function pageHub({ orderName, issued, units, serials, id }) {
     .join('\n');
 
   return shell(
-    `Certificates ${orderName} — Glizzy`,
+    `Certificates — Glizzy`,
     `<main class="paper">
   <p class="kicker">Glizzy Store · Bureau of Provenance</p>
   <h1>Certificates of Authenticity</h1>
   <hr class="rule">
-  <p class="lede">Order ${escapeHtml(orderName)} (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
+  <p class="lede">This order (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
   ${rows}
   <p class="fine">Authenticity is permanent, and it is per dog.</p>
   <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
