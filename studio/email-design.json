@@ -1,6 +1,6 @@
 {
   "saved": "2026-08-28",
-  "note": "",
+  "note": "console rescue — aside deleted",
   "design": {
     "band": "#000c60",
     "ink": "#ffa202",
@@ -22,7 +22,7 @@
     "buttonRadius": 0,
     "copy": {
       "headline": "Thank you for your order!",
-      "body": "We're getting your order ready to be shipped.",
+      "body": "We'll let you know when it makes it to the Vinton Post Office.",
       "primaryButton": "VIEW YOUR ORDER",
       "storeLink": "Visit our store"
     },
@@ -44,6 +44,122 @@
     }
   },
   "history": [
+    {
+      "saved": "2026-08-28",
+      "note": "",
+      "design": {
+        "band": "#000c60",
+        "ink": "#ffa202",
+        "tagInk": "#ffffff",
+        "accent": "#000c60",
+        "text": "#000c60",
+        "h3Color": "#000c60",
+        "emailBg": "#ffffff",
+        "rule": "#e5e5e5",
+        "wordmarkFont": "magnolia",
+        "wordmarkSize": 38,
+        "wordmarkTracking": 0.02,
+        "bandPad": 28,
+        "headlineSize": 22,
+        "bodySize": 15,
+        "sidePad": 24,
+        "blockGap": 36,
+        "buttonPadY": 15,
+        "buttonRadius": 0,
+        "copy": {
+          "headline": "Thank you for your order!",
+          "body": "We're getting your order ready to be shipped.",
+          "primaryButton": "VIEW YOUR ORDER",
+          "storeLink": "Visit our store"
+        },
+        "cert": {
+          "paper": "#ffffff",
+          "textInk": "#000c60",
+          "border": "#fea104",
+          "borderWidth": 2,
+          "radius": 0,
+          "pad": 48,
+          "kicker": "OLD VINTON Glizzy Provenance",
+          "kickerColor": "#000c60",
+          "heading": "Certificate of Authenticity",
+          "headingColor": "#000c60",
+          "body": "Every Glizzy leaves the kiln with papers.",
+          "buttonLabel": "VIEW YOUR CERTIFICATE",
+          "buttonBg": "#000c60",
+          "buttonInk": "#ffffff"
+        }
+      },
+      "inlineStyles": [
+        {
+          "path": "#email #band",
+          "css": "background: rgb(0, 12, 96); padding: 28px 24px;"
+        },
+        {
+          "path": "#email #band > #wordmark",
+          "css": "color: rgb(255, 162, 2); font-family: \"BN Magnolia\", -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif; font-size: 38px; letter-spacing: 0.02em;"
+        },
+        {
+          "path": "#email #band > #ordertag",
+          "css": "color: rgb(255, 255, 255);"
+        },
+        {
+          "path": "#email #embody",
+          "css": "color: rgb(0, 12, 96); font-size: 15px; padding: 40px 24px 10px;"
+        },
+        {
+          "path": "#email #embody > #headline",
+          "css": "font-size: 22px; color: rgb(0, 12, 96); text-transform: uppercase; letter-spacing: 0.05em;"
+        },
+        {
+          "path": "#email #embody > #btn-primary",
+          "css": "background: rgb(0, 12, 96); border-radius: 0px; padding: 15px 0px; margin-top: 18px;"
+        },
+        {
+          "path": "#email #embody > #btn-shop",
+          "css": "border-radius: 0px; padding: 15px 0px; margin-top: 12px;"
+        },
+        {
+          "path": "#email #embody > p.em-or > #store-link",
+          "css": "color: rgb(0, 12, 96);"
+        },
+        {
+          "path": "#email #cert",
+          "css": "background: rgb(255, 255, 255); color: rgb(0, 12, 96); border: 2px solid rgb(254, 161, 4); border-radius: 0px; margin: 36px 24px; padding: 48px 22px;"
+        },
+        {
+          "path": "#email #cert > #cert-kicker",
+          "css": "color: rgb(0, 12, 96); font-weight: 700;"
+        },
+        {
+          "path": "#email #cert > #cert-h",
+          "css": "color: rgb(0, 12, 96);"
+        },
+        {
+          "path": "#email #cert > #cert-body",
+          "css": "color: rgb(0, 12, 96);"
+        },
+        {
+          "path": "#email #cert > #cert-btn",
+          "css": "background: rgb(0, 12, 96); color: rgb(255, 255, 255); border-radius: 0px;"
+        },
+        {
+          "path": "#email #summary",
+          "css": "color: rgb(0, 12, 96); padding: 4px 24px 42px;"
+        },
+        {
+          "path": "#email #summary > h3.em-h3",
+          "css": "color: rgb(0, 12, 96);"
+        },
+        {
+          "path": "#email #summary > #em-line",
+          "css": "border-bottom: 1px solid rgb(229, 229, 229);"
+        },
+        {
+          "path": "#email #summary > div.em-totals > #em-grand",
+          "css": "border-top: 2px solid rgb(0, 12, 96);"
+        }
+      ]
+    },
     {
       "saved": "2026-08-28",
       "note": "",
@@ -510,11 +626,11 @@
     },
     {
       "path": "#email #band > #wordmark",
-      "css": "color: rgb(255, 162, 2); font-family: \"BN Magnolia\", -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif; font-size: 38px; letter-spacing: 0.02em;"
+      "css": "color: rgb(255, 162, 2); font-family: \"BN Magnolia\", -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif; font-size: 38px; letter-spacing: 0.02em; font-weight: bold; line-height: 1;"
     },
     {
       "path": "#email #band > #ordertag",
-      "css": "color: rgb(255, 255, 255);"
+      "css": "color: rgb(255, 255, 255);font-family: monospace;text-align: right;"
     },
     {
       "path": "#email #embody",
@@ -522,11 +638,11 @@
     },
     {
       "path": "#email #embody > #headline",
-      "css": "font-size: 22px; color: rgb(0, 12, 96); text-transform: uppercase; letter-spacing: 0.05em;"
+      "css": "font-size: 22px; color: rgb(0, 12, 96); line-height: 1;"
     },
     {
       "path": "#email #embody > #btn-primary",
-      "css": "background: rgb(0, 12, 96); border-radius: 0px; padding: 15px 0px; margin-top: 18px;"
+      "css": "background: rgb(0, 12, 96);border-radius: 0px;padding: 15px 0px;margin-top: 18px;letter-spacing: .1em;font-size: 14px;"
     },
     {
       "path": "#email #embody > #btn-shop",
@@ -538,14 +654,18 @@
     },
     {
       "path": "#email #cert",
-      "css": "background: rgb(255, 255, 255); color: rgb(0, 12, 96); border: 2px solid rgb(254, 161, 4); border-radius: 0px; margin: 36px 24px; padding: 48px 22px;"
+      "css": "background: rgb(255, 255, 255); color: rgb(0, 12, 96); border: 2px solid rgb(254, 161, 4); border-radius: 0px; margin: 36px 24px; padding: 48px 22px; font-family: -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif;"
     },
     {
       "path": "#email #cert > #cert-kicker",
-      "css": "color: rgb(0, 12, 96); font-weight: 700;"
+      "css": "color: rgb(0, 12, 96);"
     },
     {
       "path": "#email #cert > #cert-h",
+      "css": "color: rgb(0, 12, 96);"
+    },
+    {
+      "path": "#email #cert > #cert-body",
       "css": "color: rgb(0, 12, 96);"
     },
     {
