@@ -7,11 +7,6 @@
 /* ───── fonts (woff2) ───── */
 @font-face {
   font-family: 'Sequoia Sans';
-  src: url('/fonts/SequoiaSans-Thin.woff2') format('woff2');
-  font-weight: 100; font-style: normal; font-display: swap;
-}
-@font-face {
-  font-family: 'Sequoia Sans';
   src: url('/fonts/SequoiaSans-Light.woff2') format('woff2');
   font-weight: 300; font-style: normal; font-display: swap;
 }
@@ -31,11 +26,24 @@
   src: url('/fonts/BNMagnolia.woff2') format('woff2');
   font-weight: normal; font-style: normal; font-display: swap;
 }
+/*
+ * Instanced DOWN from the full family on 2026-08-27: the site renders exactly
+ * weights 400-500 at normal width, so the wght axis is clamped to that range,
+ * the wdth axis is pinned at 100%, and the charset is subset to latin+symbols
+ * — 205KB became 71KB with the line breaks pixel-identical. The opsz axis
+ * (12-96) is KEPT on purpose: optical sizing tracks font-size automatically,
+ * and pinning it would visibly change every size of text.
+ *
+ * Regenerate from the original (assets/fonts/BricolageGrotesque[opsz,wdth,wght].ttf):
+ *   fonttools varLib.instancer <src> wght=400:500 wdth=100 -o inst.ttf
+ *   pyftsubset inst.ttf --unicodes="U+0020-007E,U+00A0-00FF,U+0152-0153,\
+ *     U+2010-2027,U+2032-2033,U+2190-2193,U+2212,U+2039-203A" \
+ *     --layout-features='*' --flavor=woff2 --output-file=BricolageGrotesque-VF.woff2
+ */
 @font-face {
   font-family: 'Bricolage Grotesque';
   src: url('/fonts/BricolageGrotesque-VF.woff2') format('woff2-variations');
-  font-weight: 200 800;
-  font-stretch:  75% 100%;
+  font-weight: 400 500;
   font-style: normal; font-display: swap;
 }
 
@@ -45,16 +53,14 @@
    helpers — they apply font-variation-settings so explicit axes pin even when
    font-optical-sizing would otherwise interpolate.                          */
 .f-sequoia            { font-family: 'Sequoia Sans'; font-weight: 400; }
-.f-sequoia-thin       { font-family: 'Sequoia Sans'; font-weight: 100; }
 .f-sequoia-light      { font-family: 'Sequoia Sans'; font-weight: 300; }
 .f-sequoia-wide       { font-family: 'Sequoia Sans'; font-weight: 400;
                         font-stretch: expanded; }
-.f-magnolia           { font-family: 'BN Magnolia'; }
+/* `font-weight: normal` is load-bearing: Magnolia is ONE file declared 400,
+   and on a heading the UA's bold made browsers SYNTHESIZE a 700 — /thanks
+   shipped a smeared faux-bold of the drawn face for weeks. */
+.f-magnolia           { font-family: 'BN Magnolia'; font-weight: normal; }
 .f-bricolage          { font-family: 'Bricolage Grotesque'; font-weight: 400; }
-.f-bricolage-light    { font-family: 'Bricolage Grotesque'; font-weight: 300; }
-.f-bricolage-bold     { font-family: 'Bricolage Grotesque'; font-weight: 700; }
-.f-bricolage-condensed{ font-family: 'Bricolage Grotesque';
-                        font-stretch: 75%; }
 .f-bricolage-display  { font-family: 'Bricolage Grotesque';
                         font-variation-settings: 'opsz' 96, 'wght' 500; }
 .f-bricolage-text     { font-family: 'Bricolage Grotesque';
