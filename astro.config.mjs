@@ -408,6 +408,61 @@ const sitemap = (site) => ({
   },
 });
 
+/*
+ * The 3D model files, mirrored like the images: the AR link must not be the
+ * one thing on the page that phones home to Shopify. Simpler than the image
+ * mirror because model urls appear only in attributes this site wrote —
+ * href/data-glb on the AR anchor — and there are two files, not five widths.
+ * Named by content hash for the same cache-forever reason. The html is
+ * matched ESCAPED and fetched DECODED, the lesson the image mirror learned
+ * the hard way.
+ */
+const mirrorModels = () => ({
+  name: 'mirror-models',
+  hooks: {
+    'astro:build:done': async ({ dir, logger }) => {
+      const { readdir, readFile, writeFile, mkdir } = await import('node:fs/promises');
+      const { createHash } = await import('node:crypto');
+      const RE = /https:\/\/[^"'\s]+\/cdn\/shop\/3d\/models\/[^"'\s]+\.(usdz|glb)/g;
+
+      const pages = [];
+      const collect = async (d) => {
+        for (const e of await readdir(d, { withFileTypes: true })) {
+          const next = new URL(`./${e.name}${e.isDirectory() ? '/' : ''}`, d);
+          if (e.isDirectory()) await collect(next);
+          else if (e.name.endsWith('.html')) pages.push(next);
+        }
+      };
+      await collect(dir);
+
+      const mirrored = new Map();   // escaped url -> local path
+      let bytes = 0;
+      for (const file of pages) {
+        let html = await readFile(file, 'utf8');
+        const found = html.match(RE) ?? [];
+        for (const escaped of new Set(found)) {
+          if (!mirrored.has(escaped)) {
+            const url = escaped.replace(/&amp;/g, '&');
+            const res = await fetch(url);
+            if (!res.ok) { logger.warn(`model fetch failed ${res.status}: ${url}`); continue; }
+            const buf = Buffer.from(await res.arrayBuffer());
+            const ext = url.split('.').pop();
+            const name = `${createHash('sha256').update(buf).digest('hex').slice(0, 16)}.${ext}`;
+            await mkdir(new URL('./models/', dir), { recursive: true });
+            await writeFile(new URL(`./models/${name}`, dir), buf);
+            bytes += buf.length;
+            mirrored.set(escaped, `/models/${name}`);
+          }
+          html = html.split(escaped).join(mirrored.get(escaped));
+        }
+        await writeFile(file, html);
+      }
+      if (mirrored.size)
+        logger.info(`mirrored ${mirrored.size} model file(s) (${(bytes / 1024).toFixed(0)}KB) into /models/`);
+    },
+  },
+});
+
 const SITE = 'https://glizzy.store';
 
 export default defineConfig({
@@ -419,7 +474,7 @@ export default defineConfig({
    * it exists to repair what the mirror does to og:image. sitemap last, so it
    * reads the finished pages.
    */
-  integrations: [stripDevAssets(), minifyPublicJs(), shopImageMirror(), absolutiseSocialUrls(SITE), sitemap(SITE)],
+  integrations: [stripDevAssets(), minifyPublicJs(), shopImageMirror(), mirrorModels(), absolutiseSocialUrls(SITE), sitemap(SITE)],
   server: { port: 3334 },
   /*
    * Astro 7 defaults this to 'jsx', which strips whitespace by JSX rules

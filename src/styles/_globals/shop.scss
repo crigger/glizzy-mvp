@@ -870,6 +870,40 @@
   text-align: center;
 }
 
+/*
+ * The AR link, under the art window. The ode toggle's outlined-pill language —
+ * this is a side door, and the one filled button on the page stays Add to
+ * cart. `hidden` until pdp-ar.js proves the device can open a viewer.
+ *
+ * The cube glyph is an inline SVG file drawn on currentColor, not an emoji —
+ * see the icon rules. And the <img> inside the anchor is LOAD-BEARING on iOS:
+ * Apple's AR Quick Look convention keys off an anchor whose first child is an
+ * image; text-only rel="ar" anchors navigate instead of opening the viewer.
+ */
+.pdp__ar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  margin-top: 1rem;
+  padding: 0.7em 1.3em;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px currentColor;
+  color: var(--mustard);
+  font-family: 'Sequoia Sans';
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+
+  &:hover { background: rgba(255, 163, 0, 0.14); }
+  &[hidden] { display: none; }
+
+  img { display: block; }
+}
+
 /* ───── the ode: an opt-in note on the product page ───────────────────────── */
 
 /*

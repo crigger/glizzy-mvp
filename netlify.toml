@@ -39,3 +39,16 @@
   from = "/shop"
   to = "/shop/glizzy/"
   status = 302
+
+# AR model files. The usdz type matters: iOS AR Quick Look decides what it is
+# opening partly by content-type, and Netlify serves unknown extensions as
+# application/octet-stream, which downloads instead of entering the room.
+[[headers]]
+  for = "/models/*.usdz"
+  [headers.values]
+    Content-Type = "model/vnd.usdz+zip"
+
+[[headers]]
+  for = "/models/*.glb"
+  [headers.values]
+    Content-Type = "model/gltf-binary"

@@ -89,6 +89,7 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
 
   {/* The dog's own module — this page does not load the hero's `scripts`. */}
   <script>import '../../scripts/pdp-dog.js';</script>
+  <script>import '../../scripts/pdp-ar.js';</script>
 
   <main class="shop-page pdp">
     <div class="pdp__inner">
@@ -116,6 +117,7 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
       */}
       <div class="pdp__window">
         <WindowPanel title="The Goods · 01" flush>
+          {/* markup continues below; the AR link rides after the panel */}
           <div class="pdp__art-frame">
             <img
               class="pdp__art"
@@ -131,6 +133,41 @@ const ogDescription = `${product.title}, ${formatPrice(initial.price)}. ${produc
             <canvas id="pdp-stage" class="pdp__stage" role="img" aria-label={alt}></canvas>
           </div>
         </WindowPanel>
+
+        {/*
+          AR, with no library and no third-party origin.
+
+          Shopify transcodes the product's GLB into a USDZ, and both files are
+          mirrored into THIS origin at build (mirrorModels in astro.config —
+          same doctrine as the images). From there the platforms' own viewers
+          do all the work:
+
+          - iOS: an anchor with rel="ar" whose FIRST child is an <img> is the
+            documented AR Quick Look invocation — Safari intercepts the
+            navigation and opens the model in the room. No script involved in
+            the viewing.
+          - Android: pdp-ar.js rewrites the href to a Scene Viewer intent://
+            url at load, because the intent needs an absolute https url and a
+            UA check anyway.
+
+          Hidden until pdp-ar.js proves the device can do something with it —
+          a dead AR button on a desktop is a promise the page can't keep.
+        */}
+        {
+          product.model3d?.usdz && (
+            <a
+              class="pdp__ar"
+              id="pdp-ar"
+              rel="ar"
+              href={product.model3d.usdz}
+              data-glb={product.model3d.glb}
+              hidden
+            >
+              <img src="/img/ar-badge.svg" alt="" width="20" height="20" />
+              <span>See it in your room</span>
+            </a>
+          )
+        }
       </div>
 
       <div class="pdp__detail">

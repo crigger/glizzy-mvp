@@ -67,6 +67,13 @@ export type ShopProduct = {
   /** Option names with their values, in Shopify's own order. */
   options: { name: string; optionValues: { name: string }[] }[];
   variants: ShopVariant[];
+  /**
+   * The product's 3D model, if one is attached in Shopify. Shopify transcodes
+   * an uploaded GLB into a USDZ automatically, so both arrive together: the
+   * USDZ is what iOS AR Quick Look eats, the GLB is what Android Scene Viewer
+   * eats. Null when the product has no MODEL_3D media.
+   */
+  model3d: { glb: string | null; usdz: string | null } | null;
 };
 
 const PRODUCTS_QUERY = `
@@ -75,6 +82,9 @@ query GlizzyProducts($products: Int!, $variants: Int!) {
     nodes {
       id handle title vendor description descriptionHtml
       featuredImage { url altText width height }
+      media(first: 10) {
+        nodes { mediaContentType ... on Model3d { sources { url format } } }
+      }
       options { name optionValues { name } }
       variants(first: $variants) {
         nodes {
@@ -258,6 +268,16 @@ function normalizeProduct(raw: unknown): ShopProduct {
         }))
       : [],
     variants,
+    model3d: (() => {
+      const m = Array.isArray(p.media?.nodes)
+        ? p.media.nodes.find((n: any) => n?.mediaContentType === 'MODEL_3D')
+        : null;
+      if (!m || !Array.isArray(m.sources)) return null;
+      const src = (fmt: string) =>
+        m.sources.find((x: any) => x?.format === fmt)?.url ?? null;
+      const glb = src('glb'), usdz = src('usdz');
+      return glb || usdz ? { glb, usdz } : null;
+    })(),
   };
 }
 
