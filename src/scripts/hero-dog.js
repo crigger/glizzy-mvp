@@ -454,7 +454,29 @@ if (import.meta.env.DEV) {
     geom.name = 'Glizzy';
 
     const exportMat = new THREE.MeshStandardMaterial({
-      color: material.color.clone(),
+      /*
+       * The albedo is BOOSTED for export, and only for export.
+       *
+       * The site lights the dog hot — ambient 1.5 + key 4.0 — so what the
+       * page shows (and what the physical prototype was matched against) is
+       * this albedo multiplied well past itself. AR Quick Look lights with a
+       * realistic ~1.0 environment, so exporting the raw albedo shipped a
+       * dog that rendered brick-red next to the actual ceramic.
+       *
+       * The factors are MEASURED, not tuned: a photo of the prototype and
+       * the AR render side by side on the same table (2026-08-28), same
+       * ambient light on both, sampled mid-body — real #ed8050 over AR
+       * #af5539, per channel. Multiplying the albedo by that ratio makes
+       * the AR render meet the object it advertises. R clips at 255; the
+       * residue is within the room-light noise of the measurement.
+       *
+       * Applied in sRGB, where the photo was measured: #dc512a x the ratio,
+       * channel-wise, is #ff7a3b. setStyle does the sRGB->linear conversion.
+       * Multiplying material.color's channels directly was tried first and
+       * undershot — those channels are LINEAR, and a display-space ratio
+       * applied in linear space is a smaller boost (k vs ~k^2.2).
+       */
+      color: new THREE.Color().setStyle('#ff7a3b'),
       roughness: material.roughness,
       metalness: material.metalness,
       map: material.map,
