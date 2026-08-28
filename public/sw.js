@@ -13,9 +13,9 @@
 // write-through picks them up on the first visit and can never serve a stale
 // one, because a stale one has a different name.
 
-const VERSION    = 'v13';  // v11: glizzy-path.js changed (scrub anchor). It is PRECACHED cache-first, and
-                           // the SW registers in plain Safari too — without a bump, the very browser the
-                           // change exists to fix keeps running the old script and the fix never lands.
+const VERSION    = 'v14';  // Any change to a public/js/* file needs a bump here: they are precached
+                           // cache-first, and the SW registers in PLAIN SAFARI as well as the installed
+                           // app — without one, browsers keep serving themselves the old script forever.
 const CACHE_NAME = `glizzy-${VERSION}`;
 
 const PRECACHE = [
