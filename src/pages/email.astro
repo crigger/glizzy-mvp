@@ -1,0 +1,344 @@
+---
+/**
+ * The email design studio, dev-only in substance: a faithful 600px mock of
+ * the Shopify order-confirmation email (glizzy branch) where every colour is
+ * a picker, every line of copy is editable in place, and Save writes the
+ * whole state to src/data/email-design.json via the dev server
+ * (`__email-design-save` in astro.config.mjs). The JSON is the handoff —
+ * whoever ports the design into the real notification template reads it
+ * instead of a description in prose.
+ *
+ * GUARDRAILS ARE THE POINT (Adam, 2026-08-28: "we have limited options with
+ * email so i guess we should have some guardrails baked in"):
+ *  - The client switch renders the SAME design as Apple Mail (webfonts,
+ *    radius), Gmail (system fonts only — the view most buyers get), and
+ *    Outlook (no radius either). If it only looks good in Apple Mail, the
+ *    other two tabs say so before it ships.
+ *  - Fonts come from a fixed menu: the two self-hosted faces (flagged
+ *    "where supported") and email-safe stacks. Nothing else.
+ *  - Contrast badges score ink-on-band and both buttons live, the colors
+ *    studio's trick. Below 4.5:1 goes red.
+ *  - No layout controls at all: Shopify's template owns the structure; the
+ *    studio owns tokens and words.
+ *
+ * The built page is a stub — the studio itself exists only where its save
+ * endpoint does, on the dev server.
+ */
+import designFile from '../data/email-design.json';
+const design = designFile.design;
+const DEV = import.meta.env.DEV;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Email studio — Glizzy</title>
+    {DEV && <style is:global>
+      @font-face { font-family: 'BN Magnolia'; src: url('/fonts/BNMagnolia.woff2') format('woff2'); font-display: swap; }
+      @font-face { font-family: 'Sequoia Sans'; src: url('/fonts/SequoiaSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+      @font-face { font-family: 'Sequoia Sans Wide'; src: url('/fonts/SequoiaSans-Wide.woff2') format('woff2'); font-display: swap; }
+      @font-face { font-family: 'Bricolage Grotesque'; src: url('/fonts/BricolageGrotesque-VF.woff2') format('woff2-variations'); font-weight: 400 500; font-display: swap; }
+
+      :root {
+        --ui-bg: #000d60;
+        --ui-panel: #001080;
+        --ui-ink: #f7e0c5;
+        --ui-accent: #ffa300;
+        --ui-line: rgba(247, 224, 197, 0.18);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; background: #e9e5df; font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
+
+      /* ── control rail ─────────────────────────────────────────────── */
+      .rail { background: var(--ui-bg); color: var(--ui-ink); padding: 18px 16px 90px; overflow-y: auto; max-height: 100vh; position: sticky; top: 0; }
+      .rail h1 { font-family: 'BN Magnolia', serif; font-weight: normal; font-size: 1.7rem; color: var(--ui-accent); margin: 0 0 2px; }
+      .rail .sub { font-size: 0.72rem; opacity: 0.65; margin: 0 0 18px; line-height: 1.45; }
+      .rail fieldset { border: 1px solid var(--ui-line); border-radius: 6px; margin: 0 0 14px; padding: 10px 12px 12px; }
+      .rail legend { font-family: 'Sequoia Sans', sans-serif; font-size: 0.68rem; letter-spacing: 0.18em; padding: 0 6px; }
+      .row { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+      .row label { flex: 1; font-size: 0.78rem; }
+      .row input[type='color'] { width: 34px; height: 26px; border: 1px solid var(--ui-line); border-radius: 4px; background: none; padding: 1px; }
+      .row input[type='range'] { flex: 1.2; accent-color: var(--ui-accent); }
+      .row output { font-size: 0.7rem; opacity: 0.7; min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+      .row select { flex: 1.4; background: var(--ui-panel); color: var(--ui-ink); border: 1px solid var(--ui-line); border-radius: 4px; font-size: 0.75rem; padding: 4px; }
+      .badge { font-size: 0.62rem; padding: 2px 7px; border-radius: 99px; font-variant-numeric: tabular-nums; background: #1d7a3c; color: #fff; }
+      .badge.bad { background: #b3261e; }
+      .hint { font-size: 0.66rem; opacity: 0.6; line-height: 1.4; margin: 6px 0 0; }
+      .savebar { position: fixed; bottom: 0; left: 0; width: 320px; padding: 12px 16px; background: var(--ui-bg); border-top: 1px solid var(--ui-line); display: flex; gap: 8px; align-items: center; }
+      .savebar input[type='text'] { flex: 1; background: var(--ui-panel); color: var(--ui-ink); border: 1px solid var(--ui-line); border-radius: 4px; padding: 7px 9px; font-size: 0.75rem; }
+      .savebar button { background: var(--ui-accent); border: 0; color: #000d60; font-weight: 700; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+      .savebar button:active { transform: translateY(1px); }
+      #save-note { font-size: 0.7rem; }
+
+      /* ── stage ───────────────────────────────────────────────────── */
+      .stage { padding: 26px 20px 60px; display: flex; flex-direction: column; align-items: center; }
+      .clients { display: flex; gap: 4px; margin-bottom: 6px; background: #d8d2c8; border-radius: 99px; padding: 3px; }
+      .clients button { border: 0; background: none; padding: 6px 16px; border-radius: 99px; font-size: 0.76rem; cursor: pointer; font-family: inherit; }
+      .clients button[aria-pressed='true'] { background: #fff; font-weight: 600; }
+      .client-note { font-size: 0.72rem; color: #6b6459; margin: 0 0 16px; min-height: 1.2em; }
+
+      /* the mock: exactly 600px like the shipped email */
+      .email { width: 600px; max-width: 100%; background: #fff; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.14); }
+      .email [contenteditable] { outline: none; }
+      .email [contenteditable]:hover { box-shadow: inset 0 0 0 1px rgba(220, 81, 42, 0.35); }
+      .email [contenteditable]:focus { box-shadow: inset 0 0 0 2px rgba(220, 81, 42, 0.7); }
+      .em-band { padding: 28px 24px; display: flex; justify-content: space-between; align-items: center; }
+      .em-wordmark { text-decoration: none; }
+      .em-ordertag { font-size: 14px; opacity: 0.85; }
+      .em-body { padding: 30px 24px 10px; color: #333; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.5; }
+      .em-h2 { font-size: 22px; font-weight: 600; margin: 0 0 8px; color: #333; }
+      .em-btn { display: block; text-align: center; padding: 15px 0; margin: 18px 0 0; color: #fff; font-weight: 600; text-decoration: none; }
+      .em-btn--shop { background: #5433eb; }
+      .em-or { text-align: center; margin: 14px 0 4px; }
+      .em-cert { margin: 26px 24px; text-align: center; padding: 28px 22px; }
+      .em-cert .kicker { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; }
+      .em-cert h3 { margin: 0 0 10px; font-size: 18px; }
+      .em-cert p.body { margin: 0 auto 18px; max-width: 42em; color: #1a0e04; font-size: 14px; line-height: 1.5; }
+      .em-cert .cert-btn { display: inline-block; padding: 12px 26px; font-weight: 700; text-decoration: none; }
+      .em-summary { padding: 4px 24px 30px; color: #333; font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 14px; }
+      .em-summary h3 { font-size: 18px; margin: 18px 0 12px; }
+      .em-line { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #e5e5e5; }
+      .em-thumb { width: 56px; height: 56px; border-radius: 6px; background: #000d60; display: grid; place-items: center; overflow: hidden; }
+      .em-thumb span { width: 10px; height: 34px; border-radius: 6px; background: #dc512a; transform: rotate(24deg); }
+      .em-line .amt { margin-left: auto; }
+      .em-totals { margin-top: 10px; }
+      .em-totals div { display: flex; justify-content: space-between; padding: 3px 0; }
+      .em-totals .grand { font-weight: 700; font-size: 16px; border-top: 2px solid #333; margin-top: 6px; padding-top: 8px; }
+
+      .stub { font-family: system-ui; padding: 4rem; color: #444; }
+    </style>}
+  </head>
+  <body>
+    {!DEV && <p class="stub">The email studio runs on the dev server only — <code>npm run dev</code>, then /email.</p>}
+    {DEV && (
+      <>
+        <aside class="rail">
+          <h1>Email studio</h1>
+          <p class="sub">
+            The order-confirmation email, glizzy branch. Click any text in the
+            mock to rewrite it; Save writes <code>src/data/email-design.json</code>
+            for porting into the real template.
+          </p>
+
+          <fieldset>
+            <legend>HEADER</legend>
+            <div class="row"><label>Band</label><span class="badge" id="c-band">–</span><input type="color" data-k="band" /></div>
+            <div class="row"><label>Wordmark ink</label><input type="color" data-k="ink" /></div>
+            <div class="row"><label>Wordmark face</label>
+              <select data-k="wordmarkFont">
+                <option value="magnolia">BN Magnolia · where supported</option>
+                <option value="sequoia-wide">Sequoia Wide · where supported</option>
+                <option value="georgia">Georgia (safe everywhere)</option>
+                <option value="system">System sans (safe everywhere)</option>
+              </select>
+            </div>
+            <div class="row"><label>Size</label><input type="range" min="22" max="52" data-k="wordmarkSize" /><output id="o-size"></output></div>
+            <div class="row"><label>Tracking</label><input type="range" min="-0.02" max="0.2" step="0.005" data-k="wordmarkTracking" /><output id="o-track"></output></div>
+            <p class="hint">"Where supported" = Apple Mail and most Apple clients. Gmail and Outlook get the fallback — check their tabs before shipping.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>ACCENT + TEXT</legend>
+            <div class="row"><label>Accent (button, links)</label><span class="badge" id="c-accent">–</span><input type="color" data-k="accent" /></div>
+            <div class="row"><label>Section headings</label><input type="color" data-k="h3Color" /></div>
+            <div class="row"><label>Body text</label><input type="color" data-k="text" /></div>
+            <div class="row"><label>Button radius</label><input type="range" min="0" max="24" data-k="buttonRadius" /><output id="o-radius"></output></div>
+            <p class="hint">Outlook (Windows) ignores radius — its tab previews that.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>CERTIFICATE PANEL</legend>
+            <div class="row"><label>Paper</label><input type="color" data-k="cert.paper" /></div>
+            <div class="row"><label>Border</label><input type="color" data-k="cert.border" /></div>
+            <div class="row"><label>Border width</label><input type="range" min="0" max="8" data-k="cert.borderWidth" /><output id="o-bw"></output></div>
+            <div class="row"><label>Kicker ink</label><input type="color" data-k="cert.kickerColor" /></div>
+            <div class="row"><label>Button</label><span class="badge" id="c-certbtn">–</span><input type="color" data-k="cert.buttonBg" /></div>
+            <div class="row"><label>Button ink</label><input type="color" data-k="cert.buttonInk" /></div>
+          </fieldset>
+
+          <p class="hint">
+            Fixed on purpose: 600px width, the layout, the purple Shop button
+            (Shopify draws it), the order-summary structure. Email HTML is
+            tables and inline styles; what's here is the full set of levers
+            that survive real clients.
+          </p>
+
+          <div class="savebar">
+            <input type="text" id="note" placeholder="what changed (optional)" />
+            <button id="save">Save</button>
+            <span id="save-note"></span>
+          </div>
+        </aside>
+
+        <main class="stage">
+          <div class="clients" role="tablist">
+            <button aria-pressed="true" data-client="apple">Apple Mail</button>
+            <button aria-pressed="false" data-client="gmail">Gmail</button>
+            <button aria-pressed="false" data-client="outlook">Outlook</button>
+          </div>
+          <p class="client-note" id="client-note"></p>
+
+          <div class="email" id="email">
+            <div class="em-band" id="band">
+              <a class="em-wordmark" id="wordmark" contenteditable="true">Glizzy Store</a>
+              <span class="em-ordertag" id="ordertag">ORDER #1003</span>
+            </div>
+            <div class="em-body" id="embody">
+              <p class="em-h2" contenteditable="true" data-c="headline"></p>
+              <p contenteditable="true" data-c="body"></p>
+              <a class="em-btn" id="btn-primary" contenteditable="true" data-c="primaryButton"></a>
+              <a class="em-btn em-btn--shop">Track order with <b>shop</b></a>
+              <p class="em-or">or <a id="store-link" contenteditable="true" data-c="storeLink"></a></p>
+            </div>
+            <div class="em-cert" id="cert">
+              <p class="kicker" id="cert-kicker" contenteditable="true"></p>
+              <h3 id="cert-h" contenteditable="true"></h3>
+              <p class="body" id="cert-body" contenteditable="true"></p>
+              <a class="cert-btn" id="cert-btn" contenteditable="true"></a>
+            </div>
+            <div class="em-summary">
+              <h3 class="em-h3">Order summary</h3>
+              <div class="em-line">
+                <span class="em-thumb"><span></span></span>
+                <span>Glizzy × 1</span>
+                <span class="amt">$1,000.00</span>
+              </div>
+              <div class="em-totals">
+                <div><span>Subtotal</span><span>$1,000.00</span></div>
+                <div><span>Shipping</span><span>$0.00</span></div>
+                <div class="grand"><span>Total</span><span>$1,000.00 USD</span></div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <script define:vars={{ initial: design }}>
+          const state = structuredClone(initial);
+
+          /* the guardrail font menu: what each choice really is, and what it
+             falls back to in clients that refuse webfonts */
+          const FONTS = {
+            magnolia: { css: "'BN Magnolia', Georgia, serif", fallback: 'Georgia, serif' },
+            'sequoia-wide': { css: "'Sequoia Sans Wide', Verdana, sans-serif", fallback: 'Verdana, sans-serif' },
+            georgia: { css: 'Georgia, serif', fallback: 'Georgia, serif' },
+            system: { css: "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif", fallback: "-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" },
+          };
+          const CLIENTS = {
+            apple: { webfonts: true, radius: true, note: 'Apple Mail: webfonts and radius both render — the best case.' },
+            gmail: { webfonts: false, radius: true, note: 'Gmail strips @font-face — this is the fallback most buyers see.' },
+            outlook: { webfonts: false, radius: false, note: 'Outlook for Windows: system fonts, square corners. The floor.' },
+          };
+          let client = 'apple';
+
+          const $ = (s) => document.querySelector(s);
+          const get = (k) => k.split('.').reduce((o, p) => o[p], state);
+          const set = (k, v) => { const parts = k.split('.'); const last = parts.pop(); parts.reduce((o, p) => o[p], state)[last] = v; };
+
+          /* contrast, the colors studio's math */
+          const lum = (hex) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+          const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+          const scoreBadge = (el, fg, bg) => { const r = ratio(fg, bg); el.textContent = r.toFixed(1); el.classList.toggle('bad', r < 4.5); };
+
+          function render() {
+            const c = CLIENTS[client];
+            $('#client-note').textContent = c.note;
+            const face = (key) => (c.webfonts ? FONTS[key].css : FONTS[key].fallback);
+
+            $('#band').style.background = state.band;
+            const wm = $('#wordmark');
+            wm.style.color = state.ink;
+            wm.style.fontFamily = face(state.wordmarkFont);
+            wm.style.fontSize = state.wordmarkSize + 'px';
+            wm.style.letterSpacing = state.wordmarkTracking + 'em';
+            $('#ordertag').style.color = state.ink;
+            $('#embody').style.color = state.text;
+
+            const radius = c.radius ? state.buttonRadius + 'px' : '0';
+            const primary = $('#btn-primary');
+            primary.style.background = state.accent;
+            primary.style.borderRadius = radius;
+            document.querySelector('.em-btn--shop').style.borderRadius = radius;
+            $('#store-link').style.color = state.accent;
+
+            document.querySelectorAll('.em-summary h3').forEach((h) => (h.style.color = state.h3Color));
+
+            const cert = $('#cert');
+            cert.style.background = state.cert.paper;
+            cert.style.border = `${state.cert.borderWidth}px solid ${state.cert.border}`;
+            $('#cert-kicker').style.color = state.cert.kickerColor;
+            $('#cert-h').style.color = state.h3Color;
+            const cb = $('#cert-btn');
+            cb.style.background = state.cert.buttonBg;
+            cb.style.color = state.cert.buttonInk;
+            cb.style.borderRadius = radius;
+
+            scoreBadge($('#c-band'), state.ink, state.band);
+            scoreBadge($('#c-accent'), '#ffffff', state.accent);
+            scoreBadge($('#c-certbtn'), state.cert.buttonInk, state.cert.buttonBg);
+            $('#o-size').textContent = state.wordmarkSize;
+            $('#o-track').textContent = Number(state.wordmarkTracking).toFixed(3);
+            $('#o-radius').textContent = state.buttonRadius;
+            $('#o-bw').textContent = state.cert.borderWidth;
+          }
+
+          /* copy: contenteditable in the mock IS the state */
+          const copyEls = {
+            headline: document.querySelector('[data-c="headline"]'),
+            body: document.querySelector('[data-c="body"]'),
+            primaryButton: $('#btn-primary'),
+            storeLink: $('#store-link'),
+          };
+          for (const [k, el] of Object.entries(copyEls)) {
+            el.textContent = state.copy[k];
+            el.addEventListener('input', () => (state.copy[k] = el.textContent));
+          }
+          const certCopy = { kicker: $('#cert-kicker'), heading: $('#cert-h'), body: $('#cert-body'), buttonLabel: $('#cert-btn') };
+          for (const [k, el] of Object.entries(certCopy)) {
+            el.textContent = state.cert[k];
+            el.addEventListener('input', () => (state.cert[k] = el.textContent));
+          }
+
+          /* controls */
+          document.querySelectorAll('[data-k]').forEach((input) => {
+            const k = input.dataset.k;
+            const v = get(k);
+            if (input.type === 'range') input.value = v; else input.value = v;
+            input.addEventListener('input', () => {
+              set(k, input.type === 'range' ? Number(input.value) : input.value);
+              render();
+            });
+          });
+
+          document.querySelectorAll('[data-client]').forEach((b) =>
+            b.addEventListener('click', () => {
+              client = b.dataset.client;
+              document.querySelectorAll('[data-client]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+              render();
+            })
+          );
+
+          $('#save').addEventListener('click', async () => {
+            const noteEl = $('#save-note');
+            noteEl.textContent = '…';
+            try {
+              const res = await fetch('/__email-design-save', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ design: state, note: $('#note').value }),
+              });
+              const json = await res.json();
+              noteEl.textContent = json.ok ? 'saved ✓' : 'failed: ' + json.error;
+            } catch (e) {
+              noteEl.textContent = 'failed: ' + e.message;
+            }
+            setTimeout(() => (noteEl.textContent = ''), 4000);
+          });
+
+          render();
+        </script>
+      </>
+    )}
+  </body>
+</html>

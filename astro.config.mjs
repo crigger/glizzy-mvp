@@ -1,6 +1,51 @@
 import { defineConfig } from 'astro/config';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 
+/*
+ * Dev-only save for the /email design studio. The studio is where email
+ * design choices get made by hand; Save lands the whole state in
+ * src/data/email-design.json (TRACKED — untracked studio data has vanished
+ * before) with the previous state pushed into a capped history. The file is
+ * the handoff: a human plays at /email, saves, and whoever is porting the
+ * design into the Shopify notification template reads the JSON instead of a
+ * description in prose.
+ */
+const emailDesignSave = () => ({
+  name: 'email-design-save',
+  configureServer(server) {
+    server.middlewares.use('/__email-design-save', (req, res) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.end();
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', async () => {
+        try {
+          const { design, note = '' } = JSON.parse(body);
+          if (!design || typeof design !== 'object') throw new Error('no design in payload');
+          const url = new URL('./src/data/email-design.json', import.meta.url);
+          const { readFile } = await import('node:fs/promises');
+          const file = JSON.parse(await readFile(url, 'utf8'));
+          file.history.unshift({ saved: file.saved, note: file.note, design: file.design });
+          file.history = file.history.slice(0, 20);
+          file.saved = new Date().toISOString().slice(0, 10);
+          file.note = note;
+          file.design = design;
+          await writeFile(url, JSON.stringify(file, null, 2) + '\n');
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ ok: true }));
+        } catch (error) {
+          res.statusCode = 400;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ ok: false, error: String(error?.message || error) }));
+        }
+      });
+    });
+  },
+});
+
 // Dev-only endpoint — `?inspect` POSTs a diff of everything changed in DevTools
 // since the page settled. It lands in .inspect/ (gitignored) as both JSON and a
 // readable summary, so a change tried in the inspector can be ported into the
@@ -487,7 +532,7 @@ export default defineConfig({
   compressHTML: true,
   build: { inlineStylesheets: 'auto' },
   vite: {
-    plugins: [inspectSave()],
+    plugins: [inspectSave(), emailDesignSave()],
     build: {
       /*
        * Name the browsers, because the CSS minifier collapses vendor prefixes

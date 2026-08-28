@@ -1,0 +1,34 @@
+{
+  "saved": "2026-08-28",
+  "note": "What the live template ships today — the studio's starting point.",
+  "design": {
+    "band": "#000d60",
+    "ink": "#f7e0c5",
+    "accent": "#dc512a",
+    "text": "#333333",
+    "h3Color": "#dc512a",
+    "wordmarkFont": "magnolia",
+    "wordmarkSize": 38,
+    "wordmarkTracking": 0.02,
+    "buttonRadius": 4,
+    "copy": {
+      "headline": "Thank you for your order!",
+      "body": "We're getting your order ready to be shipped. We will notify you when it has been sent.",
+      "primaryButton": "View your order",
+      "storeLink": "Visit our store"
+    },
+    "cert": {
+      "paper": "#f7e0c5",
+      "border": "#dc512a",
+      "borderWidth": 3,
+      "kicker": "Glizzy Store · Bureau of Provenance",
+      "kickerColor": "#6b5744",
+      "heading": "Certificate of authenticity",
+      "body": "Every Glizzy leaves the kiln with papers. Yours are drawn up, numbered, and on file:",
+      "buttonLabel": "View your certificate",
+      "buttonBg": "#dc512a",
+      "buttonInk": "#f7e0c5"
+    }
+  },
+  "history": []
+}
