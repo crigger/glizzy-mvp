@@ -238,6 +238,42 @@ const shopImageMirror = () => ({
 });
 
 /*
+ * PORTED FROM vinton.land, verbatim apart from this comment — like the image
+ * mirror, fix a bug here and it wants fixing there. The public/js sources
+ * carry their documentation in comments, deliberately; this ships them
+ * without the essays. Lighthouse priced the difference at 10KiB.
+ */
+const minifyPublicJs = () => ({
+  name: 'minify-public-js',
+  hooks: {
+    'astro:build:done': async ({ dir, logger }) => {
+      const { transform } = await import('esbuild');
+      const { readdir, readFile, writeFile } = await import('node:fs/promises');
+      const jsDir = new URL('js/', dir);
+      let files;
+      try {
+        files = (await readdir(jsDir)).filter((f) => f.endsWith('.js'));
+      } catch {
+        return;
+      }
+      let before = 0;
+      let after = 0;
+      for (const file of files) {
+        const path = new URL(file, jsDir);
+        const source = await readFile(path, 'utf8');
+        const out = await transform(source, { minify: true, target: 'es2018' });
+        before += source.length;
+        after += out.code.length;
+        await writeFile(path, out.code);
+      }
+      logger.info(
+        `minified ${files.length} public scripts: ${(before / 1024).toFixed(1)}KB to ${(after / 1024).toFixed(1)}KB`
+      );
+    },
+  },
+});
+
+/*
  * The share card and the structured data have to carry ABSOLUTE urls, and by
  * the time this runs they do not.
  *
@@ -383,7 +419,7 @@ export default defineConfig({
    * it exists to repair what the mirror does to og:image. sitemap last, so it
    * reads the finished pages.
    */
-  integrations: [stripDevAssets(), shopImageMirror(), absolutiseSocialUrls(SITE), sitemap(SITE)],
+  integrations: [stripDevAssets(), minifyPublicJs(), shopImageMirror(), absolutiseSocialUrls(SITE), sitemap(SITE)],
   server: { port: 3334 },
   /*
    * Astro 7 defaults this to 'jsx', which strips whitespace by JSX rules
