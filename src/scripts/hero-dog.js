@@ -443,7 +443,18 @@ if (import.meta.env.DEV) {
     const scale = lengthMetres / totalAxial;
 
     const geom = mesh.geometry.clone();
-    geom.scale(scale, scale, scale);
+    /*
+     * RADIAL is thickness-only, export-only. Adam put the AR dog on the
+     * table next to the ceramic (2026-08-28, with a ruler): same length,
+     * visibly thinner — measured thick/long 0.305 rendered against 0.427
+     * real, and 0.427/0.305 = 1.40. Both numbers carry the same photo
+     * biases (perspective, edge blur), so their RATIO is clean even though
+     * neither is. The capsule is built along Y, so Y keeps the true length
+     * and X/Z carry the fattening — this line runs BEFORE the rotateZ
+     * below, which is what makes those the radial axes.
+     */
+    const RADIAL = 1.40;
+    geom.scale(scale * RADIAL, scale, scale * RADIAL);
     /*
      * Lay it down. The capsule is built along Y, so it exports standing on
      * end — a viewer frames that as a vertical sausage, and AR stands it up on
