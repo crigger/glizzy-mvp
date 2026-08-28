@@ -756,11 +756,17 @@ Three properties to preserve:
   number, date, piece, serial — never a name or address.
 - **Single-origin, no script.** The page uses the site's own `/fonts` files
   and loads nothing from anyone; the footer's privacy line covers it too.
-- **Shopify is the only database.** Nothing is stored anywhere. The serial
-  (`GLZ-000000`) is minted from the order number, zero-padded to six — it
-  exists the moment the order does. The ORDER metafield `glizzy.serial`
-  (single-line text; definition exists in the admin) OVERRIDES it, for when
-  a number is written on the clay itself and the record should match.
+- **Shopify is the only database.** The serial (`GLZ-000001`…) is the
+  EDITION RANK: this order's position among glizzy-containing orders,
+  cancelled ones excluded — the first dog sold is 000001. On first render it
+  is FROZEN into the ORDER metafield `glizzy.serial` (definition exists in
+  the admin), so a later cancellation can never renumber a certificate
+  someone already holds. A hand-written value in that metafield always wins
+  — for when a number is on the clay itself. Counting needs
+  `read_all_orders` once history is older than 60 days, and the freeze needs
+  `write_orders`; without the latter it renders un-frozen and says so in the
+  function log. If counting fails outright the fallback is the order number
+  zero-padded — unique, just not sequential.
 
 The copy is in the site's voice and coins NEW rungs of the synonym ladder
 ("earthenware frankfurter", "clay companion") — never reuse a name the site

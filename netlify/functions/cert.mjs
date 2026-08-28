@@ -38,6 +38,7 @@ const ORDER_QUERY = `
 query CertOrder($q: String!) {
   orders(first: 1, query: $q) {
     nodes {
+      id
       name
       createdAt
       cancelledAt
@@ -49,6 +50,56 @@ query CertOrder($q: String!) {
     }
   }
 }`;
+
+/*
+ * The edition count: walk orders oldest-first and count the ones that hold a
+ * glizzy-store line, skipping cancelled orders, until this order is reached.
+ * That rank IS the serial — the first dog sold is GLZ-000001.
+ *
+ * Needs `read_all_orders` to stay correct once the store's history is older
+ * than 60 days (plain read_orders is a 60-day window and would silently
+ * undercount), and the freeze below is what makes a number permanent the
+ * moment it has been seen.
+ */
+const COUNT_QUERY = `
+query CertOrderRank($after: String) {
+  orders(first: 250, after: $after, sortKey: CREATED_AT) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      cancelledAt
+      lineItems(first: 20) { nodes { vendor } }
+    }
+  }
+}`;
+
+const FREEZE_MUTATION = `
+mutation CertFreezeSerial($metafields: [MetafieldsSetInput!]!) {
+  metafieldsSet(metafields: $metafields) {
+    userErrors { field message }
+  }
+}`;
+
+async function editionRank(orderId, creds) {
+  let after = null;
+  let rank = 0;
+  for (let page = 0; page < 20; page++) {
+    const data = await adminGraphql(COUNT_QUERY, { after }, creds);
+    const batch = data?.orders;
+    for (const node of batch?.nodes ?? []) {
+      if (node.cancelledAt) continue;
+      const isGlizzy = (node.lineItems?.nodes ?? []).some(
+        (l) => (l.vendor ?? '').trim().toLowerCase() === BRAND
+      );
+      if (!isGlizzy) continue;
+      rank += 1;
+      if (node.id === orderId) return rank;
+    }
+    if (!batch?.pageInfo?.hasNextPage) break;
+    after = batch.pageInfo.endCursor;
+  }
+  return null;
+}
 
 /** The token that proves possession: the path segment Shopify puts after
  *  /orders/ in the buyer's own status-page URL. */
@@ -123,6 +174,41 @@ export default async function cert(request, context) {
   );
   if (lines.length === 0) return notFound();
 
+  /*
+   * The serial. Frozen (the metafield) beats counted beats fallback:
+   *   1. glizzy.serial on the order — either frozen by a previous render or
+   *      written by hand to match a number on the clay. Never recomputed.
+   *   2. The edition rank, frozen onto the order the first time it renders so
+   *      a later cancellation can never renumber a certificate someone holds.
+   *   3. If counting fails outright, the order number zero-padded — unique
+   *      and honest, just not sequential.
+   */
+  let serial = order.serial?.value?.trim() || null;
+  if (!serial) {
+    let rank = null;
+    try {
+      rank = await editionRank(order.id, creds);
+    } catch (error) {
+      console.error(`[cert] edition count failed: ${error.message}`);
+    }
+    serial = rank ? `GLZ-${String(rank).padStart(6, '0')}` : `GLZ-${orderNumber.padStart(6, '0')}`;
+    if (rank) {
+      try {
+        const frozen = await adminGraphql(
+          FREEZE_MUTATION,
+          { metafields: [{ ownerId: order.id, namespace: 'glizzy', key: 'serial', type: 'single_line_text_field', value: serial }] },
+          creds
+        );
+        const errs = frozen?.metafieldsSet?.userErrors ?? [];
+        if (errs.length) console.error(`[cert] serial freeze refused: ${JSON.stringify(errs).slice(0, 200)}`);
+      } catch (error) {
+        // Missing write_orders lands here; the certificate still renders with
+        // the counted number, it just is not frozen yet.
+        console.error(`[cert] serial freeze failed: ${error.message}`);
+      }
+    }
+  }
+
   const issued = new Date(order.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -134,11 +220,7 @@ export default async function cert(request, context) {
     pageCertificate({
       orderName: order.name,
       issued,
-      // GLZ-000000: minted from the order number, so it exists the moment
-      // the order does and never needs assigning. The glizzy.serial order
-      // metafield OVERRIDES it — for when a number is written on the clay
-      // itself and the record should match the object.
-      serial: order.serial?.value?.trim() || `GLZ-${orderNumber.padStart(6, '0')}`,
+      serial,
       lines,
     }),
     {
