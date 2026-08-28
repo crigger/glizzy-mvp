@@ -350,6 +350,22 @@ function rebuild() {
   // ScrollTrigger: fire after the user has scrolled `SCROLL_TRIGGER_VMIN` of vmin.
   // End is anchored to the PATH's end (not body bottom), so the animation completes at a
   // scroll position reachable in BOTH URL-bar-visible AND URL-bar-hidden states on mobile.
+  //
+  // `state.vh` — the innerHeight the path was BUILT against — not the live
+  // value. The path geometry, the svh-sized sections and this mapping all
+  // agree at build time; on iOS Safari the URL bar then collapses mid-scroll
+  // and innerHeight grows ~100px, so any refresh re-evaluating this function
+  // against the live value shifted the scrub away from the geometry the rest
+  // of the page was laid out on. ~100px of scroll is several hundred px of
+  // ARC (the path zigzags, so arc outruns scroll ~3x) — enough that the drawn
+  // front missed the pinned windows it crosses everywhere the viewport is
+  // honest: the installed PWA, desktop, Android.
+  //
+  // Reachability, since the built vh is the SMALLER bar-visible one and a
+  // smaller vh pushes `end` further down: end must stay under docH minus the
+  // live innerHeight. On iOS the live value only ever grows past the built
+  // one, and body min-height quantises UP past endStubEndY (see buildPath),
+  // so the clearance holds — measured 660px at 430x663 and 663px at 430x932.
   if (st) st.kill();
   const tween = gsap.fromTo(allPaths,
     { strokeDashoffset: pathLen - stubPathLen },
@@ -358,7 +374,7 @@ function rebuild() {
       ease: 'none',
       scrollTrigger: {
         start: () => (SCROLL_TRIGGER_VMIN / 100) * Math.min(window.innerWidth, window.innerHeight),
-        end:   () => state.endStubEndY - window.innerHeight,
+        end:   () => state.endStubEndY - state.vh,
         scrub: 0.5,
         invalidateOnRefresh: true,
       }
