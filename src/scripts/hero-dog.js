@@ -444,16 +444,15 @@ if (import.meta.env.DEV) {
 
     const geom = mesh.geometry.clone();
     /*
-     * RADIAL is thickness-only, export-only. Adam put the AR dog on the
-     * table next to the ceramic (2026-08-28, with a ruler): same length,
-     * visibly thinner — measured thick/long 0.305 rendered against 0.427
-     * real, and 0.427/0.305 = 1.40. Both numbers carry the same photo
-     * biases (perspective, edge blur), so their RATIO is clean even though
-     * neither is. The capsule is built along Y, so Y keeps the true length
-     * and X/Z carry the fattening — this line runs BEFORE the rotateZ
-     * below, which is what makes those the radial axes.
+     * The production dog is the site dog's own proportions at 1.5 inches —
+     * export with --length 0.0381. A radial fattening pass lived here for
+     * two commits (x1.40, then x1.10, both measured against the ceramic
+     * prototype on Adam's table) before he clarified the prototype is
+     * SHORTER than production: at 1.5in the plain capsule's 2/7 already
+     * lands at ~11mm thick, which is the prototype's girth. Adam's words:
+     * "so closer to our old render. just 1.5 instead of 1."
      */
-    const RADIAL = 1.40;
+    const RADIAL = 1.0;
     geom.scale(scale * RADIAL, scale, scale * RADIAL);
     /*
      * Lay it down. The capsule is built along Y, so it exports standing on
