@@ -309,7 +309,10 @@ ${body}
 </html>`;
 }
 
-function pageCertificate({ issued, serial, title, unit, count }) {
+/* Exported for src/pages/certificate.ts — the dev-only design studio renders
+ * THIS function with sample data, so the studio can never drift from what
+ * buyers actually receive. */
+export function pageCertificate({ issued, serial, title, unit, count }) {
   // The synonym ladder continues here and coins NEW rungs — nothing the site
   // already says. See glizzy voice notes before adding another.
   const paperOf =

@@ -19,3 +19,7 @@ npm-debug.log
 
 # Local Netlify folder
 .netlify
+
+# The certificate studio's auto-log — every keystroke lands here, too churny
+# to track; the ported design goes into cert.mjs, which is the source.
+studio/cert-design.json

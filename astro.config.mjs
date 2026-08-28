@@ -58,6 +58,51 @@ const emailDesignSave = () => ({
   },
 });
 
+/*
+ * Auto-log for the /certificate design studio: the page POSTs its whole
+ * edited paper (markup + every inline style) after each change, debounced.
+ * Lands OUTSIDE src/ (studio/cert-design.json) so writing it never reloads
+ * the page — the email studio's hard-won lesson. latest is the working
+ * state; history keeps the last 50 distinct snapshots.
+ */
+const certStudioLog = () => ({
+  name: 'cert-studio-log',
+  configureServer(server) {
+    server.middlewares.use('/__cert-studio-log', (req, res) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.end();
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', async () => {
+        try {
+          const { paperHTML, inlineStyles = [] } = JSON.parse(body);
+          if (typeof paperHTML !== 'string' || !paperHTML) throw new Error('no paper in payload');
+          const url = new URL('./studio/cert-design.json', import.meta.url);
+          let file = { latest: null, history: [] };
+          try { file = JSON.parse(await readFile(url, 'utf8')); } catch {}
+          const snap = { saved: new Date().toISOString(), paperHTML, inlineStyles };
+          if (file.latest && file.latest.paperHTML !== paperHTML) {
+            file.history.unshift(file.latest);
+            file.history = file.history.slice(0, 50);
+          }
+          file.latest = snap;
+          await mkdir(new URL('./studio/', import.meta.url), { recursive: true });
+          await writeFile(url, JSON.stringify(file, null, 2) + '\n');
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ ok: true }));
+        } catch (error) {
+          res.statusCode = 400;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ ok: false, error: String(error?.message || error) }));
+        }
+      });
+    });
+  },
+});
+
 // Dev-only endpoint — `?inspect` POSTs a diff of everything changed in DevTools
 // since the page settled. It lands in .inspect/ (gitignored) as both JSON and a
 // readable summary, so a change tried in the inspector can be ported into the
@@ -544,7 +589,7 @@ export default defineConfig({
   compressHTML: true,
   build: { inlineStylesheets: 'auto' },
   vite: {
-    plugins: [inspectSave(), emailDesignSave()],
+    plugins: [inspectSave(), emailDesignSave(), certStudioLog()],
     build: {
       /*
        * Name the browsers, because the CSS minifier collapses vendor prefixes
