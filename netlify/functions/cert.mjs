@@ -1,0 +1,274 @@
+/**
+ * The digital certificate of authenticity: `glizzy.store/cert/<order>-<token>`.
+ *
+ * Every order confirmation email carries a link here (the Order confirmation
+ * notification template in the Shopify admin builds it — see CLAUDE.md). The
+ * URL is its own credential: the token half is the same unguessable token
+ * Shopify puts in the buyer's order-status URL, so only someone holding the
+ * confirmation email can mint their certificate. Nothing here is stored and
+ * nothing is written — the function looks the order up, checks the token,
+ * and renders. Shopify remains the only database.
+ *
+ * WHY A FUNCTION AND NOT A ROUTE: orders happen after the build, and a
+ * rebuild-per-order is a webhook, a build minute, and a failure mode per
+ * sale. This needs the ADMIN API anyway (order lookup wants `read_orders`,
+ * which the browser must never hold), so it was always going to be
+ * server-side. `../shopify-admin.mjs` does the client-credentials exchange;
+ * same contract as shopify-subscribe.mjs, same env, same org rules.
+ *
+ * WHAT THE PAGE CONTAINS: no personal data, deliberately. A certificate is
+ * for showing people — it gets printed, shared, framed. Order number, date,
+ * the piece, its serial if it has one. Never a name, never an address.
+ *
+ * THE SERIAL: read from the ORDER metafield `glizzy.serial` (single line
+ * text, set by hand in the admin on the order after the piece is picked).
+ * Absent is fine and expected for v1 — the certificate says the number is
+ * still being assigned rather than inventing one.
+ */
+import crypto from 'node:crypto';
+import { adminGraphql, credentials } from '../shopify-admin.mjs';
+
+export const config = { path: '/cert/:id' };
+
+/** Which vendor this site certifies. Same boundary as the build's catalogue
+ *  filter: an order with none of our line items gets no certificate here. */
+const BRAND = 'glizzy-store';
+
+const ORDER_QUERY = `
+query CertOrder($q: String!) {
+  orders(first: 1, query: $q) {
+    nodes {
+      name
+      createdAt
+      cancelledAt
+      statusPageUrl
+      serial: metafield(namespace: "glizzy", key: "serial") { value }
+      lineItems(first: 20) {
+        nodes { title quantity vendor }
+      }
+    }
+  }
+}`;
+
+/** The token that proves possession: the path segment Shopify puts after
+ *  /orders/ in the buyer's own status-page URL. */
+function tokenFromStatusPageUrl(statusPageUrl) {
+  try {
+    const segments = new URL(statusPageUrl).pathname.split('/');
+    const at = segments.indexOf('orders');
+    return at !== -1 ? segments[at + 1] || null : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Constant-time-ish compare; the tokens are high-entropy so this is belt and
+ *  braces, but it costs three lines. */
+function tokensMatch(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
+export default async function cert(request, context) {
+  const id = context?.params?.id ?? '';
+
+  // <digits>-<token>. The order number is digits only BEFORE it goes anywhere
+  // near a search query; the token charset is Shopify's url-safe token.
+  const match = /^(\d{1,10})-([A-Za-z0-9_-]{16,128})$/.exec(id);
+  if (!match) return notFound();
+  const [, orderNumber, token] = match;
+
+  const creds = credentials();
+  if (!creds) {
+    console.error('[cert] SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET not set');
+    return new Response(page503(), {
+      status: 503,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  }
+
+  let order;
+  try {
+    const data = await adminGraphql(ORDER_QUERY, { q: `name:#${orderNumber}` }, creds);
+    order = data?.orders?.nodes?.[0] ?? null;
+  } catch (error) {
+    // Includes "scope not granted" — which check-shopify-admin.mjs exists to
+    // catch loudly before this ever does quietly.
+    console.error(`[cert] order lookup failed: ${error.message}`);
+    return new Response(page503(), {
+      status: 503,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  }
+
+  if (!order || order.cancelledAt) return notFound();
+
+  const expected = tokenFromStatusPageUrl(order.statusPageUrl);
+  if (!expected || !tokensMatch(token, expected)) return notFound();
+
+  const lines = (order.lineItems?.nodes ?? []).filter(
+    (line) => (line.vendor ?? '').trim().toLowerCase() === BRAND
+  );
+  if (lines.length === 0) return notFound();
+
+  const issued = new Date(order.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'America/New_York',
+  });
+
+  return new Response(
+    pageCertificate({
+      orderName: order.name,
+      issued,
+      serial: order.serial?.value?.trim() || null,
+      lines,
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        // The bearer token is in the URL; nothing shared should cache it.
+        'Cache-Control': 'private, no-store',
+        'X-Robots-Tag': 'noindex',
+      },
+    }
+  );
+}
+
+function notFound() {
+  return new Response(page404(), {
+    status: 404,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
+const escapeHtml = (value) =>
+  String(value).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+  );
+
+/*
+ * The shell every state renders in. Same origin end to end: the fonts are the
+ * site's own /fonts files, there is no script, and nothing loads from anyone
+ * else — the certificate keeps the promise in the site's footer.
+ */
+function shell(title, body) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>${escapeHtml(title)}</title>
+<style>
+@font-face { font-family: 'Sequoia Sans'; src: url('/fonts/SequoiaSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Sequoia Sans'; src: url('/fonts/SequoiaSans-Light.woff2') format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: 'BN Magnolia'; src: url('/fonts/BNMagnolia.woff2') format('woff2'); font-display: swap; }
+:root {
+  --bg: #000d60; --paper: #f7e0c5; --ink: #1a0e04;
+  --mustard: #ffa300; --dog: #dc512a; --faint: rgba(26, 14, 4, 0.55);
+}
+@media (color-gamut: p3) {
+  :root { --bg: color(display-p3 0 0.04 0.27); --paper: color(display-p3 0.96 0.88 0.78); --mustard: color(display-p3 1 0.64 0.12); }
+}
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: 'Sequoia Sans', 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+}
+.paper {
+  background: var(--paper); max-width: 640px; width: 100%;
+  padding: 40px 28px; border: 3px solid var(--dog); outline: 2px solid var(--mustard); outline-offset: 5px;
+  text-align: center;
+}
+h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
+.kicker { letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
+.rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
+p { line-height: 1.55; }
+.lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
+.piece { font-size: 1.35rem; margin: 18px 0 4px; }
+.meta { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin: 26px 0 6px; }
+.meta div { min-width: 130px; }
+.meta dt { letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; color: var(--faint); }
+.meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.fine { font-size: 0.8rem; color: var(--faint); max-width: 52ch; margin: 18px auto 0; }
+.sig { margin-top: 26px; font-size: 0.85rem; color: var(--faint); }
+.sig strong { display: block; color: var(--ink); font-size: 1rem; letter-spacing: 0.04em; }
+a { color: var(--dog); }
+@media print {
+  body { background: #fff; padding: 0; display: block; }
+  .paper { max-width: none; border-color: #000; outline-color: #666; }
+  .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+}
+
+function pageCertificate({ orderName, issued, serial, lines }) {
+  // The synonym ladder continues here and coins NEW rungs — nothing the site
+  // already says. See glizzy voice notes before adding another.
+  const pieces = lines
+    .map((line) => {
+      const qty = Number(line.quantity) || 1;
+      const count = qty > 1 ? `${qty} × ` : '';
+      return `<p class="piece">${count}${escapeHtml(line.title)}</p>`;
+    })
+    .join('\n');
+
+  const serialBlock = serial
+    ? `<div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>`
+    : `<div><dt>Specimen no.</dt><dd>being assigned</dd></div>`;
+
+  return shell(
+    `Certificate ${orderName} — Glizzy`,
+    `<main class="paper">
+  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <h1>Certificate of Authenticity</h1>
+  <hr class="rule">
+  <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Glizzy: hand-formed from real American ground &mdash; kaolin out of the Georgia belt, ball clay out of West Tennessee, talc out of Montana &mdash; and fired to 1,828&deg;F (cone 06), a temperature no impostor sausage survives.</p>
+  ${pieces}
+  <dl class="meta">
+    <div><dt>Certificate</dt><dd>${escapeHtml(orderName)}</dd></div>
+    <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
+    ${serialBlock}
+  </dl>
+  <p class="fine">Authenticity is permanent. The mineral log above is real, the kiln does not negotiate, and this record can be re-summoned from its link forever. No blockchain was consulted.</p>
+  <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Glizzy Store, glizzy.store</p>
+  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a> &middot; print this if you care</p>
+</main>`
+  );
+}
+
+function page404() {
+  return shell(
+    'No such dog on file — Glizzy',
+    `<main class="paper">
+  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <h1>No such dog on file</h1>
+  <hr class="rule">
+  <p class="lede">The bureau has checked its records twice and found no clay companion matching this link. Certificates are issued by the order confirmation email &mdash; follow the link from yours exactly, crumbs and all.</p>
+  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
+</main>`
+  );
+}
+
+function page503() {
+  return shell(
+    'The bureau is closed — Glizzy',
+    `<main class="paper">
+  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <h1>The bureau is briefly closed</h1>
+  <hr class="rule">
+  <p class="lede">The filing cabinet did not answer. Your certificate exists and is not going anywhere &mdash; try the same link again in a minute.</p>
+</main>`
+  );
+}

@@ -736,3 +736,30 @@ Checkout is branded once per store and lands on `shop.vinton.land` whatever site
 you arrived from — multiple checkout profiles are Shopify Plus only. The drawer
 says so, in `CartDrawer.astro`, rather than letting the domain change surprise
 someone about to type a card number.
+
+## The certificate of authenticity
+
+`glizzy.store/cert/<order_number>-<token>` — a per-order digital certificate,
+rendered live by `netlify/functions/cert.mjs`. The link is built by the **Order
+confirmation notification template** in the Shopify admin (Settings →
+Notifications), which has `order_status_url` in scope; the `<token>` half is
+the unguessable token from that URL, so the link itself is the credential —
+only someone holding the confirmation email can open it. The function looks
+the order up over the Admin API (the Form Connector app's client-credentials
+exchange in `netlify/shopify-admin.mjs`, which needs **`read_orders`** granted
+AND the app version released), verifies the token against the order's own
+`statusPageUrl`, confirms a `glizzy-store` line item, and renders.
+
+Three properties to preserve:
+
+- **No PII on the certificate.** It's built to be printed and shared; order
+  number, date, piece, serial — never a name or address.
+- **Single-origin, no script.** The page uses the site's own `/fonts` files
+  and loads nothing from anyone; the footer's privacy line covers it too.
+- **Shopify is the only database.** Nothing is stored anywhere. The serial is
+  the ORDER metafield `glizzy.serial` (single-line text, set by hand on the
+  order once the physical piece is picked); absent shows as "being assigned".
+
+The copy is in the site's voice and coins NEW rungs of the synonym ladder
+("earthenware frankfurter", "clay companion") — never reuse a name the site
+already uses. The kiln facts on it are the real ones (cone 06, 1,828°F).
