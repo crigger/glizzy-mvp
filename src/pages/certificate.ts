@@ -76,6 +76,7 @@ export const GET: APIRoute = async () => {
     title: 'Glizzy',
     unit: 1,
     count: 1,
+    photo: '/og.jpg', // stand-in; the real one is the order's glizzy.photo metafield
   });
   html = html.replace('</body>', STUDIO + '\n</body>');
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });

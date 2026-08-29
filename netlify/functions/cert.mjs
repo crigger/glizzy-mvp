@@ -44,6 +44,9 @@ query CertOrder($q: String!) {
       cancelledAt
       statusPageUrl
       serial: metafield(namespace: "glizzy", key: "serial") { value }
+      photo: metafield(namespace: "glizzy", key: "photo") {
+        reference { ... on MediaImage { image { url } } }
+      }
       lineItems(first: 20) {
         nodes { title quantity vendor }
       }
@@ -182,6 +185,11 @@ export default async function cert(request, context) {
     }
   }
 
+  /* The portrait of the actual dog: the ORDER metafield glizzy.photo (file
+   * reference, set by hand in the admin — upload the piece's photo before or
+   * after fulfilling). Absent is fine; the paper simply has no plate. */
+  const photo = order.photo?.reference?.image?.url ?? null;
+
   const issued = new Date(order.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -209,6 +217,7 @@ export default async function cert(request, context) {
         title: units[n - 1].title,
         unit: n,
         count: units.length,
+        photo,
       }),
       { status: 200, headers }
     );
@@ -222,6 +231,7 @@ export default async function cert(request, context) {
         title: units[0].title,
         unit: 1,
         count: 1,
+        photo,
       }),
       { status: 200, headers }
     );
@@ -330,6 +340,8 @@ body {
 h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
+.plate { margin: 0 auto 22px; max-width: 380px; }
+.plate img { display: block; width: 100%; border: 2px solid var(--mustard); border-radius: 4px; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
 .piece { font-size: 1.35rem; margin: 18px 0 4px; }
@@ -364,7 +376,7 @@ ${body}
 /* Exported for src/pages/certificate.ts — the dev-only design studio renders
  * THIS function with sample data, so the studio can never drift from what
  * buyers actually receive. */
-export function pageCertificate({ issued, serial, title, unit, count }) {
+export function pageCertificate({ issued, serial, title, unit, count, photo = null }) {
   // The synonym ladder continues here and coins NEW rungs — nothing the site
   // already says. See glizzy voice notes before adding another.
   const paperOf =
@@ -382,6 +394,7 @@ export function pageCertificate({ issued, serial, title, unit, count }) {
   <p class="kicker">Bureau of Provenance</p>
   <h1>Certificate of Authenticity</h1>
   <hr class="rule">
+  ${photo ? `<figure class="plate"><img src="${escapeHtml(photo)}" alt="The certified specimen"></figure>` : ''}
   <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Old Vinton Glizzy: hand-formed from real American ground in the era of our great Earth after Harambe.</p>
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
