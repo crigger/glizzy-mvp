@@ -343,26 +343,32 @@ body {
 }
 h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
-/* Adam's studio pass, 2026-08-29: the brand name breaks out of the kicker as
- * a big Magnolia script line, and the office line steps up in Bricolage. */
-.brand-script { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; display: flex; margin: auto; width: 100%; justify-content: center; text-transform: capitalize; letter-spacing: 0.04em; font-size: 4em; }
-.kicker--office { font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 500; letter-spacing: 0.2em; }
+/* Adam's studio passes, 2026-08-29 (second pass walked the big script line
+ * back down): the brand name stays kicker-sized in Magnolia, the office line
+ * is Bricolage at kicker size, the two lines sit tight together. */
+.kicker--brand { margin-bottom: -0.5em; }
+.brand-script { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; letter-spacing: 0.15em; }
+.kicker--office { font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; margin-bottom: 1rem; font-weight: 500; letter-spacing: 0.2em; }
 .h1-of { font-stretch: normal; font-weight: 300; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
-.plate { margin: 0 auto 22px; max-width: 380px; }
-.plate img { display: block; width: 100%; border: 2px solid var(--mustard); border-radius: 4px; }
+/* the plate is a fixed 4:3 frame (Adam, 2026-08-29) — the photo crops to it
+ * rather than the frame stretching to the photo, so a square glizzy2048-style
+ * shot can never push past the frame into the lede */
+.plate { margin: 0 auto 22px; max-width: 380px; aspect-ratio: 4 / 3; }
+.plate img { display: block; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--mustard); border-radius: 4px; box-sizing: border-box; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
 /* the certificate's own lede tightens up under the plate (Adam, 2026-08-29) */
-.lede--cert { font-size: 1rem; font-weight: 500; line-height: 1.35; letter-spacing: 0.01em; word-spacing: 0.05em; text-wrap: balance; }
+.lede--cert { font-size: 1rem; font-weight: 500; line-height: 1.35; letter-spacing: 0.01em; word-spacing: 0.05em; text-wrap: balance; max-width: 26rem; }
+/* the cert's fine print is one short uppercase line — the hub and 404 keep
+ * the base .fine */
+.fine--cert { max-width: 26rem; letter-spacing: 0.1em; word-spacing: 0.05em; text-wrap: balance; font-size: 0.75rem; font-weight: 500; line-height: 1.35; text-transform: uppercase; }
 .piece { font-size: 1.35rem; margin: 18px 0 4px; }
 .meta { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin: 26px 0 6px; }
 .meta div { min-width: 130px; }
 .meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; color: var(--faint); }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .fine { font-size: 0.8rem; color: var(--faint); max-width: 52ch; margin: 18px auto 0; }
-.sig { margin-top: 26px; font-size: 0.85rem; color: var(--faint); }
-.sig strong { font-family: 'Sequoia Sans', sans-serif; display: block; color: var(--ink); font-size: 1rem; letter-spacing: 0.04em; }
 a { color: var(--dog); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
@@ -398,11 +404,12 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
   return shell(
     `Certificate ${serial} — Glizzy`,
     // Adam's copy + studio passes, 2026-08-28/29 (ported from the studio log,
-    // verbatim): the Harambe-era dating and the Old Vinton Glizzer are his
-    // coinages, do not "fix" them. "Provenance Office" replaced "Bureau of
-    // Provenance" on the paper itself; the window bar and the hub keep Bureau.
+    // verbatim): the Harambe-era dating is his coinage, do not "fix" it.
+    // "Provenance Office" replaced "Bureau of Provenance" on the paper itself
+    // (the window bar and the hub keep Bureau), and his second pass CUT the
+    // kiln signature and the long fine print — the paper ends on one line.
     `<main class="paper">
-  <p class="kicker">Old Vinton <span class="brand-script">Glizzy</span></p>
+  <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
   <h1><span class="h1-of">Certificate of</span> Authenticity</h1>
   <hr class="rule">
@@ -413,8 +420,7 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
     ${paperOf}
   </dl>
-  <p class="fine">Authenticity is permanent. The kiln does not negotiate, and this record can be re-summoned from its link as long as the Old Vinton Glizzer keeps giving. No blockchain was consulted.</p>
-  <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Old Vinton Glizzy</p>
+  <p class="fine fine--cert">Authenticity is permanent.</p>
 </main>`,
     `Certificate · ${serial}`
   );
