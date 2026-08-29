@@ -62,7 +62,8 @@ const studio = (state: string) => `
     // classed 'inspect-capture' so ?inspect ignores it — it rewrites its own
     // text on every save and was arriving in captures as a phantom edit
     pill.className = 'inspect-capture';
-    pill.style.cssText = 'position:fixed;top:10px;right:10px;background:#000d60;color:#f7e0c5;font:12px system-ui;padding:6px 12px;border-radius:99px;opacity:0.85;z-index:9;';
+    // top-LEFT: the site icon owns the top-right corner on cert routes now
+    pill.style.cssText = 'position:fixed;top:10px;left:10px;background:#000d60;color:#f7e0c5;font:12px system-ui;padding:6px 12px;border-radius:99px;opacity:0.85;z-index:9;';
     pill.textContent = 'cert studio · ${state} — logging…';
     document.body.appendChild(pill);
 
