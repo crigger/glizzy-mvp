@@ -1,0 +1,136 @@
+---
+/**
+ * How the store was made, and by whom.
+ *
+ * A route rather than a slab at the bottom of the homepage: the homepage is a
+ * hot dog, and a credits list is not part of that scroll. Linked from the site
+ * note at the very bottom of every page (see SiteNote.astro), which is where
+ * someone who wants this goes looking.
+ *
+ * EVERY CREDIT HERE IS CHECKED. The type attributions were read out of the
+ * fonts' own `name` tables, not from memory:
+ *
+ *   BN Magnolia          Brandon Nickerson / BN Type   bnicks.com
+ *   Bricolage Grotesque  Atelier Triay                 OFL, on GitHub
+ *   Sequoia Sans         NPS Fonts contributors        SIL OFL 1.1
+ *
+ * If a face is added or dropped, re-read the table rather than guessing —
+ * `python3 -c "from fontTools.ttLib import TTFont; ..."` on the woff2 prints
+ * copyright, designer and licence URL.
+ *
+ * `scripts={false}`: no dog and none of its four-screen body height, same as
+ * /thanks and /shop.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import WindowPanel from '../components/WindowPanel.astro';
+
+interface Credit {
+  name: string;
+  by?: string;
+  href?: string;
+  note?: string;
+}
+interface Section {
+  label: string;
+  items: Credit[];
+}
+
+const sections: Section[] = [
+  {
+    label: 'Type',
+    items: [
+      { name: 'BN Magnolia', by: 'Brandon Nickerson', href: 'https://bnicks.com' },
+      {
+        name: 'Bricolage Grotesque',
+        by: 'Atelier Triay',
+        href: 'https://github.com/ateliertriay/bricolage',
+      },
+      { name: 'Sequoia Sans', by: 'NPS Fonts contributors', note: 'SIL OFL 1.1' },
+    ],
+  },
+  {
+    label: 'Made at',
+    items: [{ name: 'Studio 228', note: 'Vinton, Virginia' }],
+  },
+  {
+    label: 'Built with',
+    items: [
+      { name: 'Astro', href: 'https://astro.build' },
+      { name: 'three.js', href: 'https://threejs.org', note: 'the dog' },
+      { name: 'GSAP', href: 'https://gsap.com', note: 'the throwing' },
+      { name: 'Shopify', note: 'headless, Storefront API' },
+      { name: 'Netlify', note: 'hosting, forms, the certificate' },
+    ],
+  },
+  {
+    label: 'Drawn by hand',
+    items: [
+      { name: 'The process marks', note: 'marker on paper, traced' },
+      { name: 'The glizzy itself', note: 'clay, then a kiln' },
+    ],
+  },
+];
+---
+
+<Layout
+  title="Colophon — Glizzy Store"
+  description="How the Glizzy Store was made, and who made the parts of it that were not made here."
+  scripts={false}
+>
+  <SiteIcon />
+
+  <main class="colophon">
+    <section class="colophon__slot" aria-labelledby="colophon-title">
+      <WindowPanel title="Colophon">
+        <div class="colophon__body">
+          <h1 class="colophon__title f-sequoia" id="colophon-title">Colophon</h1>
+
+          <p class="colophon__lede">
+            A store for one ceramic hot dog, built in Vinton, Virginia. It loads
+            nothing from anyone else, so everything below is something we either
+            made or brought inside on purpose.
+          </p>
+
+          {
+            sections.map((section) => (
+              <section class="colophon__section">
+                <h2 class="colophon__label f-sequoia">{section.label}</h2>
+                <ul class="colophon__list">
+                  {section.items.map((item) => (
+                    <li class="colophon__item">
+                      <span class="colophon__name">{item.name}</span>
+                      {item.by && (
+                        <span class="colophon__by">
+                          {' by '}
+                          {item.href ? (
+                            <a href={item.href} rel="noopener noreferrer" target="_blank">
+                              {item.by}
+                            </a>
+                          ) : (
+                            item.by
+                          )}
+                        </span>
+                      )}
+                      {!item.by && item.href && (
+                        <span class="colophon__by">
+                          {' — '}
+                          <a href={item.href} rel="noopener noreferrer" target="_blank">
+                            {new URL(item.href).hostname.replace(/^www\./, '')}
+                          </a>
+                        </span>
+                      )}
+                      {item.note && <span class="colophon__note">{item.note}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
+          }
+
+          <a class="shop-button shop-button--quiet colophon__back" href="/">Back</a>
+        </div>
+      </WindowPanel>
+    </section>
+  </main>
+</Layout>

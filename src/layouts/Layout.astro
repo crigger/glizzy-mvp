@@ -178,15 +178,27 @@ const ogImageUrl = new URL(ogImage ?? '/og.jpg', Astro.site ?? SITE_FALLBACK).hr
     {import.meta.env.DEV && <script is:inline src="/js/inspect-capture.js" defer />}
 
     {/*
-      Register the service worker. Only meaningful over HTTPS or on localhost;
-      silently no-ops elsewhere.
+      Register the service worker — in the BUILD only.
+
+      It used to register on localhost as well, and a cache-first worker in
+      front of a dev server is a machine for wasting an afternoon: edits land
+      on disk, Vite recompiles, and the browser keeps serving yesterday's file
+      with no error anywhere. It cost one "my dog disappeared" and one "my CSS
+      isn't applying" on 2026-08-29, both of them fixed by unregistering it and
+      neither of them a bug in the code being edited.
+
+      If the worker itself is what needs testing, use `npm run build && npm run
+      preview` — that is a real build on a real origin, which is the only place
+      its behaviour means anything anyway.
     */}
-    <script is:inline>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
-        });
-      }
-    </script>
+    {!import.meta.env.DEV && (
+      <script is:inline>
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+          });
+        }
+      </script>
+    )}
   </body>
 </html>

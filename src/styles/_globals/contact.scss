@@ -219,11 +219,12 @@
   margin: 0;
   color: var(--bg-top);
 }
+/* No face class on the note: it is a `p` on the card, so it takes
+ * `.window-content__inner p` — Bricolage 500, the process windows' body copy
+ * (Adam, 2026-08-29). Only the measure and the spacing are set here. */
 .thanks__body .thanks__note {
   margin: 0.75rem auto 0;
   max-width: 24ch;
-  font-size: 1rem;
-  line-height: 1.35;
 }
 /*
  * `.shop-button` is full-width by default — right for the form's Send, wrong
@@ -236,5 +237,110 @@
   color: var(--bg-bottom);
   /* `.shop-button--quiet` draws a 1px keyline; the card's ink is heavier than
    * the navy ground it was drawn for, so this one is 2px (Adam, 2026-08-29). */
+  box-shadow: inset 0 0 0 2px currentColor;
+}
+
+/*
+ * /colophon — who made what.
+ *
+ * Same window treatment as /thanks, but top-anchored rather than centred: this
+ * is a list that can outgrow the viewport, and a centred grid item with more
+ * content than room overflows off the TOP where there is no way to scroll back.
+ *
+ * The list is two columns from 40rem up. Each row is one credit; the name
+ * carries the weight, the attribution and the note step back — after crest.red
+ * and uhh-ok, both of which put the name first and the source in a quieter
+ * voice beside it.
+ */
+.colophon {
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: max(env(safe-area-inset-top, 0px), 5rem) var(--page-pad, 1.25rem) 4rem;
+}
+.colophon__slot {
+  width: 100%;
+  max-width: 44rem;
+  min-height: 0;
+}
+.colophon__body .colophon__title {
+  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  line-height: 0.9;
+  margin: 0;
+  color: var(--bg-top);
+}
+.colophon__body .colophon__lede { max-width: 52ch; margin: 0.75rem 0 2.25rem; }
+
+/*
+ * `min-height: 0` because these are <section> elements and the site-wide
+ * `section` rule makes one nearly a viewport tall — which stacked four 637px
+ * credit lists down an otherwise empty card. Same override .contact-block and
+ * .acquire-break carry, same reason.
+ */
+.colophon__section {
+  /*
+   * The site-wide `section` rule is written for the page's full-height bands:
+   * `min-height: calc(100svh - 120px)`, `margin: 24px 0`, `padding: 48px 0`.
+   * These are credit lists inside a card, so all three are reset — the
+   * min-height alone still left 96px of padding between every heading.
+   */
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* The gap between one credit block and the next, now that the section's own
+ * margin is gone. */
+.colophon__section + .colophon__section { margin-top: 2.25rem; }
+/*
+ * The section label, in the chrome bar's voice: small, tracked, upper. The rule
+ * under it is a border rather than an <hr> for the same reason .site-note's is
+ * — it belongs to this block, it is not a break between two of them.
+ */
+.colophon__body .colophon__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 400;
+  margin: 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--mustard);
+  color: var(--bg-top);
+}
+.colophon__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem 1.5rem;
+}
+@media (min-width: 40rem) {
+  .colophon__list { grid-template-columns: 1fr 1fr; }
+}
+.colophon__item {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+.colophon__name { font-weight: 700; }
+.colophon__by a { color: inherit; text-underline-offset: 2px; }
+/*
+ * The note sits on its own line under the name rather than in parentheses
+ * after it: half of these are two words ("the dog", "Vinton, Virginia") and a
+ * parenthesis makes them read as an aside rather than as the fact they are.
+ */
+.colophon__note {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.colophon__back {
+  width: auto;
+  margin-top: 0.5rem;
+  align-self: flex-start;
+  color: var(--bg-bottom);
   box-shadow: inset 0 0 0 2px currentColor;
 }

@@ -154,3 +154,26 @@ p  { margin: 0 0 10px; }
   line-height: 1.5;
   letter-spacing: 0.02em;
 }
+
+/*
+ * The colophon link: the very last line, centred, quieter than the note above
+ * it. Its own <p> rather than a clause inside the note — the note is a claim
+ * about the site's behaviour and this is a door, and running them together
+ * would make the door read as part of the claim.
+ */
+.site-note__colophon {
+  margin: 0.6rem 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.site-note__colophon a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.75;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+
+  &:hover { opacity: 1; }
+}
