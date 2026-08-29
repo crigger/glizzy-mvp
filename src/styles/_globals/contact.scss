@@ -267,10 +267,11 @@
 .colophon__body .colophon__title {
   font-size: clamp(2.2rem, 9vw, 3.2rem);
   line-height: 0.9;
-  margin: 0;
+  /* The lede under this was cut (Adam, 2026-08-29); its bottom margin was what
+   * held the first section off the title, so the title carries it now. */
+  margin: 0 0 2.25rem;
   color: var(--bg-top);
 }
-.colophon__body .colophon__lede { max-width: 52ch; margin: 0.75rem 0 2.25rem; }
 
 /*
  * `min-height: 0` because these are <section> elements and the site-wide
