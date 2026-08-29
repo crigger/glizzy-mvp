@@ -350,6 +350,8 @@ h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: cl
 .brand-script { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; letter-spacing: 0.15em; }
 .kicker--office { font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; margin-bottom: 1rem; font-weight: 500; letter-spacing: 0.2em; }
 .h1-of { font-stretch: normal; font-weight: 300; }
+/* the certificate's own h1 breathes wider than the shared 7em (Adam, 2026-08-29) */
+.h1--cert { max-width: 10em; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
 /* the plate is a fixed 4:3 frame (Adam, 2026-08-29) — the photo crops to it
  * rather than the frame stretching to the photo, so a square glizzy2048-style
@@ -412,7 +414,7 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
-  <h1><span class="h1-of">Certificate of</span> Authenticity</h1>
+  <h1 class="h1--cert"><span class="h1-of">Certificate of</span> Authenticity</h1>
   <hr class="rule">
   ${photo ? `<figure class="plate"><img src="${escapeHtml(photo)}" alt="The certified specimen"></figure>` : ''}
   <p class="lede lede--cert">Be it known that the earthenware frankfurter ${photo ? 'pictured above' : 'described'} is a genuine Old Vinton Glizzy, hand-formed from real American ground in the era of our great Earth after Harambe.</p>
