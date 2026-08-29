@@ -341,8 +341,8 @@ body {
   background: var(--paper); color: var(--ink);
   padding: 40px 28px; border-radius: 4px; text-align: center;
 }
-h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
-.kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
+h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 2.5rem); line-height: 1; color: var(--bg); }
+.kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 1rem; color: var(--bg); }
 /* Adam's studio passes, 2026-08-29 (second pass walked the big script line
  * back down): the brand name stays kicker-sized in Magnolia, the office line
  * is Bricolage at kicker size, the two lines sit tight together. */
@@ -354,8 +354,8 @@ h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal
 /* the plate is a fixed 4:3 frame (Adam, 2026-08-29) — the photo crops to it
  * rather than the frame stretching to the photo, so a square glizzy2048-style
  * shot can never push past the frame into the lede */
-.plate { margin: 0 auto 22px; max-width: 380px; aspect-ratio: 4 / 3; }
-.plate img { display: block; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--mustard); border-radius: 4px; box-sizing: border-box; }
+.plate { margin: 0 auto 22px; max-width: 26rem; aspect-ratio: 4 / 3; }
+.plate img { display: block; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--mustard); border-radius: 8px; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
 /* the certificate's own lede tightens up under the plate (Adam, 2026-08-29) */
@@ -366,9 +366,9 @@ p { line-height: 1.55; }
 .piece { font-size: 1.35rem; margin: 18px 0 4px; }
 .meta { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin: 26px 0 6px; }
 .meta div { min-width: 130px; }
-.meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; color: var(--faint); }
+.meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.fine { font-size: 0.8rem; color: var(--faint); max-width: 52ch; margin: 18px auto 0; }
+.fine { margin: 3rem auto 0; }
 a { color: var(--dog); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
