@@ -343,11 +343,18 @@ body {
 }
 h1 { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 3.1rem); line-height: 1.05; color: var(--dog); }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 0.72rem; color: var(--faint); margin-bottom: 14px; }
+/* Adam's studio pass, 2026-08-29: the brand name breaks out of the kicker as
+ * a big Magnolia script line, and the office line steps up in Bricolage. */
+.brand-script { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; display: flex; margin: auto; width: 100%; justify-content: center; text-transform: capitalize; letter-spacing: 0.04em; font-size: 4em; }
+.kicker--office { font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; margin-bottom: 1rem; font-size: 1.25rem; font-weight: 500; letter-spacing: 0.2em; }
+.h1-of { font-stretch: normal; font-weight: 300; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
 .plate { margin: 0 auto 22px; max-width: 380px; }
 .plate img { display: block; width: 100%; border: 2px solid var(--mustard); border-radius: 4px; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
+/* the certificate's own lede tightens up under the plate (Adam, 2026-08-29) */
+.lede--cert { font-size: 1rem; font-weight: 500; line-height: 1.35; letter-spacing: 0.01em; word-spacing: 0.05em; text-wrap: balance; }
 .piece { font-size: 1.35rem; margin: 18px 0 4px; }
 .meta { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin: 26px 0 6px; }
 .meta div { min-width: 130px; }
@@ -390,16 +397,17 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
 
   return shell(
     `Certificate ${serial} — Glizzy`,
-    // Adam's copy pass, 2026-08-28 (ported from the studio log, verbatim —
-    // the lowercase kicker is uppercased by the CSS): the Harambe-era dating
-    // and the Old Vinton Glizzer are his coinages, do not "fix" them.
+    // Adam's copy + studio passes, 2026-08-28/29 (ported from the studio log,
+    // verbatim): the Harambe-era dating and the Old Vinton Glizzer are his
+    // coinages, do not "fix" them. "Provenance Office" replaced "Bureau of
+    // Provenance" on the paper itself; the window bar and the hub keep Bureau.
     `<main class="paper">
-  <p class="kicker">old vinton Glizzy</p>
-  <p class="kicker">Bureau of Provenance</p>
-  <h1>Certificate of Authenticity</h1>
+  <p class="kicker">Old Vinton <span class="brand-script">Glizzy</span></p>
+  <p class="kicker kicker--office">Provenance Office</p>
+  <h1><span class="h1-of">Certificate of</span> Authenticity</h1>
   <hr class="rule">
   ${photo ? `<figure class="plate"><img src="${escapeHtml(photo)}" alt="The certified specimen"></figure>` : ''}
-  <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Old Vinton Glizzy: hand-formed from real American ground in the era of our great Earth after Harambe.</p>
+  <p class="lede lede--cert">This document certifies that the earthenware frankfurter described is a genuine Old Vinton Glizzy: hand-formed from real American ground in the era of our great Earth after Harambe.</p>
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
