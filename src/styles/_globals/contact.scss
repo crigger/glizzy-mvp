@@ -339,7 +339,9 @@
 }
 .colophon__back {
   width: auto;
-  margin-top: 0.5rem;
+  /* Clear of the last credit block — it is a way out of the page, not the
+   * next line of the list (Adam, 2026-08-29). */
+  margin-top: 2.75rem;
   align-self: flex-start;
   color: var(--bg-bottom);
   box-shadow: inset 0 0 0 2px currentColor;
