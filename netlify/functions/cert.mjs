@@ -369,6 +369,7 @@ p { line-height: 1.55; }
 .meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .fine { margin: 3rem auto 0; }
+.fine + .fine { margin-top: 0.75rem; }
 a { color: var(--dog); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
@@ -431,7 +432,7 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
  * serial and its own paper, because framing one certificate for three
  * different sausages would be an insult to at least two of them.
  */
-function pageHub({ issued, units, serials, id }) {
+export function pageHub({ issued, units, serials, id }) {
   const rows = units
     .map(
       (u, i) => `<p class="piece"><a href="/cert/${escapeHtml(id)}/${i + 1}">${escapeHtml(
@@ -443,39 +444,42 @@ function pageHub({ issued, units, serials, id }) {
   return shell(
     `Certificates — Glizzy`,
     `<main class="paper">
-  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
-  <h1>Certificates of Authenticity</h1>
+  <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
+  <p class="kicker kicker--office">Provenance Office</p>
+  <h1><span class="h1-of">Certificates of</span> Authenticity</h1>
   <hr class="rule">
-  <p class="lede">This order (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
+  <p class="lede lede--cert">This order (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
   ${rows}
-  <p class="fine">Authenticity is permanent, and it is per dog.</p>
-  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
+  <p class="fine fine--cert">Authenticity is permanent, and it is per dog.</p>
+  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
 </main>`
   );
 }
 
-function page404() {
+export function page404() {
   return shell(
     'No such dog on file — Glizzy',
     `<main class="paper">
-  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
+  <p class="kicker kicker--office">Provenance Office</p>
   <h1>No such dog on file</h1>
   <hr class="rule">
-  <p class="lede">The bureau has checked its records twice and found no clay companion matching this link. Certificates are issued by the order confirmation email &mdash; follow the link from yours exactly, crumbs and all.</p>
-  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
+  <p class="lede lede--cert">The bureau has checked its records twice and found no clay companion matching this link. Certificates are issued by the shipping email &mdash; follow the link from yours exactly, crumbs and all.</p>
+  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
 </main>`,
     'No such dog'
   );
 }
 
-function page503() {
+export function page503() {
   return shell(
     'The bureau is closed — Glizzy',
     `<main class="paper">
-  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
+  <p class="kicker kicker--office">Provenance Office</p>
   <h1>The bureau is briefly closed</h1>
   <hr class="rule">
-  <p class="lede">The filing cabinet did not answer. Your certificate exists and is not going anywhere &mdash; try the same link again in a minute.</p>
+  <p class="lede lede--cert">The filing cabinet did not answer. Your certificate exists and is not going anywhere &mdash; try the same link again in a minute.</p>
 </main>`
   );
 }

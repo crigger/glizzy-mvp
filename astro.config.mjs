@@ -78,12 +78,12 @@ const certStudioLog = () => ({
       req.on('data', (chunk) => (body += chunk));
       req.on('end', async () => {
         try {
-          const { paperHTML, inlineStyles = [] } = JSON.parse(body);
+          const { paperHTML, inlineStyles = [], state = 'cert' } = JSON.parse(body);
           if (typeof paperHTML !== 'string' || !paperHTML) throw new Error('no paper in payload');
           const url = new URL('./studio/cert-design.json', import.meta.url);
           let file = { latest: null, history: [] };
           try { file = JSON.parse(await readFile(url, 'utf8')); } catch {}
-          const snap = { saved: new Date().toISOString(), paperHTML, inlineStyles };
+          const snap = { saved: new Date().toISOString(), state, paperHTML, inlineStyles };
           if (file.latest && file.latest.paperHTML !== paperHTML) {
             file.history.unshift(file.latest);
             file.history = file.history.slice(0, 50);
