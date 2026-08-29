@@ -799,6 +799,30 @@ show on every order page in the admin):
   when the write fails: a missed cert_url is recoverable by hand, a webhook
   Shopify disables for flapping is not.
 
+The buyer also sees the certificate on their ACCOUNT order page
+(account.vinton.land) via **`papers-app/`** — "Glizzy Papers", an
+extension-only app (deliberately separate from the Form Connector so its
+released scopes are never touched) with one customer-account UI extension
+targeting `customer-account.order-status.block.render`, placed on the Order
+status page in the checkout & accounts editor. It shows from ORDER TIME
+(Adam's call — unlike the email, which waits for shipping). The
+`glizzy.cert_url` metafield's presence is the brand gate. Four traps, each
+verified live on 2026-08-29 and each hiding the next:
+
+- The extension reads the metafield by POSTing GraphQL to
+  `shopify://customer-account/api/<version>/graphql.json` (auth automatic).
+  `shopify.query()` is the STOREFRONT API — no `order` on its QueryRoot —
+  and the declared-metafields channel (`[[extensions.metafields]]` +
+  `shopify.appMetafields`) never delivered this merchant metafield at all.
+- The app needs the `customer_read_orders` scope — and a scope is version +
+  release + INSTALL-GRANT update, same saga as the Form Connector.
+- The metafield definition needs "Customer Account API access: Read"
+  (Settings → Custom data — it defaults to No access; so does Storefront).
+- Editing a pinned metafield on an admin ORDER page is only saved by the
+  page's "Unsaved changes → Save" bar. The filled-in field after blur is
+  LOCAL STATE — navigate away and it's silently gone. Verify against a
+  fresh page load, never against the field you just typed in.
+
 Driving the webhooks admin page, learned 2026-08-29: the Add-webhook modal is
 the new `s-internal-*` web components — every control is in shadow DOM, so
 the a11y tree can't see them AND programmatically setting `select.value` +
