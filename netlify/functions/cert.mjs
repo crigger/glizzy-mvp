@@ -341,7 +341,7 @@ body {
   background: var(--paper); color: var(--ink);
   padding: 40px 28px; border-radius: 4px; text-align: center;
 }
-h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 2.5rem); line-height: 1; color: var(--bg); }
+h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 2.5rem); line-height: 1; color: var(--bg); max-width: 7em; margin: 0 auto; }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 1rem; color: var(--bg); }
 /* Adam's studio passes, 2026-08-29 (second pass walked the big script line
  * back down): the brand name stays kicker-sized in Magnolia, the office line
@@ -370,7 +370,7 @@ p { line-height: 1.55; }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .fine { margin: 3rem auto 0; }
 .fine + .fine { margin-top: 0.75rem; }
-a { color: var(--dog); }
+a { color: var(--bg); }
 @media print {
   body { background: #fff; padding: 0; display: block; }
   .window { max-width: none; box-shadow: none; border-color: #000; border-radius: 0; }
@@ -464,8 +464,8 @@ export function page404() {
   <p class="kicker kicker--office">Provenance Office</p>
   <h1>No such dog on file</h1>
   <hr class="rule">
-  <p class="lede lede--cert">The bureau has checked its records twice and found no clay companion matching this link. Certificates are issued by the shipping email &mdash; follow the link from yours exactly, crumbs and all.</p>
-  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
+  <p class="lede lede--cert">No clay companion matching this link. Certificates are issued by the shipping confirmation email.</p>
+  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to Glizzy Store</a></p>
 </main>`,
     'No such dog'
   );
