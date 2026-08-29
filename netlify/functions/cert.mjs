@@ -402,11 +402,22 @@ h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: cl
 /* the terse 404/503 headlines wrap tighter (Adam, 2026-08-29) */
 .h1--narrow { max-width: 7em; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
-/* the plate is a fixed 4:3 frame (Adam, 2026-08-29) — the photo crops to it
- * rather than the frame stretching to the photo, so a square glizzy2048-style
- * shot can never push past the frame into the lede */
-.plate { margin: 0 auto 22px; max-width: 26rem; aspect-ratio: 4 / 3; }
-.plate img { display: block; width: 100%; height: 100%; object-fit: cover; border: 2px solid var(--mustard); border-radius: 8px; }
+/* The plate is a POLAROID (Adam, 2026-08-29): white frame, fat chin, a soft
+ * lift off the bone. Square on the paper — a tilt was tried and cut, and the
+ * chin deepened to 68px, both from Adam's capture the same day. The 4:3 crop
+ * survives from the earlier fixed frame, moved onto the img so the chin can
+ * grow the figure: the photo still crops to the frame rather than the frame
+ * stretching to the photo, and a square glizzy2048-style shot can never push
+ * past it into the lede. The mustard keyline went with the frame — a
+ * polaroid has no keyline. */
+.plate {
+  margin: 0 auto 26px; max-width: 24rem;
+  background: #fff;
+  padding: 12px 12px 68px;
+  border-radius: 3px;
+  box-shadow: 0 8px 22px rgba(26, 14, 4, 0.22);
+}
+.plate img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1px; }
 p { line-height: 1.55; }
 .lede { font-size: 1.05rem; margin: 0 auto; max-width: 46ch; }
 /* the certificate's own lede tightens up under the plate (Adam, 2026-08-29) */
