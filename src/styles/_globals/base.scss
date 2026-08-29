@@ -171,9 +171,6 @@ p  { margin: 0 0 10px; }
 .site-note__colophon a {
   color: inherit;
   text-decoration: none;
-  opacity: 0.75;
   border-bottom: 1px solid currentColor;
   padding-bottom: 1px;
-
-  &:hover { opacity: 1; }
 }
