@@ -414,7 +414,7 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
   <h1><span class="h1-of">Certificate of</span> Authenticity</h1>
   <hr class="rule">
   ${photo ? `<figure class="plate"><img src="${escapeHtml(photo)}" alt="The certified specimen"></figure>` : ''}
-  <p class="lede lede--cert">This document certifies that the earthenware frankfurter described is a genuine Old Vinton Glizzy: hand-formed from real American ground in the era of our great Earth after Harambe.</p>
+  <p class="lede lede--cert">Be it known that the earthenware frankfurter ${photo ? 'pictured above' : 'described'} is a genuine Old Vinton Glizzy, hand-formed from real American ground in the era of our great Earth after Harambe.</p>
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
