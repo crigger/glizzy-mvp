@@ -43,6 +43,7 @@ query CertOrder($q: String!) {
       createdAt
       cancelledAt
       statusPageUrl
+      note
       serial: metafield(namespace: "glizzy", key: "serial") { value }
       photo: metafield(namespace: "glizzy", key: "photo") {
         reference { ... on MediaImage { image { url } } }
@@ -168,6 +169,13 @@ export default async function cert(request, context) {
       (line.customAttributes ?? []).find((a) => a.key === 'Note')?.value?.trim() || null;
     for (let i = 0; i < qty; i++) units.push({ title: line.title, note });
   }
+
+  /* Fallback ode: a unit with no PDP note takes the order's Notes card
+   * (order.note) instead, so a hand-written ode in the admin reaches the
+   * paper on ANY order — drafts included (Adam's call, 2026-08-29). A
+   * buyer's PDP note still wins over the card. */
+  const orderNote = (order.note ?? '').trim() || null;
+  if (orderNote) for (const unit of units) unit.note ||= orderNote;
 
   /*
    * The serials. The stored list always wins entry-for-entry — a previous
