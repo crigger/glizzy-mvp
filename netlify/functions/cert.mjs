@@ -265,7 +265,7 @@ const escapeHtml = (value) =>
  * site's own /fonts files, there is no script, and nothing loads from anyone
  * else — the certificate keeps the promise in the site's footer.
  */
-function shell(title, body, barTitle = 'Bureau of Provenance') {
+function shell(title, body, barTitle = 'Office of Provenance') {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -406,8 +406,8 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
     `Certificate ${serial} — Glizzy`,
     // Adam's copy + studio passes, 2026-08-28/29 (ported from the studio log,
     // verbatim): the Harambe-era dating is his coinage, do not "fix" it.
-    // "Provenance Office" replaced "Bureau of Provenance" on the paper itself
-    // (the window bar and the hub keep Bureau), and his second pass CUT the
+    // it is ALWAYS "office", never "bureau" — Adam killed Bureau of
+    // Provenance everywhere on 2026-08-29 — and his second pass CUT the
     // kiln signature and the long fine print — the paper ends on one line.
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
@@ -473,11 +473,11 @@ export function page404() {
 
 export function page503() {
   return shell(
-    'The bureau is closed — Glizzy',
+    'The office is closed — Glizzy',
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
-  <h1>The bureau is briefly closed</h1>
+  <h1>The office is briefly closed</h1>
   <hr class="rule">
   <p class="lede lede--cert">The filing cabinet did not answer. Your certificate exists and is not going anywhere &mdash; try the same link again in a minute.</p>
 </main>`
