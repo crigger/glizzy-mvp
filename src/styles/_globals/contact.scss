@@ -185,5 +185,56 @@
  */
 .contact__pot { display: none; }
 
-// The /thanks page reuses the block; there is no form on it to space out.
-.contact--thanks .contact__submit { margin-top: 1.5rem; }
+/*
+ * The /thanks page.
+ *
+ * It used to borrow `.contact` without the panel those rules are written for,
+ * which put four lines of type in the top-left corner of an empty screen under
+ * a full-bleed blue pill. It has the window treatment now, centred in the
+ * viewport: the card is the site's unit of "something to read", and a sent
+ * message deserves to land on one.
+ */
+.thanks {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: max(env(safe-area-inset-top, 0px), 5rem) var(--page-pad, 1.25rem) 3rem;
+}
+.thanks__slot {
+  width: 100%;
+  max-width: 32rem;
+  /* `section` defaults to nearly a viewport tall elsewhere; not here. */
+  min-height: 0;
+}
+.thanks__body { text-align: center; }
+/*
+ * QUALIFIED, like `.contact__title` above and for the same reason:
+ * `.window-content__inner h2` styles the card's copy at (0,1,1), so a bare
+ * class at (0,1,0) loses and the display face renders at the panel's heading
+ * size.
+ */
+.thanks__body .thanks__title {
+  font-size: clamp(2.6rem, 12vw, 4rem);
+  line-height: 0.9;
+  margin: 0;
+  color: var(--bg-top);
+}
+.thanks__body .thanks__note {
+  margin: 0.75rem auto 0;
+  max-width: 24ch;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+/*
+ * `.shop-button` is full-width by default — right for the form's Send, wrong
+ * for a single link under two lines of type. Width auto and the quiet fill, so
+ * the loud pill stays the thing you press to BUY something.
+ */
+.thanks__back {
+  width: auto;
+  margin-top: 1.75rem;
+  color: var(--bg-bottom);
+  /* `.shop-button--quiet` draws a 1px keyline; the card's ink is heavier than
+   * the navy ground it was drawn for, so this one is 2px (Adam, 2026-08-29). */
+  box-shadow: inset 0 0 0 2px currentColor;
+}

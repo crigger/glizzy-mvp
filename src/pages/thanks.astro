@@ -6,12 +6,19 @@
  * linked from anywhere. It exists so a sent message ends on the site rather
  * than on Netlify's generic confirmation screen.
  *
+ * It wears the window treatment (2026-08-29). Before that it borrowed the
+ * contact block's classes WITHOUT the panel those classes are written for, so
+ * four lines of type sat bare in the top-left corner of an empty navy screen
+ * under a full-width blue pill. The card is what the rest of the site is made
+ * of; a confirmation is the last thing a person sees, so it gets one too.
+ *
  * `scripts={false}`: no dog, and none of the four-screen body height it
  * assumes. This is four lines of text; the dog would open it onto empty
  * screens, the same reason /shop and /type set it.
  */
 import Layout from '../layouts/Layout.astro';
 import SiteIcon from '../components/SiteIcon.astro';
+import WindowPanel from '../components/WindowPanel.astro';
 ---
 
 <Layout
@@ -22,15 +29,17 @@ import SiteIcon from '../components/SiteIcon.astro';
 >
   <SiteIcon />
 
-  <main>
-    <section class="contact-block" aria-labelledby="thanks-title">
-      <div class="contact contact--thanks">
-        <h1 class="contact__title f-magnolia" id="thanks-title">Thanks</h1>
-        <p class="contact__intro f-sequoia">
-          Your message made it. Someone will read it.
-        </p>
-        <a class="shop-button contact__submit" href="/">Back</a>
-      </div>
+  <main class="thanks">
+    <section class="thanks__slot" aria-labelledby="thanks-title">
+      <WindowPanel title="Message sent">
+        <div class="thanks__body">
+          <h1 class="thanks__title f-sequoia" id="thanks-title">Thanks</h1>
+          <p class="thanks__note f-sequoia">
+            Your message made it. Someone will read it.
+          </p>
+          <a class="shop-button shop-button--quiet thanks__back" href="/">Back</a>
+        </div>
+      </WindowPanel>
     </section>
   </main>
 </Layout>
