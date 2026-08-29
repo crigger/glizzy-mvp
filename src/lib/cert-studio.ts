@@ -16,12 +16,15 @@ const SAMPLE = {
   serial: 'GLZ-QNAE5P',
   title: 'Glizzy',
   photo: '/og.jpg', // stand-in; the real one is the order's glizzy.photo metafield
+  note: 'For the mantel, not the microwave.', // stand-in for the order note
 };
 
 export const STATES: Record<string, () => string> = {
-  cert: () => pageCertificate({ ...SAMPLE, unit: 1, count: 1 }),
-  plain: () => pageCertificate({ ...SAMPLE, unit: 1, count: 1, photo: null }),
-  multi: () => pageCertificate({ ...SAMPLE, serial: 'GLZ-3SDM9H', unit: 2, count: 3 }),
+  cert: () => pageCertificate({ ...SAMPLE }),
+  plain: () => pageCertificate({ ...SAMPLE, photo: null, note: null }),
+  // A dog from a multi-dog order renders the same paper as a single —
+  // the "Paper n of m" row went on 2026-08-29; only the hub counts.
+  multi: () => pageCertificate({ ...SAMPLE, serial: 'GLZ-3SDM9H' }),
   hub: () =>
     pageHub({
       issued: SAMPLE.issued,

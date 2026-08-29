@@ -48,7 +48,7 @@ query CertOrder($q: String!) {
         reference { ... on MediaImage { image { url } } }
       }
       lineItems(first: 20) {
-        nodes { title quantity vendor }
+        nodes { title quantity vendor customAttributes { key value } }
       }
     }
   }
@@ -155,10 +155,18 @@ export default async function cert(request, context) {
 
   // One unit per physical dog: a line with quantity 3 is three units, three
   // serials, three papers.
+  //
+  // The ode: the buyer's PDP note travels as the line-item attribute `Note`
+  // (ODE_KEY in cart.js — the two strings are a contract), so it is per LINE
+  // and every unit of that line carries it onto its paper. It is buyer-typed
+  // text on a page built to be shared, so the no-PII rule leans on the
+  // 100-char three-line field and whoever typed it.
   const units = [];
   for (const line of lines) {
     const qty = Math.max(1, Number(line.quantity) || 1);
-    for (let i = 0; i < qty; i++) units.push({ title: line.title });
+    const note =
+      (line.customAttributes ?? []).find((a) => a.key === 'Note')?.value?.trim() || null;
+    for (let i = 0; i < qty; i++) units.push({ title: line.title, note });
   }
 
   /*
@@ -219,9 +227,8 @@ export default async function cert(request, context) {
         issued,
         serial: serials[n - 1],
         title: units[n - 1].title,
-        unit: n,
-        count: units.length,
         photo,
+        note: units[n - 1].note,
       }),
       { status: 200, headers }
     );
@@ -233,9 +240,8 @@ export default async function cert(request, context) {
         issued,
         serial: serials[0],
         title: units[0].title,
-        unit: 1,
-        count: 1,
         photo,
+        note: units[0].note,
       }),
       { status: 200, headers }
     );
@@ -370,6 +376,16 @@ p { line-height: 1.55; }
 .meta div { min-width: 130px; }
 .meta dt { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.62rem; }
 .meta dd { font-size: 1.05rem; margin-top: 4px; font-variant-numeric: tabular-nums; }
+/* the order's note, filed on the paper as typed: monospace in a --bg-keyline
+ * box (Adam, 2026-08-29). pre-wrap because notes arrive with their own line
+ * breaks. */
+.note {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem; line-height: 1.5;
+  white-space: pre-wrap; overflow-wrap: break-word;
+  outline: 2px solid var(--bg); border-radius: 4px;
+  padding: 12px 16px; margin: 26px auto 0; max-width: 26rem;
+}
 .fine { margin: 3rem auto 0; }
 .fine + .fine { margin-top: 0.75rem; }
 a { color: var(--bg); }
@@ -396,14 +412,12 @@ ${body}
 /* Exported for src/pages/certificate.ts — the dev-only design studio renders
  * THIS function with sample data, so the studio can never drift from what
  * buyers actually receive. */
-export function pageCertificate({ issued, serial, title, unit, count, photo = null }) {
+export function pageCertificate({ issued, serial, title, photo = null, note = null }) {
   // The synonym ladder continues here and coins NEW rungs — nothing the site
   // already says. See glizzy voice notes before adding another.
-  const paperOf =
-    count > 1
-      ? `<div><dt>Paper</dt><dd>${unit} of ${count}</dd></div>`
-      : '';
-
+  // No "Paper n of m" row on multi-dog papers (Adam, 2026-08-29) — the
+  // specimen number already tells the dogs apart, and the hub does the
+  // counting.
   return shell(
     `Certificate ${serial} — Glizzy`,
     // Adam's copy + studio passes, 2026-08-28/29 (ported from the studio log,
@@ -421,8 +435,8 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
-    ${paperOf}
   </dl>
+  ${note ? `<p class="note">${escapeHtml(note)}</p>` : ''}
   <p class="fine fine--cert">Authenticity is permanent.</p>
 </main>`,
     `Certificate · ${serial}`
@@ -439,7 +453,7 @@ export function pageHub({ issued, units, serials, id }) {
     .map(
       (u, i) => `<p class="piece"><a href="/cert/${escapeHtml(id)}/${i + 1}">${escapeHtml(
         serials[i]
-      )}</a> &mdash; ${escapeHtml(u.title)}</p>`
+      )}</a></p>`
     )
     .join('\n');
 
@@ -453,7 +467,7 @@ export function pageHub({ issued, units, serials, id }) {
   <p class="lede lede--cert">This order (${escapeHtml(issued)}) contains ${units.length} separately numbered clay associates. Each carries its own paper &mdash; open a specimen number below.</p>
   ${rows}
   <p class="fine fine--cert">Authenticity is permanent, and it is per dog.</p>
-  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to the bun</a></p>
+  <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to Glizzy Store</a></p>
 </main>`
   );
 }
