@@ -294,11 +294,11 @@ section.glizzy-window {
  * inner scroll container.
  */
 
-/* The mark at the top of the card. */
+/* The mark at the top of the card, centred (Adam, 2026-08-29). */
 .window-content__logo {
   width: 8rem;
   height: auto;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
 }
 .window-content__logo svg { width: 100%; height: 100%; display: block; }
 .window-content__inner h2 { font-size: 1.4rem; margin: 0; line-height: 1; }
