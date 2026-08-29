@@ -23,6 +23,9 @@ const STUDIO = `
     paper.style.outline = 'none';
 
     const pill = document.createElement('div');
+    // classed 'inspect-capture' so ?inspect ignores it — it rewrites its own
+    // text on every save and was arriving in captures as a phantom edit
+    pill.className = 'inspect-capture';
     pill.style.cssText = 'position:fixed;top:10px;right:10px;background:#000d60;color:#f7e0c5;font:12px system-ui;padding:6px 12px;border-radius:99px;opacity:0.85;z-index:9;';
     pill.textContent = 'cert studio — logging…';
     document.body.appendChild(pill);
@@ -49,7 +52,11 @@ const STUDIO = `
       }
     };
     const queue = () => { clearTimeout(timer); timer = setTimeout(log, 800); };
-    new MutationObserver(queue).observe(document.documentElement, {
+    // The pill and the ?inspect panel rewrite themselves; observing them fed
+    // the logger its own status updates in a loop. Only real page mutations
+    // queue a save.
+    const ours = (n) => { const el = n.nodeType === 1 ? n : n.parentElement; return !!(el && el.closest('.inspect-capture')); };
+    new MutationObserver((muts) => { if (muts.some((m) => !ours(m.target))) queue(); }).observe(document.documentElement, {
       subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style'],
     });
     document.addEventListener('input', queue);

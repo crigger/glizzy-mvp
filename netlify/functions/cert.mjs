@@ -374,20 +374,22 @@ export function pageCertificate({ issued, serial, title, unit, count }) {
 
   return shell(
     `Certificate ${serial} — Glizzy`,
+    // Adam's copy pass, 2026-08-28 (ported from the studio log, verbatim —
+    // the lowercase kicker is uppercased by the CSS): the Harambe-era dating
+    // and the Old Vinton Glizzer are his coinages, do not "fix" them.
     `<main class="paper">
-  <p class="kicker">Glizzy Store · Bureau of Provenance</p>
+  <p class="kicker">old vinton Glizzy</p>
+  <p class="kicker">Bureau of Provenance</p>
   <h1>Certificate of Authenticity</h1>
   <hr class="rule">
-  <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Glizzy: hand-formed from real American ground &mdash; kaolin out of the Georgia belt, ball clay out of West Tennessee, talc out of Montana &mdash; and fired to 1,828&deg;F (cone 06), a temperature no impostor sausage survives.</p>
-  <p class="piece">${escapeHtml(title)}</p>
+  <p class="lede">This document certifies that the earthenware frankfurter described below is a genuine Old Vinton Glizzy: hand-formed from real American ground in the era of our great Earth after Harambe.</p>
   <dl class="meta">
     <div><dt>Specimen no.</dt><dd>${escapeHtml(serial)}</dd></div>
     <div><dt>Issued</dt><dd>${escapeHtml(issued)}</dd></div>
     ${paperOf}
   </dl>
-  <p class="fine">Authenticity is permanent. The mineral log above is real, the kiln does not negotiate, and this record can be re-summoned from its link forever. No blockchain was consulted.</p>
-  <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Glizzy Store, glizzy.store</p>
-  <p class="fine no-print"><a href="https://glizzy.store/">Return to the bun</a> &middot; print this if you care</p>
+  <p class="fine">Authenticity is permanent. The kiln does not negotiate, and this record can be re-summoned from its link as long as the Old Vinton Glizzer keeps giving. No blockchain was consulted.</p>
+  <p class="sig">Witnessed at temperature by<br><strong>The Kiln</strong>Old Vinton Glizzy</p>
 </main>`,
     `Certificate · ${serial}`
   );
