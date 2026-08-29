@@ -50,7 +50,10 @@ const label = String(index + 1).padStart(2, '0');
   <div class="window-wrapper">
     <div class="window-wrapper-inner">
       <WindowPanel title={`Our Process · ${label}`} draggable>
-        <div class="window-content__logo"><WindowMark /></div>
+        {/* Each step brings its own drawing via the `mark` slot (Adam's
+            marker set, traced 2026-08-29); the shared zigzag remains the
+            fallback for a window that hasn't been drawn yet. */}
+        <div class="window-content__logo"><slot name="mark"><WindowMark /></slot></div>
         <h2 class="f-sequoia-light">{heading}</h2>
         <slot />
       </WindowPanel>

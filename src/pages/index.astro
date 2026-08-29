@@ -13,6 +13,11 @@ import ContactBlock from '../components/ContactBlock.astro';
 import IntroCta from '../components/IntroCta.astro';
 import IntroGlizzy from '../components/IntroGlizzy.astro';
 import GlizzyWindow from '../components/GlizzyWindow.astro';
+import BerryMark from '../components/BerryMark.astro';
+import HandMark from '../components/HandMark.astro';
+import KilnMark from '../components/KilnMark.astro';
+import FoldMark from '../components/FoldMark.astro';
+import OdeMark from '../components/OdeMark.astro';
 import AcquireBreak from '../components/AcquireBreak.astro';
 import GlizzyRepeat from '../components/GlizzyRepeat.astro';
 import Interlude from '../components/Interlude.astro';
@@ -37,22 +42,27 @@ import { organizationNode } from '../lib/productJsonLd';
     <IntroGlizzy />
 
     <GlizzyWindow index={0} side="left" heading="Mud is sourced from the United States, somewhere">
+      <BerryMark slot="mark" />
       <p>All of the materials in our clay are mined in the USA. We don't know exactly which holes in the ground. Could be kaolin from the Georgia belt, ball clay out of West Tennessee, talc from Montana.</p>
     </GlizzyWindow>
 
     <GlizzyWindow index={1} side="right" heading="Hot Dog is hand-crafted in Vinton">
+      <HandMark slot="mark" />
       <p>A skilled artisan with limited pottery experience builds each one-of-a-kind piece in the incomparably conceptive Vintonland atmosphere.</p>
     </GlizzyWindow>
 
     <GlizzyWindow index={2} side="left" heading="Wiener is roasted">
+      <KilnMark slot="mark" />
       <p>Our soft and squishy friend is hardened by the harsh cruelty of existence, fired in an 1,828°F kiln (cone 06), and cooled with the sweetest Virginia breeze.</p>
     </GlizzyWindow>
 
     <GlizzyWindow index={3} side="right" heading="Tube is tucked in">
+      <FoldMark slot="mark" />
       <p>Each tired dawg is wrapped in a paper bun, individually packed into a cozy, recyclable cardboard box, and sent on its way to your home.</p>
     </GlizzyWindow>
 
     <GlizzyWindow index={4} side="left" heading="Ode is added" hint={false}>
+      <OdeMark slot="mark" />
       <p>We add your personal note as a blanket for your cold clay hog-dart, if you care. Up to 100 characters of plaintext. Nothing unbecoming.</p>
     </GlizzyWindow>
 
