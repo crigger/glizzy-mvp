@@ -202,6 +202,10 @@ export default async function cert(request, context) {
     // The bearer token is in the URL; nothing shared should cache it.
     'Cache-Control': 'private, no-store',
     'X-Robots-Tag': 'noindex',
+    // Readable cross-origin: the URL itself is the credential, so a page
+    // that already holds it gains nothing new — and it lets the admin-side
+    // tooling verify a certificate without the token ever leaving the page.
+    'Access-Control-Allow-Origin': '*',
   };
 
   // /cert/<id>/<n> — one dog's paper. n is 1-based and only reachable by
