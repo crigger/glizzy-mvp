@@ -759,6 +759,15 @@
   margin: 0;
   grid-column: 1;
   padding-top: .35em;
+  /*
+   * Baseline, not the grid's `align-items: center`. The price beside this is
+   * half its size, and centring two different sizes in one row puts the small
+   * one's baseline above the big one's — the name and the figure stopped
+   * sitting on the same line (Adam spotted it, 2026-08-29). The PDP's head row
+   * has said `align-items: baseline` all along; this is the same pair of facts
+   * and should not disagree with it.
+   */
+  align-self: baseline;
 }
 
 .cart__line-variant {
@@ -861,6 +870,7 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   padding-top: .35em;
+  align-self: baseline;   // pairs with .cart__line-name above
 }
 
 /*
