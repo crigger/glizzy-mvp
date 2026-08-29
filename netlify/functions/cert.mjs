@@ -305,7 +305,7 @@ function shell(title, body, barTitle = 'Office of Provenance') {
 body {
   background: var(--bg); color: var(--ink);
   font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
-  min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+  min-height: 100vh; display: grid; place-items: center; padding: 24px 20px;
 }
 
 /*
@@ -363,6 +363,7 @@ body {
   top: calc(env(safe-area-inset-top, 0px) + 16px);
   right: calc(env(safe-area-inset-right, 0px) + 16px);
   width: 56px; height: 56px;
+  z-index: 200;
   color: var(--dog);
   display: block;
   user-select: none;
@@ -370,8 +371,9 @@ body {
 }
 .site-icon svg { width: 100%; height: 100%; display: block; }
 .site-icon:focus-visible { outline: 2px solid var(--mustard); outline-offset: 3px; border-radius: 50%; }
-/* below ~784px the centred window slides under the mark's corner — clear it */
-@media (max-width: 800px) { body { padding-top: 84px; } }
+/* No mobile clearance: on narrow screens the mark floats OVER the window's
+ * corner, same as it floats over content on every other route (Adam's
+ * capture, 2026-08-29 — z-index 200 matches the site's .site-icon). */
 
 /* the paper is the window's bone card */
 .paper {
