@@ -740,12 +740,21 @@ someone about to type a card number.
 ## The certificate of authenticity
 
 `glizzy.store/cert/<order_number>-<token>` — a per-order digital certificate,
-rendered live by `netlify/functions/cert.mjs`. The link is built by the **Order
-confirmation notification template** in the Shopify admin (Settings →
-Notifications), which has `order_status_url` in scope; the `<token>` half is
+rendered live by `netlify/functions/cert.mjs`. The link is built by the
+**Shipping confirmation notification template** in the Shopify admin (Settings
+→ Notifications) — it surfaces to the buyer when the dog SHIPS, not at order
+time (Adam's call, 2026-08-29); the Order confirmation deliberately does not
+carry it. The template has `order_status_url` in scope; the `<token>` half is
 the unguessable token from that URL, so the link itself is the credential —
-only someone holding the confirmation email can open it. The function looks
-the order up over the Admin API (the Form Connector app's client-credentials
+only someone holding the buyer's own email can open it.
+
+**Fulfillment trap:** the quick "Mark as fulfilled" flow leaves "Send a
+notification to the customer" UNCHECKED by default — fulfilling that way
+sends nothing, and adding tracking afterwards sends the *Shipping update*
+template, a different template that does NOT carry the certificate. Check
+the notify box when fulfilling, or the buyer never gets the link.
+
+The function looks the order up over the Admin API (the Form Connector app's client-credentials
 exchange in `netlify/shopify-admin.mjs`, which needs **`read_orders`** granted
 AND the app version released), verifies the token against the order's own
 `statusPageUrl`, confirms a `glizzy-store` line item, and renders.
@@ -772,3 +781,30 @@ Three properties to preserve:
 The copy is in the site's voice and coins NEW rungs of the synonym ladder
 ("earthenware frankfurter", "clay companion") — never reuse a name the site
 already uses. The kiln facts on it are the real ones (cone 06, 1,828°F).
+
+Two more order metafields round out the system (all three are pinned, so they
+show on every order page in the admin):
+
+- **`glizzy.photo`** (Image File): Adam attaches a photograph of the actual
+  dog to the order; the certificate renders it as the framed `.plate` above
+  the lede. No photo, no plate — the layout degrades cleanly.
+- **`glizzy.cert_url`** (URL): written automatically the moment an order is
+  created, by `netlify/functions/order-created.mjs` — the **orders/create
+  webhook** (Settings → Notifications → Webhooks → Order creation →
+  `https://glizzy.store/hooks/order-created`, API 2026-07). The payload
+  already carries `order_number` and `token`, so the function just verifies
+  the `X-Shopify-Hmac-Sha256` signature (`SHOPIFY_WEBHOOK_SECRET` in Netlify —
+  the signing secret shown under the admin's webhook list), skips non-glizzy
+  orders by line-item vendor, and writes the metafield. It returns 200 even
+  when the write fails: a missed cert_url is recoverable by hand, a webhook
+  Shopify disables for flapping is not.
+
+Driving the webhooks admin page, learned 2026-08-29: the Add-webhook modal is
+the new `s-internal-*` web components — every control is in shadow DOM, so
+the a11y tree can't see them AND programmatically setting `select.value` +
+dispatching `change` LOOKS right but never reaches the component's state (the
+first attempt saved as "Cart creation", the default, while the modal showed
+"Order creation"). What works: focus the shadow `<select>` via JS, then send
+REAL keystrokes (type the option's label — native typeahead selects it with
+trusted events). Verify by re-reading the saved row's text after a reload,
+never by trusting the modal.
