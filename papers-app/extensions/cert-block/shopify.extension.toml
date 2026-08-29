@@ -1,0 +1,36 @@
+# Learn more about configuring your Customer account UI extension:
+# https://shopify.dev/api/customer-account-ui-extensions/unstable/configuration
+
+# The version of APIs your extension will receive. Learn more:
+# https://shopify.dev/docs/api/usage/versioning
+api_version = "2026-07"
+
+[[extensions]]
+name = "cert-block"
+handle = "cert-block"
+type = "ui_extension"
+uid = "00846e4f-40f7-138b-0e68-4f18b52859e94faae11d"
+
+# Controls where in Shopify your extension will be injected,
+# and the file that contains your extension’s source code. Learn more:
+# https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/extension-targets-overview
+
+[[extensions.targeting]]
+module = "./src/OrderStatusBlock.jsx"
+target = "customer-account.order-status.block.render"
+
+[extensions.capabilities]
+# Gives your extension access to directly query Shopify’s storefront API.
+# https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/configuration#api-access
+api_access = true
+
+# Gives your extension access to make external network calls, using the
+# JavaScript `fetch()` API. Learn more:
+# https://shopify.dev/docs/api/customer-account-ui-extensions/unstable/configuration#network-access
+# network_access = true
+
+# The one piece of data this block needs: the certificate URL the
+# orders/create webhook writes onto glizzy orders. Its presence is the gate.
+[[extensions.metafields]]
+namespace = "glizzy"
+key = "cert_url"
