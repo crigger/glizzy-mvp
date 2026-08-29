@@ -341,7 +341,7 @@ body {
   background: var(--paper); color: var(--ink);
   padding: 40px 28px; border-radius: 4px; text-align: center;
 }
-h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 2.5rem); line-height: 1; color: var(--bg); max-width: 7em; margin: 0 auto; }
+h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: clamp(2rem, 8vw, 2.5rem); line-height: 1; color: var(--bg); max-width: 10em; margin: 0 auto; }
 .kicker { font-family: 'Sequoia Sans', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; font-size: 1rem; color: var(--bg); }
 /* Adam's studio passes, 2026-08-29 (second pass walked the big script line
  * back down): the brand name stays kicker-sized in Magnolia, the office line
@@ -350,8 +350,8 @@ h1 { font-family: 'Sequoia Sans', sans-serif; font-weight: normal; font-size: cl
 .brand-script { font-family: 'BN Magnolia', 'Sequoia Sans', sans-serif; letter-spacing: 0.15em; }
 .kicker--office { font-family: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif; margin-bottom: 1rem; font-weight: 500; letter-spacing: 0.2em; }
 .h1-of { font-stretch: normal; font-weight: 300; }
-/* the certificate's own h1 breathes wider than the shared 7em (Adam, 2026-08-29) */
-.h1--cert { max-width: 10em; }
+/* the terse 404/503 headlines wrap tighter (Adam, 2026-08-29) */
+.h1--narrow { max-width: 7em; }
 .rule { border: 0; border-top: 2px solid var(--mustard); margin: 22px auto; width: 120px; }
 /* the plate is a fixed 4:3 frame (Adam, 2026-08-29) — the photo crops to it
  * rather than the frame stretching to the photo, so a square glizzy2048-style
@@ -414,7 +414,7 @@ export function pageCertificate({ issued, serial, title, unit, count, photo = nu
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
-  <h1 class="h1--cert"><span class="h1-of">Certificate of</span> Authenticity</h1>
+  <h1><span class="h1-of">Certificate of</span> Authenticity</h1>
   <hr class="rule">
   ${photo ? `<figure class="plate"><img src="${escapeHtml(photo)}" alt="The certified specimen"></figure>` : ''}
   <p class="lede lede--cert">Be it known that the earthenware frankfurter ${photo ? 'pictured above' : 'described'} is a genuine Old Vinton Glizzy, hand-formed from real American ground in the era of our great Earth after Harambe.</p>
@@ -464,7 +464,7 @@ export function page404() {
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
-  <h1>No such dog on file</h1>
+  <h1 class="h1--narrow">No such dog on file</h1>
   <hr class="rule">
   <p class="lede lede--cert">No clay companion matching this link. Certificates are issued by the shipping confirmation email.</p>
   <p class="fine fine--cert no-print"><a href="https://glizzy.store/">Return to Glizzy Store</a></p>
@@ -479,7 +479,7 @@ export function page503() {
     `<main class="paper">
   <p class="kicker kicker--brand">Old Vinton <span class="brand-script">Glizzy</span></p>
   <p class="kicker kicker--office">Provenance Office</p>
-  <h1>The office is briefly closed</h1>
+  <h1 class="h1--narrow">The office is briefly closed</h1>
   <hr class="rule">
   <p class="lede lede--cert">The filing cabinet did not answer. Your certificate exists and is not going anywhere &mdash; try the same link again in a minute.</p>
 </main>`
