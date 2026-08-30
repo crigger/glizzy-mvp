@@ -19,8 +19,8 @@
  * The `js-` classes are the contract with glizzy-windows.js. `data-window-idx`
  * is what it stamps drag state against.
  *
- * The chrome bar is a label and a grab handle, nothing else — the same job
- * crest.red's gold bar does.
+ * The chrome bar is gone (2026-08-30): the corner number badge is the label
+ * AND the grab handle now. The PDP's art window keeps its bar.
  *
  * It used to carry + / − (maximize and restore) and the panel used to have
  * bottom-corner resize handles. Both are gone, and both were the same mistake:
@@ -40,7 +40,7 @@ interface Props {
   hint?: boolean;
 }
 const { index, side, heading, hint = true } = Astro.props;
-const label = String(index + 1).padStart(2, '0');
+const label = String(index + 1);   // bare digit — the corner badge lost its leading zero with the stripe (Adam, 2026-08-30)
 ---
 
 <section
@@ -49,7 +49,16 @@ const label = String(index + 1).padStart(2, '0');
 >
   <div class="window-wrapper">
     <div class="window-wrapper-inner">
-      <WindowPanel title={`Our Process * ${label}`} draggable>
+      <WindowPanel>
+        {/*
+          The number badge replaced the chrome stripe (Adam, 2026-08-30): a
+          bare digit in a thick navy ring, top-right of the card — the same
+          corner the site icon holds on the page, so the two rhyme. It is ALSO
+          the drag handle now: `js-drag-handle` is the only thing
+          glizzy-windows.js looks for, and it finds it here as readily as it
+          found the bar. Decorative text, so `aria-hidden`.
+        */}
+        <span class="window-num js-drag-handle f-sequoia" aria-hidden="true">{label}</span>
         {/* Each step brings its own drawing via the `mark` slot (Adam's
             marker set, traced 2026-08-29); the shared zigzag remains the
             fallback for a window that hasn't been drawn yet. */}

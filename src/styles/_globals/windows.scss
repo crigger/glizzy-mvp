@@ -235,11 +235,39 @@ section.glizzy-window {
  * Mobile-first: the base rule says nothing, and this adds them.
  */
 @media (min-width: 768px) {
-  .window-chrome.js-drag-handle {
+  .window-chrome.js-drag-handle,
+  .window-num.js-drag-handle {
     cursor: grab;
     touch-action: none;
   }
-  .window-wrapper-inner:active .window-chrome.js-drag-handle { cursor: grabbing; }
+  .window-wrapper-inner:active .window-chrome.js-drag-handle,
+  .window-wrapper-inner:active .window-num.js-drag-handle { cursor: grabbing; }
+}
+
+/*
+ * The process cards' number badge — what remains of the chrome stripe
+ * (Adam, 2026-08-30): a bare digit in a thick ring of the page's navy,
+ * pinned to the card's top-right the way the site icon is pinned to the
+ * page's. The ring is what makes it kin to the mark; the grid centring is
+ * what keeps a lone "4" from listing to one side inside it.
+ */
+.window-num {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  width: 2em;
+  height: 2em;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--bg-top);
+  background: var(--mustard);
+  border: 3px solid var(--bg-top);
+  border-radius: 50%;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .window-title {
   font: 11px/1 ui-monospace, SFMono-Regular, monospace;
