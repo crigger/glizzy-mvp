@@ -62,17 +62,22 @@ export const STEREO_DEFAULTS = {
   fill: 105,
   lift: 40,
   /*
-   * room 100 because anything less is invisible. The dog's whole relief is
-   * about 7px of on-screen period; at room 45 the backdrop ramped 2.3px, under
-   * the resolution of the recovery and near enough the flat field it replaced.
-   * At 100 the walls ramp 5.3px — the same order as the subject — while still
-   * capping at `lift`, so the dog stays strictly in front.
+   * OFF, after trying it on the shipped page and finding it did not help.
    *
-   * wall 30 spreads that ramp gently (0.07px of period per cell; steep depth
-   * gradients are what make SIRDS echo) and still leaves a flat rear wall in
-   * the middle. Past about 40 the walls meet and there is no back wall left.
+   * The argument for it was that a flat backdrop gives the eye nothing to lock
+   * onto. That was wrong, and backwards: a large region at ONE constant period
+   * is the easiest thing in a stereogram to fuse — you converge on it and the
+   * subject pops relative to it. What a flat field lacks is information, not
+   * lockability. Ramping the outer 30% on every side replaced the one stable
+   * period with a gradient, right where the eye tends to start looking.
+   *
+   * Kept, not deleted, because it is two numbers and a branch and worth another
+   * look if the subject ever fills more of the frame. Tuning notes if so: the
+   * dog's whole relief is only ~7px of on-screen period, so room below ~70
+   * ramps less than the recovery can resolve and is invisible; room 100 / wall
+   * 30 ramps 5.2px; past wall ~40 the walls meet and there is no back wall.
    */
-  room: 100,
+  room: 0,
   wall: 30,
   blur: 0,
   n: 5,
