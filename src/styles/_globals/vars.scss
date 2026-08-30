@@ -2,6 +2,7 @@
 // a Display P3 override behind @supports. Read the tokens, never the hex.
 
 :root {
+  color-scheme: dark;   // pairs with the <meta> in Layout.astro — see its comment
   /* sRGB fallback values — used everywhere if the browser doesn't grok P3 */
   --bg-top: #000d60;
   --bg-bottom: #000d48;

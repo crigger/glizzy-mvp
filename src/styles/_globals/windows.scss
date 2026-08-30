@@ -106,6 +106,15 @@ section.glizzy-window {
 .window {
   position: relative;          /* the hatch layer and the chrome stack on this */
   width: 100%;
+  /*
+   * Paint containment, for the scroll bill: the dog draws UNDER these panels,
+   * so every scrub frame invalidates the glass — and without containment the
+   * browser is free to widen that repaint beyond the panel. `contain: paint`
+   * draws the line at the border box. Nothing visual changes (the ::before is
+   * already inset: 0 and overflow is already hidden); a r/webdev reader's
+   * "gnarly scrolling on mobile" (2026-08-30) is the reason it's here.
+   */
+  contain: paint;
 
   /*
    * Glass again, but not the glass it started as.

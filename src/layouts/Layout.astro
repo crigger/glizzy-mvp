@@ -108,6 +108,16 @@ const ogImageUrl = new URL(ogImage ?? '/og.jpg', Astro.site ?? SITE_FALLBACK).hr
     splash ground and the icon's plate. A meta cannot read a CSS variable, so
     the hex is written out; it must track vars.scss by hand. */}
     <meta name="theme-color" content="#000d60" />
+    {/*
+      The page IS dark, and saying so is load-bearing: Chrome's Auto Dark Mode
+      (default-on for plenty of Android users, a flag on desktop) "darkens"
+      pages it believes are light — and this site's body copy sits on light
+      bone cards inside a dark page, exactly the mix that confuses it into
+      inverting a surface without its text. A reader reported most of the text
+      missing in Chrome (r/webdev, 2026-08-30); this declaration tells Chrome
+      the site already made its choice, and auto-dark skips the page.
+    */}
+    <meta name="color-scheme" content="dark" />
 
     {/* PWA / installable web app hints */}
     <meta name="apple-mobile-web-app-capable" content="yes" />
