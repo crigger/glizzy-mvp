@@ -1,0 +1,299 @@
+---
+/**
+ * Every 3-, 4- and 5-colour palette the brand tokens can make, as stereograms,
+ * each at the size the homepage renders one.
+ *
+ * A comparison sheet: colour is the thing that decides whether one of these
+ * fuses. Two dots only "match" when they share an index, so the number of
+ * colours sets the coincidental-match rate — 1 in 3 at three, 1 in 5 at five —
+ * and a lower rate is a cleaner signal. Working against that: close colours
+ * read as one and hand the rate straight back, and saturated red against
+ * saturated blue invites chromostereopsis, where the eye focuses the two at
+ * different depths by itself. Hence a sheet to look at rather than reason about.
+ *
+ * Every tile is the same dog at the same pose; only the lookup table changes.
+ *
+ * --bg-bottom is left out. It is #000d48 against --bg-top's #000d60 — 24 apart
+ * in blue alone, indistinguishable in a dot field, and including it would
+ * double the sheet with twins.
+ *
+ * noindex, off the nav, same as /stereo.
+ */
+import Layout from '../layouts/Layout.astro';
+
+const PALETTE = [
+  { token: 'dog-color', hex: '#dc512a' },
+  { token: 'dog-highlight', hex: '#ff945a' },
+  { token: 'mustard', hex: '#ffa300' },
+  { token: 'bone', hex: '#f7e0c5' },
+  { token: 'cta', hex: '#30a2ff' },
+  { token: 'bg-top', hex: '#000d60' },
+];
+
+function combinations(arr, k) {
+  if (k === 0) return [[]];
+  if (k > arr.length) return [];
+  const [head, ...rest] = arr;
+  return [...combinations(rest, k - 1).map((c) => [head, ...c]), ...combinations(rest, k)];
+}
+const groups = [3, 4, 5].map((k) => ({ k, sets: combinations(PALETTE, k) }));
+const total = groups.reduce((n, g) => n + g.sets.length, 0);
+---
+
+<Layout title="Stereogram colours — Glizzy Store" description="Every 3, 4 and 5 colour palette." scripts={false} noindex>
+  <main class="sheet">
+    <header class="sheet__head">
+      <h1>Stereogram palettes</h1>
+      <p>
+        {total} combinations of {PALETTE.length} brand tokens, each at the size the homepage
+        renders. Same dog, same pose, same dot field within a group — only the colours change.
+        Tap any one to spin it; tap again to stop. One spins at a time.
+      </p>
+      <p class="sheet__note" id="sheet-status">rendering on scroll…</p>
+    </header>
+
+    {groups.map((g) => (
+      <section class="sheet__group">
+        <h2>{g.k} colours <span>({g.sets.length})</span></h2>
+        {g.sets.map((set, i) => (
+          <figure class="tile" data-colors={set.map((c) => c.hex).join(',')}>
+            <figcaption>
+              <span class="tile__idx">{g.k}.{i + 1}</span>
+              <span class="tile__swatches">
+                {set.map((c) => <i style={`background:${c.hex}`} title={c.token}></i>)}
+              </span>
+              <span class="tile__names">{set.map((c) => c.token).join(' · ')}</span>
+            </figcaption>
+            <button class="tile__box" aria-pressed="false" aria-label="Spin this palette"><canvas class="tile__canvas"></canvas></button>
+          </figure>
+        ))}
+      </section>
+    ))}
+  </main>
+</Layout>
+
+<style lang="scss">
+  .sheet {
+    background: #0a0a0a;
+    color: #d8d8d8;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* padding-BLOCK only: the inline gutter has to stay whatever the site's
+       `main` rule sets, or these tiles come out wider than the homepage's
+       render and stop being a like-for-like preview. */
+    padding-block: 24px 64px;
+    min-height: 100vh;
+  }
+  .sheet__head { max-width: 60ch; margin: 0 auto 28px; padding: 0 1rem; }
+  .sheet__head h1 { font-size: 18px; margin: 0 0 8px; font-weight: 400; letter-spacing: 0.04em; }
+  .sheet__head p { margin: 0 0 6px; color: #8a8a8a; }
+  .sheet__note { color: #dc512a; }
+
+  .sheet__group { margin: 0 0 8px; }
+  .sheet__group h2 {
+    font-size: 13px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #d8d8d8; margin: 32px 0 12px; padding: 0 1rem 6px; border-bottom: 1px solid #262626;
+  }
+  .sheet__group h2 span { color: #6a6a6a; }
+
+  .tile { margin: 0 0 28px; padding: 0 1rem; }
+  .tile figcaption { display: flex; align-items: center; gap: 10px; padding-bottom: 6px; flex-wrap: wrap; }
+  .tile__idx { color: #d8d8d8; }
+  .tile__swatches { display: flex; gap: 3px; }
+  .tile__swatches i { width: 22px; height: 8px; border-radius: 1px; }
+  .tile__names { color: #6a6a6a; font-size: 11px; }
+
+  /*
+   * The homepage's box, to the pixel: the same clamp height, full width, and a
+   * 2px --cta keyline so the content box matches too.
+   *
+   * A real WindowPanel would be truer still, but its glass carries a 96px
+   * backdrop blur — forty-one of those is a compositing bill nobody needs on a
+   * reference sheet. Same border weight and colour, none of the blur.
+   */
+  .tile__box {
+    position: relative;
+    display: block;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    /*
+     * +4 for the keyline. On the homepage the clamp sits on the button INSIDE
+     * the panel, so the border is outside the 62vh; here the clamp is on the
+     * bordered element itself. Without the 4px these come out 484 tall against
+     * the homepage's 488, and the whole point is a like-for-like preview.
+     */
+    height: calc(clamp(320px, 62vh, 680px) + 4px);
+    border: 2px solid var(--cta);
+    background: #0a0a0a;
+    overflow: hidden;
+  }
+  .tile__box[aria-pressed='true'] { border-color: var(--mustard); }
+  .tile__box:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; }
+  .tile__canvas {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    image-rendering: pixelated;
+  }
+</style>
+
+<script>
+  import { createStereoDog } from '../scripts/stereo-dog.js';
+
+  const hex2rgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const statusEl = document.getElementById('sheet-status');
+  const tiles = [...document.querySelectorAll('.tile')];
+  const firstBox = document.querySelector('.tile__box');
+
+  /*
+   * ONE engine, hidden, sized to a tile — which is now the homepage's box, so
+   * this sheet shows exactly what the homepage shows. Every tile is a blit of
+   * it after a palette swap: forty-one live renderers would be forty-one WebGL
+   * contexts, well past what a browser hands out.
+   *
+   * That works because makeSIRDS emits colour INDICES, not colours. The dot
+   * field depends only on how many there are, never which — so within a group
+   * the pattern is identical and colour is genuinely the only variable.
+   */
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:-9999px;top:0;';
+  document.body.appendChild(host);
+  const src = document.createElement('canvas');
+  host.appendChild(src);
+
+  const dog = createStereoDog(src, {
+    colorMode: 'brand',
+    cover: true,
+    pauseWhenOffscreen: false,
+    /* the homepage's budget, so the dot coarsens identically */
+    maxCells: 220000,
+    /* 24fps for the same reason the homepage caps it: nothing about a rotating
+       dog needs 60, and this is the whole main thread while it runs. */
+    maxFps: 24,
+    params: { spin: 0 },
+    onFrame: () => { if (active) blit(active); },
+    /* clientWidth/Height, NOT the bounding rect: the rect includes the 2px
+       keyline, and the homepage measures a button that has no border. Four
+       pixels out is four pixels of different grid, and this sheet is only
+       useful if it renders exactly what the homepage renders. */
+    measure: () => ({ width: firstBox.clientWidth, height: firstBox.clientHeight }),
+  });
+
+  function paletteOf(tile) {
+    return tile.dataset.colors.split(',').map(hex2rgb);
+  }
+
+  function blit(tile) {
+    const out = tile.querySelector('.tile__canvas');
+    out.width = dog.canvas.width;
+    out.height = dog.canvas.height;
+    out.style.width = dog.canvas.style.width;
+    out.style.height = dog.canvas.style.height;
+    out.getContext('2d').drawImage(dog.canvas, 0, 0);
+    tile.dataset.drawn = '1';
+  }
+
+  function draw(tile) {
+    dog.setPalette(paletteOf(tile));
+    dog.renderNow();
+    blit(tile);
+    /* One engine, one palette. A static draw for a newly-visible tile would
+       otherwise steal the colours out from under whichever tile is spinning. */
+    if (active && active !== tile) dog.setPalette(paletteOf(active));
+  }
+
+  /*
+   * Spinning, one at a time.
+   *
+   * There is a single engine behind all forty-one tiles, so only one can be
+   * live — which is also the only sane answer for the main thread: a spinning
+   * tile costs a SIRDS pass per frame, and forty-one would be absurd. The
+   * engine paints its own canvas and onFrame blits it into whichever tile is
+   * active. Everything else keeps the still frame it was last given.
+   */
+  let active = null;
+
+  function setPressed() {
+    tiles.forEach((t) => {
+      const on = t === active;
+      const b = t.querySelector('.tile__box');
+      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-label', on ? 'Stop spinning this palette' : 'Spin this palette');
+    });
+  }
+
+  function stopSpin() {
+    if (!active) return;
+    dog.setSpin(0);
+    dog.stop();
+    active = null;
+    setPressed();
+  }
+
+  function startSpin(tile) {
+    active = tile;
+    dog.setPalette(paletteOf(tile));
+    dog.setSpin(100);
+    dog.start();
+    setPressed();
+  }
+
+  tiles.forEach((tile) => {
+    tile.querySelector('.tile__box').addEventListener('click', () => {
+      if (active === tile) stopSpin();
+      else { const wasActive = active; if (wasActive) stopSpin(); startSpin(tile); }
+    });
+  });
+
+  /*
+   * Drawn on approach and RELEASED on the way out. At homepage size these are
+   * ~3.4MB of backing store each; holding all forty-one would be ~270MB, and
+   * only one is on screen at this size anyway. Setting width to 0 hands the
+   * memory back, and re-drawing costs a single SIRDS pass because the depth
+   * buffer is computed once and reused across every variant.
+   */
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        const tile = e.target;
+        if (e.isIntersecting) {
+          if (tile.dataset.drawn !== '1') draw(tile);
+        } else if (tile.dataset.drawn === '1') {
+          if (tile === active) stopSpin();
+          const c = tile.querySelector('.tile__canvas');
+          c.width = 0;
+          c.height = 0;
+          tile.dataset.drawn = '';
+        }
+      }
+    },
+    { rootMargin: '60%' }
+  );
+  tiles.forEach((t) => io.observe(t));
+
+  let rid = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rid);
+    rid = setTimeout(() => {
+      stopSpin();
+      dog.layout();
+      tiles.forEach((t) => { t.dataset.drawn = ''; });
+      tiles.forEach((t) => {
+        const r = t.getBoundingClientRect();
+        if (r.bottom > -window.innerHeight && r.top < window.innerHeight * 2) draw(t);
+      });
+      status();
+    }, 150);
+  });
+
+  function status() {
+    const s = dog.stats();
+    const w = Math.round(firstBox.getBoundingClientRect().width);
+    statusEl.textContent =
+      `${tiles.length} palettes · ${w}px wide · ${s.gW}×${s.gH} cells · dot ${s.dot} · ` +
+      `repeat ${dog.params.sep}px (${(w / dog.params.sep).toFixed(1)} across) · tap to spin`;
+  }
+  status();
+</script>

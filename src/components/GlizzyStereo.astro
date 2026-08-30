@@ -1,0 +1,186 @@
+---
+/**
+ * The dog, hidden in noise, between the last two GlizzyRepeats.
+ *
+ * A random-dot stereogram: relax your eyes past the screen and a hot dog turns
+ * up in three dimensions. The engine is src/scripts/stereo-dog.js, shared with
+ * the /stereo tuner so the two cannot drift.
+ *
+ * A titled `flush` WindowPanel. `flush` drops the bone card — that card exists
+ * to put TYPE on, and this content is a full-bleed field of dots, so matting it
+ * would read as a frame nothing chose.
+ *
+ * Bar and keyline are left alone — mustard, straight off windows.scss. That is
+ * the crest.red trick the file describes: bar and border the same colour so the
+ * two read as one drawn box rather than a strip sitting on a panel. Only the
+ * label's alignment is overridden.
+ *
+ * `flush` is kept for the one thing it does that is wanted here — dropping the
+ * bone card, which exists to put TYPE on and would mat a field of dots with a
+ * background nothing chose. Its other effect, zeroing the content padding, is
+ * put back deliberately: that padding is what lets the panel's own dot screen
+ * (the `.window::before` tile, mustard on a 3px grid over the backdrop blur)
+ * show as a margin around the stereogram, and what keeps the square canvas away
+ * from the 8px corner radius so the radius actually reads.
+ *
+ * The bar carries the only visible copy, centred: it says what to do, and it
+ * says it in the panel's own furniture rather than as a caption competing with
+ * the image. It swaps to "click to stop" while spinning. The accessible name
+ * carries the same state — unavoidably, since a stereogram is invisible without
+ * binocular vision and no amount of markup fixes that.
+ *
+ * STILL by default, spins on tap — the opposite of where this started, for two
+ * reasons that point the same way. Fusing takes several seconds of steady
+ * staring and the image keeps changing while it turns, so the still frame is
+ * where people will actually find the dog. And a still stereogram costs
+ * nothing: the engine draws one frame and cancels its own loop, where spinning
+ * costs ~16ms of main thread per frame on a page already running the hero's
+ * dog and ScrollTrigger. The cheap default is also the legible one.
+ *
+ * When it does spin it is capped to 24fps. Nothing about a rotating dog needs
+ * 60, and the cap roughly halves the cost.
+ */
+import WindowPanel from './WindowPanel.astro';
+---
+
+<section class="glizzy-stereo">
+  <WindowPanel flush title="click to spin">
+    <button
+      class="glizzy-stereo__tap"
+      id="glizzy-stereo-tap"
+      aria-pressed="false"
+      aria-label="A hidden-image stereogram of the dog. Currently still. Activate to start it spinning."
+    >
+      <canvas class="glizzy-stereo__canvas" id="glizzy-stereo-canvas"></canvas>
+    </button>
+  </WindowPanel>
+</section>
+
+<style lang="scss">
+  /*
+   * No inline padding. `main` already sets the one page gutter — see the long
+   * note on --gutter in vars.scss about sections that each added their own on
+   * top and ended up 16px out of line with each other. This panel was doing
+   * exactly that: every other window sits flush at the gutter and this one was
+   * inset a further 16px.
+   */
+  .glizzy-stereo {
+    width: 100%;
+  }
+
+  /*
+   * Only the COLOUR is set, on both bar and keyline together, so the 2px weight
+   * and the bar's metrics keep coming from windows.scss and cannot drift from
+   * the other panels.
+   *
+   * `:global` because `.window` belongs to WindowPanel and never carries this
+   * component's scope attribute; the descendant selector still scopes it to
+   * this section, and at (0,2,0) it clears the (0,1,0) defaults outright rather
+   * than tying with them — a tiebreak settled by file order has gone wrong in
+   * this repo before.
+   */
+  .glizzy-stereo :global(.window-chrome) {
+    justify-content: center;
+  }
+
+  /*
+   * Puts back the padding `flush` removed, so the panel's dot screen frames the
+   * image instead of the canvas running edge to edge under the keyline. `flush`
+   * is still doing its real job here: no bone card.
+   */
+  .glizzy-stereo :global(.window--flush .window-content) {
+    padding: 1rem;
+  }
+
+  .glizzy-stereo__tap {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: clamp(320px, 62vh, 680px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #0a0a0a;
+    cursor: pointer;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+  .glizzy-stereo__tap:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; }
+
+  /*
+   * Centred and clipped, never scaled. The engine renders a grid at least as
+   * big as this box (`cover`), so the sub-dot surplus is trimmed evenly on both
+   * axes and no background shows at the edges.
+   */
+  .glizzy-stereo__canvas {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    image-rendering: pixelated;
+  }
+</style>
+
+<script>
+  import { createStereoDog } from '../scripts/stereo-dog.js';
+
+  const canvas = document.getElementById('glizzy-stereo-canvas');
+  const tap = document.getElementById('glizzy-stereo-tap');
+  const section = document.querySelector('.glizzy-stereo');
+  const barLabel = section && section.querySelector('.window-title');
+
+  if (canvas && tap) {
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const SPIN = 100;
+
+    const dog = createStereoDog(canvas, {
+      params: { spin: 0 },
+      maxFps: 24,
+      /*
+       * Palette 4.8 off /stereo-colours: dog-color, mustard, bone, bg-top.
+       * Chosen by eye from the sheet rather than by rule — four colours across
+       * the full luminance range, which is what keeps the coincidental-match
+       * rate down without two of them reading as one.
+       */
+      palette: ['#dc512a', '#ffa300', '#f7e0c5', '#000d60'],
+      cover: true,
+      pauseWhenOffscreen: true,
+      /* Full-bleed is a lot of cells. The engine coarsens the dot rather than
+         dropping frames, and holds the on-screen repeat at 101px whatever the
+         dot size, so fusing is unaffected. */
+      maxCells: 220000,
+      measure: () => tap.getBoundingClientRect(),
+    });
+    dog.start();
+
+    function render() {
+      const spinning = dog.spinning;
+      if (barLabel) barLabel.textContent = spinning ? 'click to stop' : 'click to spin';
+      tap.setAttribute('aria-pressed', String(spinning));
+      tap.setAttribute(
+        'aria-label',
+        'A hidden-image stereogram of the dog. ' +
+          (spinning
+            ? 'Currently spinning. Activate to stop it, which makes it easier to see.'
+            : 'Currently still. Activate to start it spinning.')
+      );
+    }
+
+    /*
+     * Listener on the SECTION, not the button. The bar says "click to spin", so
+     * clicking the bar has to spin it — and a click on the button bubbles here
+     * too, so this fires exactly once either way without nesting one
+     * interactive element inside another.
+     */
+    section.addEventListener('click', () => {
+      dog.setSpin(dog.spinning || still.matches ? 0 : SPIN);
+      render();
+    });
+    still.addEventListener('change', (e) => {
+      if (e.matches) dog.setSpin(0);
+      render();
+    });
+    render();
+  }
+</script>
