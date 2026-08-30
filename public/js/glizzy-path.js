@@ -108,6 +108,22 @@ function applyAspectPreset(aspect) {
 }
 // ---------------------------------------------------------
 
+/*
+ * The flat-dog fallback: on a browser that cannot hold ~30fps while the dog
+ * scrubs, the gradient collapses to its single outermost stroke — a solid
+ * orange tube instead of 48 stacked rings. "Unperformant" is MEASURED, never
+ * sniffed: a user agent says nothing about the GPU behind it, and the same
+ * old phone that chokes on 48 layers identifies itself within the first
+ * second of real scrolling. See armFlatDogWatchdog() at the bottom.
+ *
+ * sessionStorage, not localStorage: a device can be slow because of what else
+ * it is doing right now, and a verdict that outlives the visit would flatten
+ * the dog forever on a machine that was merely busy once.
+ */
+const FLAT_DOG_KEY = 'glizzy.flat-dog';
+let flatDog = false;
+try { flatDog = sessionStorage.getItem(FLAT_DOG_KEY) === '1'; } catch (e) {}
+
 const svg = document.getElementById('glizzy');
 let mainPath = null;
 let pathLen = 0;
@@ -317,10 +333,10 @@ function rebuild() {
   // faster transition through the middle — same trick as easing a CSS linear
   // gradient (https://css-tricks.com/easing-linear-gradients/) but applied to
   // the stop *positions* instead of the color stops directly.
-  const STEPS = 48;
+  const STEPS = flatDog ? 1 : 48;   // see the flat-dog block up top
   const allPaths = [];
   for (let i = 0; i < STEPS; i++) {
-    const t      = i / (STEPS - 1);                     // 0 at outer, 1 at center
+    const t      = STEPS === 1 ? 0 : i / (STEPS - 1);   // 0 at outer, 1 at center (0/0 guard: one flat layer is all outer)
     const eased  = t * t * (3 - 2 * t);                 // smoothstep ease-in-out
     const w      = strokeWidth * (1 - eased * 0.92);    // 100% → 8% of stroke
     const stroke = lerpColor(dogColor, highlightCol, eased);
@@ -593,3 +609,45 @@ window.addEventListener('resize', () => {
     }
   }, 200);
 });
+
+/*
+ * The flat-dog watchdog (see the block by FLAT_DOG_KEY for the why).
+ *
+ * Scroll events are delivered at frame rate, so the gaps between consecutive
+ * ones ARE the frame intervals while the page scrolls — no rAF loop needed,
+ * nothing runs while the page is idle. Gaps over 250ms are the pause between
+ * scroll gestures, not slow frames, and are thrown away.
+ *
+ * Forty samples is one to two seconds of actual scrolling. The MEDIAN over
+ * 32ms (under ~31fps) is the trigger — the median, because a single GC pause
+ * or a long first paint should not condemn a fast machine, and a slow one is
+ * slow in the middle of its distribution, not the tail.
+ *
+ * The verdict is one-way for the session: rebuild() with flatDog set tears
+ * down the 48 layers and redraws one, and nothing ever flips it back mid-
+ * visit — a machine that just struggled does not earn the layers back by
+ * briefly idling.
+ */
+(function armFlatDogWatchdog() {
+  if (flatDog) return;
+  let lastT = 0;
+  const samples = [];
+  function onScroll() {
+    const now = performance.now();
+    if (lastT) {
+      const dt = now - lastT;
+      if (dt < 250) samples.push(dt);
+    }
+    lastT = now;
+    if (samples.length >= 40) {
+      removeEventListener('scroll', onScroll);
+      samples.sort((a, b) => a - b);
+      if (samples[Math.floor(samples.length / 2)] > 32) {
+        flatDog = true;
+        try { sessionStorage.setItem(FLAT_DOG_KEY, '1'); } catch (e) {}
+        rebuild();
+      }
+    }
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+})();
