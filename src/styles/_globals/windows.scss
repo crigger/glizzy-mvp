@@ -256,15 +256,17 @@ section.glizzy-window {
   top: 1rem;
   right: 1rem;
   z-index: 1;
-  width: 2em;
-  height: 2em;
+  /* The site icon's own size token — the coin and the mark are the same
+   * object at two altitudes, so they share one dial (Adam, 2026-08-30). */
+  width: var(--corner-size);
+  height: var(--corner-size);
   display: grid;
   place-items: center;
   font-size: 1.5rem;
   font-weight: 400;
   color: var(--bg-top);
   background: var(--mustard);
-  border: 3px solid var(--bg-top);
+  border: 5px solid var(--bg-top);
   border-radius: 50%;
   user-select: none;
   -webkit-user-select: none;
