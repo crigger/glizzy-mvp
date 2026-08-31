@@ -422,6 +422,95 @@ Resize is filtered: width changes and aspect flips rebuild, height changes under
 200px do not, because that is the mobile URL bar and rebuilding on it re-fires
 the draw.
 
+### The flat-dog fallback, and why the first one measured the wrong thing
+
+On a browser that cannot hold ~30fps while the dog scrubs, the gradient's 48
+stacked strokes collapse to the single outermost one — a solid orange tube.
+"Unperformant" is **measured, never sniffed**: a user agent says nothing about
+the GPU behind it. The verdict lives in `sessionStorage`, not `localStorage`,
+because a machine can be slow from what it is doing *right now* and a verdict
+that outlives the visit would flatten the dog forever on a machine that was
+merely busy once. It is one-way within the session.
+
+**The first version timed the gaps between SCROLL EVENTS, and it was wrong in
+both directions on real hardware.** Both failures were reported from real
+machines before anyone saw them in a build, and both come from one fact:
+
+> **Scroll events are input-driven, not frame-driven.** The gap between two of
+> them is `max(frame time, how long the user waited before scrolling again)`.
+
+So the old rule measured the slower of "how fast the browser draws" and "how
+fast the person scrolls", with no way to tell which one it had just measured:
+
+- **False positive — it flattened healthy machines.** Nudging a wheel every
+  ~120ms while *reading* the page produces 120ms gaps. Those sit squarely in
+  the band that was taken to mean "slow machine". Reading is indistinguishable
+  from an 8fps GPU.
+- **False negative — it never fired on the machines it was for.** The rule
+  discarded every gap over 250ms as "the pause between gestures". But a browser
+  painting at 2fps produces 500ms gaps, so on exactly the machines this exists
+  for, **every sample proving the machine was dying got thrown away.** Between
+  that ceiling and its 32ms floor it could only ever flag **4–31fps**; a
+  12-year-old iMac kept drawing all 48 layers until Chrome fell over. It also
+  needed 40 samples — one to two seconds — and that machine dies in two scrolls.
+
+Replayed against the gap sequences each machine actually produces, the old rule
+got 2 of 7 backwards and gave no verdict at all on the two slowest.
+
+**The fix is to sample `requestAnimationFrame` deltas, and only while a scroll
+is in flight.** rAF ticks at the display's rate whether or not the user is
+doing anything, so the samples are frame times and nothing else — that kills
+the false positive outright. Idle time is excluded by running the loop only
+between the first scroll event and 200ms after the last, which is how to drop
+the pauses between gestures **without also dropping the slow frames**. There is
+deliberately **no upper cutoff**: a 900ms frame is the strongest evidence
+available, not noise.
+
+Three triggers, because the failures do not look alike — the median of a
+30-frame window over 32ms is the steady state, but a machine that cannot paint
+at 3fps must not have to fill a 30-frame window first, so 3 consecutive frames
+over 150ms, or one single frame over 400ms, decide on their own. Four clean
+windows stand the watch down for the visit.
+
+Verified by running the shipped IIFE itself against a virtual clock — extracted
+from the file, not re-implemented, so the test cannot drift from the code. All
+ten scenarios correct, worst case decided in 2.6s of scrolling and the 1fps
+case in two frames.
+
+**The lesson to keep: an event that fires in response to input can never be a
+frame clock, however reliably it happens to arrive at frame rate while you are
+the one scrolling.**
+
+### The dog's SVG is 50,000 device pixels tall
+
+Measured on a 2175px-wide window at DPR 2: `#glizzy` is **4350 x 50,462 device
+pixels** — a 219-megapixel surface, and over **3x Chrome's usual 16,384px
+texture limit** in one dimension. Onto that go 48 stacked copies of the same
+path, the widest stroked at **1087px** with round caps and joins, and every one
+of them is re-dashed on every scroll frame.
+
+This is the open suspect for a 12-year-old iMac where **Chrome crashes outright
+after about two scrolls while Safari renders the page fine.** Note what has
+already been eliminated by measurement rather than argument: the glass panels
+are not the cause. The homepage has exactly **one** `backdrop-filter` element,
+the cart scrim, and it is 0x0 while the drawer is closed — so the expensive
+`blur(6rem)` that would be the obvious suspect on old hardware is not even
+being composited.
+
+Also ruled out, and worth recording so nobody re-derives it: **build cost is
+not a proxy for paint cost.** Constructing all 48 layers and calling
+`getTotalLength()` measures **4.3ms cold and 0.3ms warm** — the expense is
+entirely in rasterizing them, so seeding the watchdog from a load-time build
+timing would be sniffing dressed up as measurement. It was considered and
+dropped for that reason.
+
+The corrected watchdog now reaches a verdict on that machine in about two
+frames, which is as early as any honest runtime measurement can be. If that
+still loses the race against the crash, the next move is **structural: stop
+making the SVG document-tall** — a viewport-sized fixed surface with the path
+translated inside it. That is a real rework of the scrub mapping, and the
+`state.vh` note above is the trap waiting in it.
+
 ### One panel component, two kinds of window
 
 `WindowPanel.astro` is the keyline, dot screen and bone card. Everything on the

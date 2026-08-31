@@ -114,7 +114,9 @@ function applyAspectPreset(aspect) {
  * orange tube instead of 48 stacked rings. "Unperformant" is MEASURED, never
  * sniffed: a user agent says nothing about the GPU behind it, and the same
  * old phone that chokes on 48 layers identifies itself within the first
- * second of real scrolling. See armFlatDogWatchdog() at the bottom.
+ * second of real scrolling. See armFlatDogWatchdog() at the bottom for what
+ * is measured, and for the two ways the first version of it got the answer
+ * wrong.
  *
  * sessionStorage, not localStorage: a device can be slow because of what else
  * it is doing right now, and a verdict that outlives the visit would flatten
@@ -613,15 +615,47 @@ window.addEventListener('resize', () => {
 /*
  * The flat-dog watchdog (see the block by FLAT_DOG_KEY for the why).
  *
- * Scroll events are delivered at frame rate, so the gaps between consecutive
- * ones ARE the frame intervals while the page scrolls — no rAF loop needed,
- * nothing runs while the page is idle. Gaps over 250ms are the pause between
- * scroll gestures, not slow frames, and are thrown away.
+ * It samples requestAnimationFrame deltas, and only while a scroll is in
+ * flight. Both halves of that are corrections: the first version timed the
+ * gaps between SCROLL EVENTS, and that got the answer wrong in BOTH
+ * directions, on real machines, in ways that took a while to see.
  *
- * Forty samples is one to two seconds of actual scrolling. The MEDIAN over
- * 32ms (under ~31fps) is the trigger — the median, because a single GC pause
- * or a long first paint should not condemn a fast machine, and a slow one is
- * slow in the middle of its distribution, not the tail.
+ *   Scroll events are INPUT-driven, not frame-driven. The gap between two of
+ *   them is max(frame time, how long the user waited before scrolling again),
+ *   so the old rule could not tell a slow browser from a slow READER. Nudging
+ *   a wheel every 120ms while reading the page is indistinguishable from an
+ *   8fps GPU — and it flattened the dog on machines that were perfectly fine.
+ *
+ *   It also discarded every gap over 250ms as "the pause between gestures".
+ *   But a browser painting at 2fps produces 500ms gaps, so on exactly the
+ *   machines this exists for, every sample proving the machine was dying got
+ *   thrown away. Between that ceiling and its 32ms floor, the old rule could
+ *   only ever flag 4–31fps. Anything worse was invisible to it, which is why
+ *   a 12-year-old iMac kept drawing all 48 layers until Chrome fell over.
+ *
+ * rAF ticks at the display's rate whether or not the user is doing anything,
+ * so these samples are frame times and nothing else. Idle time is excluded by
+ * running the loop only between the first scroll event and IDLE_MS after the
+ * last one — that is how to drop the pauses between gestures without also
+ * dropping the slow frames. There is deliberately NO upper cutoff: a 900ms
+ * frame is the strongest evidence available, not noise to be filtered out.
+ *
+ * Three triggers, because the failures do not look alike:
+ *
+ *   - the MEDIAN of a WINDOW of frames over SLOW_MS (~31fps) — the steady
+ *     state. The median, because one GC pause or a long first paint should
+ *     not condemn a fast machine.
+ *   - DIRE_RUN consecutive frames over DIRE_MS, checked every frame.
+ *   - one single frame over STALL_MS, which needs no corroboration.
+ *
+ * The last two exist because a machine that cannot paint at 3fps must not
+ * have to finish a 30-frame window first: the browser it is running in may
+ * not survive that long. That is the whole lesson of the iMac.
+ *
+ * A clean window buys another one rather than ending the watch, but CLEAN_WINS
+ * clean windows in a row stands it down for good — a machine that has held
+ * 60fps through ~120 frames of scrolling has proven itself, and the loop
+ * should not idle in the background for the rest of the visit.
  *
  * The verdict is one-way for the session: rebuild() with flatDog set tears
  * down the 48 layers and redraws one, and nothing ever flips it back mid-
@@ -630,24 +664,68 @@ window.addEventListener('resize', () => {
  */
 (function armFlatDogWatchdog() {
   if (flatDog) return;
-  let lastT = 0;
-  const samples = [];
-  function onScroll() {
+
+  const IDLE_MS   = 200;  // this long after the last scroll event, the gesture is over
+  const WINDOW    = 30;   // frames per median
+  const SLOW_MS   = 32;   // ~31fps — the steady-state trigger
+  const DIRE_MS   = 150;  // a frame this long is a stall, not jank
+  const DIRE_RUN  = 3;    // ...and this many in a row is not a GC pause
+  const STALL_MS  = 400;  // one frame this long needs no corroboration
+  const CLEAN_WINS = 4;   // clean windows before the watch stands down
+
+  let frames = [];
+  let running = false, lastFrame = 0, lastScroll = 0, dire = 0, clean = 0, done = false;
+
+  function condemn() {
+    stop();
+    flatDog = true;
+    try { sessionStorage.setItem(FLAT_DOG_KEY, '1'); } catch (e) {}
+    rebuild();
+  }
+
+  function stop() {
+    done = true;
+    running = false;
+    removeEventListener('scroll', onScroll);
+  }
+
+  function tick() {
+    if (!running) return;
     const now = performance.now();
-    if (lastT) {
-      const dt = now - lastT;
-      if (dt < 250) samples.push(dt);
-    }
-    lastT = now;
-    if (samples.length >= 40) {
-      removeEventListener('scroll', onScroll);
-      samples.sort((a, b) => a - b);
-      if (samples[Math.floor(samples.length / 2)] > 32) {
-        flatDog = true;
-        try { sessionStorage.setItem(FLAT_DOG_KEY, '1'); } catch (e) {}
-        rebuild();
+
+    // The gesture ended. Stop sampling rather than measuring the idle gap —
+    // and drop lastFrame so the next gesture never starts on a stale one.
+    if (now - lastScroll > IDLE_MS) { running = false; lastFrame = 0; return; }
+
+    if (lastFrame) {
+      const dt = now - lastFrame;
+
+      // Checked per frame, ahead of the window: see the note above.
+      if (dt > STALL_MS) return condemn();
+      dire = dt > DIRE_MS ? dire + 1 : 0;
+      if (dire >= DIRE_RUN) return condemn();
+
+      frames.push(dt);
+      if (frames.length >= WINDOW) {
+        const sorted = frames.slice().sort((a, b) => a - b);
+        if (sorted[Math.floor(sorted.length / 2)] > SLOW_MS) return condemn();
+        frames = [];
+        if (++clean >= CLEAN_WINS) return stop();
       }
     }
+    lastFrame = now;
+    requestAnimationFrame(tick);
   }
+
+  function onScroll() {
+    if (done) return;
+    lastScroll = performance.now();
+    if (!running) {
+      running = true;
+      lastFrame = 0;             // first frame of a gesture has no valid delta
+      requestAnimationFrame(tick);
+    }
+  }
+
   addEventListener('scroll', onScroll, { passive: true });
 })();
