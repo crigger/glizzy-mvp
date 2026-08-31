@@ -36,6 +36,12 @@
  * carries the same state — unavoidably, since a stereogram is invisible without
  * binocular vision and no amount of markup fixes that.
  *
+ * The SERVER-RENDERED markup states the still state too — "click to spin",
+ * `aria-pressed="false"`. render() would correct it a moment later either way,
+ * but only once the module has loaded and run: markup that ships claiming the
+ * opposite is a label that is wrong for as long as the page is not yet
+ * interactive, which is exactly when someone is reading it.
+ *
  * STILL by default, spins on tap — the opposite of where this started, for two
  * reasons that point the same way. Fusing takes several seconds of steady
  * staring and the image keeps changing while it turns, so the still frame is
@@ -51,12 +57,12 @@ import WindowPanel from './WindowPanel.astro';
 ---
 
 <section class="glizzy-stereo">
-  <WindowPanel flush title="click to stop">
+  <WindowPanel flush title="click to spin">
     <button
       class="glizzy-stereo__tap"
       id="glizzy-stereo-tap"
-      aria-pressed="true"
-      aria-label="A hidden-image stereogram of the dog. Currently spinning. Activate to stop it, which makes it easier to see."
+      aria-pressed="false"
+      aria-label="A hidden-image stereogram of the dog. Currently still. Activate to start it spinning."
     >
       <canvas class="glizzy-stereo__canvas" id="glizzy-stereo-canvas"></canvas>
     </button>
@@ -173,7 +179,18 @@ import WindowPanel from './WindowPanel.astro';
     /* settings follow the device, not the container — see presetForViewport */
 
     const dog = createStereoDog(canvas, {
-      params: { spin: still.matches ? 0 : SPIN },
+      /*
+       * spin: 0 — STILL until someone asks for motion, for everyone, not just
+       * for prefers-reduced-motion. See the note at the top: fusing takes
+       * several seconds of steady staring and the image changes while it turns,
+       * so the still frame is the one where people actually find the dog, and
+       * it is also the frame that costs nothing.
+       *
+       * presetForViewport() is applied just below and deliberately carries no
+       * `spin`, so it cannot put this back. If a spin key is ever added there,
+       * this stops working and the only symptom is a dog that spins on load.
+       */
+      params: { spin: 0 },
       maxFps: 24,
       /*
        * Palette 4.15 off /stereo-colours: mustard, bone, cta, bg-top. Chosen by
@@ -236,7 +253,17 @@ import WindowPanel from './WindowPanel.astro';
      * interactive element inside another.
      */
     section.addEventListener('click', () => {
-      dog.setSpin(dog.spinning || still.matches ? 0 : SPIN);
+      /*
+       * `still.matches` is NOT consulted here, and that is deliberate.
+       * prefers-reduced-motion governs motion the user did not ask for, and
+       * nothing here starts moving on its own any more. Leaving the check in
+       * made the control silently inert for those users while the bar sat there
+       * promising "click to spin" — a label that lies is worse than the motion.
+       * The media query still decides the DEFAULT, which is now still for
+       * everyone anyway, and still stops a spin already running if the setting
+       * is switched on mid-visit (below).
+       */
+      dog.setSpin(dog.spinning ? 0 : SPIN);
       render();
     });
     still.addEventListener('change', (e) => {
