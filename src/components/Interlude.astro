@@ -8,20 +8,48 @@
  *
  * The asterisks are `aria-hidden`: they are typographic ornament, and a screen
  * reader announcing "asterisk asterisk asterisk" either side of every line is
- * noise, not content.
+ * noise, not content. The two between the display line and the sub-line are
+ * the same ornament and the same rule, and they belong to the sub-line — no
+ * sub, no separator, or the flanking rules would sit two lines apart with
+ * nothing between them.
  *
  * Sequoia Light rather than Magnolia — the wordmark face is the page's, and
  * these lines are asides between the repeats, not more wordmarks.
+ *
+ * The sub-line is an OPTIONAL NAMED slot, and both halves of that matter.
+ * NAMED because a second bare `<slot />` renders the DEFAULT slot's content a
+ * second time rather than waiting to be filled — which is exactly what the
+ * first attempt did, printing each interlude's display line twice. OPTIONAL
+ * because `Astro.slots.has` keeps the <p> out of the markup entirely when
+ * nothing is passed, so an interlude with no sub-line is the markup it was
+ * before this existed rather than an empty paragraph taking up leading.
  */
 import WindowPanel from './WindowPanel.astro';
+
+const hasSub = Astro.slots.has('sub');
 ---
 
 <section class="interlude">
   <div class="interlude__panel">
     <WindowPanel>
+      {/*
+        Four corner asterisks, ornament only. Absolutely positioned, so they
+        take no part in the card's flex column, and aria-hidden for the same
+        reason the rules are: a screen reader counting asterisks in the corners
+        of a decorative frame is noise.
+      */}
+      {['tl', 'tr', 'bl', 'br'].map((corner) => (
+        <span class={`interlude__corner interlude__corner--${corner} f-sequoia-light`} aria-hidden="true">*</span>
+      ))}
       <div class="interlude__stack">
         <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
         <p class="interlude__line f-sequoia-light"><slot /></p>
+        {hasSub && (
+          <>
+            <span class="interlude__stars f-sequoia-light" aria-hidden="true">* *</span>
+            <p class="interlude__line interlude__line--sub f-bricolage"><slot name="sub" /></p>
+          </>
+        )}
         <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
       </div>
     </WindowPanel>
