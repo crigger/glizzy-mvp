@@ -15,6 +15,13 @@
  * two read as one drawn box rather than a strip sitting on a panel. Only the
  * label's alignment is overridden.
  *
+ * The FIELD fills whatever space it is given — full width, flush with the other
+ * windows — and the dog is sized conservatively inside it, so its edges are
+ * always clear of the frame. Those two pull in opposite directions on a wide
+ * screen and that is fine: `contain` binds the dog to the height, so it holds
+ * one size while the backdrop grows around it. The extra backdrop is not waste
+ * in a stereogram — it is the reference plane the eye locks onto.
+ *
  * `flush` is kept for the one thing it does that is wanted here — dropping the
  * bone card, which exists to put TYPE on and would mat a field of dots with a
  * background nothing chose. Its other effect, zeroing the content padding, is
@@ -44,12 +51,12 @@ import WindowPanel from './WindowPanel.astro';
 ---
 
 <section class="glizzy-stereo">
-  <WindowPanel flush title="click to spin">
+  <WindowPanel flush title="click to stop">
     <button
       class="glizzy-stereo__tap"
       id="glizzy-stereo-tap"
-      aria-pressed="false"
-      aria-label="A hidden-image stereogram of the dog. Currently still. Activate to start it spinning."
+      aria-pressed="true"
+      aria-label="A hidden-image stereogram of the dog. Currently spinning. Activate to stop it, which makes it easier to see."
     >
       <canvas class="glizzy-stereo__canvas" id="glizzy-stereo-canvas"></canvas>
     </button>
@@ -64,9 +71,34 @@ import WindowPanel from './WindowPanel.astro';
    * exactly that: every other window sits flush at the gutter and this one was
    * inset a further 16px.
    */
+  /*
+   * The panel fills its SECTION, rather than being a fixed slab sitting inside
+   * one. base.scss gives every `section` a min-height of nearly a viewport, so
+   * a `clamp(320px, 62vh, 680px)` panel left roughly a third of the section as
+   * dead navy underneath it — visible the moment the section box is inspected.
+   *
+   * Flex rather than `height: 100%`, so it stretches to whatever the section
+   * actually resolves to (the min-height, or taller if something else pushes
+   * it) without needing to restate the rule and drift from it.
+   */
   .glizzy-stereo {
     width: 100%;
+    display: flex;
   }
+  .glizzy-stereo :global(.window) { flex: 1 1 auto; }
+
+  /*
+   * Trim the section's vertical padding on a phone. base.scss gives every
+   * section 48px top and bottom, which is right for a section of type and
+   * expensive here: it comes straight off the panel's height, and height is
+   * what a stereogram has least of on a phone. 16px buys back 64px of field
+   * without touching the rhythm between sections on wider screens, where the
+   * space is not scarce.
+   */
+  @media (max-width: 700px) {
+    .glizzy-stereo { padding-block: 16px; }
+  }
+
 
   /*
    * Only the COLOUR is set, on both bar and keyline together, so the 2px weight
@@ -90,13 +122,17 @@ import WindowPanel from './WindowPanel.astro';
    */
   .glizzy-stereo :global(.window--flush .window-content) {
     padding: 1rem;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .glizzy-stereo__tap {
     display: block;
     position: relative;
     width: 100%;
-    height: clamp(320px, 62vh, 680px);
+    /* grows into whatever the panel has left under the chrome bar */
+    flex: 1 1 auto;
+    min-height: 320px;
     margin: 0;
     padding: 0;
     border: 0;
@@ -123,7 +159,7 @@ import WindowPanel from './WindowPanel.astro';
 </style>
 
 <script>
-  import { createStereoDog } from '../scripts/stereo-dog.js';
+  import { createStereoDog, presetForViewport } from '../scripts/stereo-dog.js';
 
   const canvas = document.getElementById('glizzy-stereo-canvas');
   const tap = document.getElementById('glizzy-stereo-tap');
@@ -134,16 +170,20 @@ import WindowPanel from './WindowPanel.astro';
     const still = window.matchMedia('(prefers-reduced-motion: reduce)');
     const SPIN = 100;
 
+    /* settings follow the device, not the container — see presetForViewport */
+
     const dog = createStereoDog(canvas, {
-      params: { spin: 0 },
+      params: { spin: still.matches ? 0 : SPIN },
       maxFps: 24,
       /*
-       * Palette 4.8 off /stereo-colours: dog-color, mustard, bone, bg-top.
-       * Chosen by eye from the sheet rather than by rule — four colours across
-       * the full luminance range, which is what keeps the coincidental-match
-       * rate down without two of them reading as one.
+       * Palette 4.15 off /stereo-colours: mustard, bone, cta, bg-top. Chosen by
+       * eye from the sheet, which is the only way that judgement gets made.
+       *
+       * It drops both oranges, so the four sit at four clearly separated
+       * luminances — near-black navy, mid blue, bright mustard, near-white bone
+       * — and nothing collapses into its neighbour the way the all-warm sets do.
        */
-      palette: ['#dc512a', '#ffa300', '#f7e0c5', '#000d60'],
+      palette: ['#ffa300', '#f7e0c5', '#30a2ff', '#000d60'],
       cover: true,
       pauseWhenOffscreen: true,
       /* Full-bleed is a lot of cells. The engine coarsens the dot rather than
@@ -153,6 +193,28 @@ import WindowPanel from './WindowPanel.astro';
       measure: () => tap.getBoundingClientRect(),
     });
     dog.start();
+
+    /*
+     * A handle on the running engine, so /stereo can render THIS component and
+     * drive it — tuning the real thing in its real frame rather than a bespoke
+     * layout that has to be kept in sync by hand. Same shape as hero-dog.js's
+     * `window.glizzy3D`. The event covers the case where the tuner's script
+     * runs first; the global covers the case where it runs second.
+     */
+    const applyPreset = () => {
+      const preset = presetForViewport(window.innerWidth);
+      for (const k in preset) dog.setParam(k, preset[k]);
+    };
+    applyPreset();
+
+    let periodRid = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(periodRid);
+      periodRid = setTimeout(applyPreset, 200);
+    });
+
+    window.glizzyStereo = dog;
+    document.dispatchEvent(new CustomEvent('stereo:ready', { detail: dog }));
 
     function render() {
       const spinning = dog.spinning;

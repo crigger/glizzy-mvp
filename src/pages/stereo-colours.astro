@@ -20,6 +20,7 @@
  * noindex, off the nav, same as /stereo.
  */
 import Layout from '../layouts/Layout.astro';
+import WindowPanel from '../components/WindowPanel.astro';
 
 const PALETTE = [
   { token: 'dog-color', hex: '#dc512a' },
@@ -50,6 +51,10 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
         Tap any one to spin it; tap again to stop. One spins at a time.
       </p>
       <p class="sheet__note" id="sheet-status">rendering on scroll…</p>
+      <p class="sheet__note sheet__triage" id="sheet-triage" hidden>
+        <span id="triage-count"></span>
+        <button type="button" id="btn-restore">restore all</button>
+      </p>
     </header>
 
     {groups.map((g) => (
@@ -63,8 +68,11 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
                 {set.map((c) => <i style={`background:${c.hex}`} title={c.token}></i>)}
               </span>
               <span class="tile__names">{set.map((c) => c.token).join(' · ')}</span>
+              <button type="button" class="tile__dismiss" aria-label="Dismiss this palette">dismiss</button>
             </figcaption>
-            <button class="tile__box" aria-pressed="false" aria-label="Spin this palette"><canvas class="tile__canvas"></canvas></button>
+            <WindowPanel flush title="click to spin">
+              <button class="tile__box" aria-pressed="false" aria-label="Spin this palette"><canvas class="tile__canvas"></canvas></button>
+            </WindowPanel>
           </figure>
         ))}
       </section>
@@ -83,7 +91,7 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
     padding-block: 24px 64px;
     min-height: 100vh;
   }
-  .sheet__head { max-width: 60ch; margin: 0 auto 28px; padding: 0 1rem; }
+  .sheet__head { max-width: 60ch; margin: 0 auto 28px; }
   .sheet__head h1 { font-size: 18px; margin: 0 0 8px; font-weight: 400; letter-spacing: 0.04em; }
   .sheet__head p { margin: 0 0 6px; color: #8a8a8a; }
   .sheet__note { color: #dc512a; }
@@ -91,16 +99,44 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
   .sheet__group { margin: 0 0 8px; }
   .sheet__group h2 {
     font-size: 13px; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #d8d8d8; margin: 32px 0 12px; padding: 0 1rem 6px; border-bottom: 1px solid #262626;
+    color: #d8d8d8; margin: 32px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #262626;
   }
   .sheet__group h2 span { color: #6a6a6a; }
 
-  .tile { margin: 0 0 28px; padding: 0 1rem; }
+  /*
+   * No inline padding on the tile. `main` already applies the one page gutter
+   * (--page-gutter: 24px on a phone, 56px from 768px up) and the extra 1rem on
+   * top of it made every tile 32px narrower than the homepage panel it is
+   * supposed to be previewing — the same "sections contribute nothing
+   * horizontal" rule the homepage component had to be taught. It cost most on a
+   * phone, where 32px is 8% of the field.
+   */
+  .tile { margin: 0 0 28px; }
   .tile figcaption { display: flex; align-items: center; gap: 10px; padding-bottom: 6px; flex-wrap: wrap; }
   .tile__idx { color: #d8d8d8; }
   .tile__swatches { display: flex; gap: 3px; }
   .tile__swatches i { width: 22px; height: 8px; border-radius: 1px; }
   .tile__names { color: #6a6a6a; font-size: 11px; }
+  .tile__dismiss {
+    margin-left: auto;
+    padding: 4px 10px;
+    background: transparent;
+    color: #6a6a6a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .tile__dismiss:hover, .tile__dismiss:focus-visible { color: #d8d8d8; border-color: #666; }
+  .tile[hidden] { display: none; }
+
+  .sheet__triage { display: flex; align-items: center; gap: 10px; }
+  .sheet__triage button {
+    padding: 4px 10px; background: transparent; color: #6a6a6a;
+    border: 1px solid #333; border-radius: 4px; font: inherit; font-size: 11px; cursor: pointer;
+  }
+  .sheet__triage button:hover, .sheet__triage button:focus-visible { color: #d8d8d8; border-color: #666; }
 
   /*
    * The homepage's box, to the pixel: the same clamp height, full width, and a
@@ -110,25 +146,45 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
    * backdrop blur — forty-one of those is a compositing bill nobody needs on a
    * reference sheet. Same border weight and colour, none of the blur.
    */
+  /*
+   * The real WindowPanel, same furniture as the homepage: mustard bar and
+   * keyline running continuous, centred label, dot screen framing the field.
+   *
+   * The panel's glass carries `backdrop-filter: blur(5rem)`, and forty-one of
+   * those is why this sheet used a bare bordered div before. It turns out to be
+   * free to switch off rather than approximate: the filter blurs what is BEHIND
+   * the panel, this page's background is a flat #0a0a0a, and a blur of a flat
+   * colour is that same flat colour. No visual difference, no compositing bill.
+   */
+  .tile :global(.window::before) { backdrop-filter: none; }
+  .tile :global(.window-chrome) { justify-content: center; }
+  .tile :global(.window--flush .window-content) { padding: 1rem; }
+
   .tile__box {
     position: relative;
     display: block;
     padding: 0;
+    margin: 0;
+    border: 0;
     cursor: pointer;
     width: 100%;
     /*
-     * +4 for the keyline. On the homepage the clamp sits on the button INSIDE
-     * the panel, so the border is outside the 62vh; here the clamp is on the
-     * bordered element itself. Without the 4px these come out 484 tall against
-     * the homepage's 488, and the whole point is a like-for-like preview.
+     * Mirrors the height the homepage panel resolves to. There it fills its
+     * section — `100svh` less the section's min-height offset and its padding —
+     * and this sheet is only worth anything if it renders what the homepage
+     * renders, so the same arithmetic is repeated here rather than a round
+     * number that would drift from it.
      */
-    height: calc(clamp(320px, 62vh, 680px) + 4px);
-    border: 2px solid var(--cta);
+    height: calc(100svh - 216px);
+    min-height: 320px;
+    max-height: 1000px;
     background: #0a0a0a;
     overflow: hidden;
   }
-  .tile__box[aria-pressed='true'] { border-color: var(--mustard); }
-  .tile__box:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; }
+  @media (max-width: 700px) {
+    .tile__box { height: calc(100svh - 152px); }
+  }
+  .tile__box:focus-visible { outline: 2px solid var(--mustard); outline-offset: -4px; }
   .tile__canvas {
     display: block;
     position: absolute;
@@ -140,7 +196,7 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
 </style>
 
 <script>
-  import { createStereoDog } from '../scripts/stereo-dog.js';
+  import { createStereoDog, presetForViewport } from '../scripts/stereo-dog.js';
 
   const hex2rgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const statusEl = document.getElementById('sheet-status');
@@ -172,7 +228,15 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
     /* 24fps for the same reason the homepage caps it: nothing about a rotating
        dog needs 60, and this is the whole main thread while it runs. */
     maxFps: 24,
-    params: { spin: 0 },
+    /*
+     * dpr 1. At homepage size on a 2x display each canvas backs 3384x2004 —
+     * 27MB apiece — and the dots are already square, so the second pixel buys
+     * nothing here.
+     */
+    maxDpr: 1,
+    /* the same device-class period the homepage uses, from the same function,
+       so the sheet cannot preview a repeat the page will not ship */
+    params: { spin: 0, ...presetForViewport(window.innerWidth) },
     onFrame: () => { if (active) blit(active); },
     /* clientWidth/Height, NOT the bounding rect: the rect includes the 2px
        keyline, and the homepage measures a button that has no border. Four
@@ -219,8 +283,10 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
     tiles.forEach((t) => {
       const on = t === active;
       const b = t.querySelector('.tile__box');
+      const label = t.querySelector('.window-title');
       b.setAttribute('aria-pressed', String(on));
       b.setAttribute('aria-label', on ? 'Stop spinning this palette' : 'Spin this palette');
+      if (label) label.textContent = on ? 'click to stop' : 'click to spin';
     });
   }
 
@@ -240,10 +306,71 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
     setPressed();
   }
 
+  /*
+   * Dismissing, so forty-one can be triaged down to a shortlist.
+   *
+   * Keyed on the palette's own hex list rather than an index, so the set
+   * survives the groups being reordered or a colour being added to the table —
+   * an index would quietly start pointing at a different palette.
+   *
+   * Held in localStorage because triage happens across sittings, and wrapped
+   * because a private window throws on access rather than returning empty.
+   */
+  const STORE = 'glizzy-stereo-dismissed';
+  let dismissed = new Set();
+  try {
+    dismissed = new Set(JSON.parse(localStorage.getItem(STORE) || '[]'));
+  } catch { /* storage unavailable; triage just will not persist */ }
+
+  function persist() {
+    try { localStorage.setItem(STORE, JSON.stringify([...dismissed])); } catch { /* as above */ }
+  }
+
+  const triageEl = document.getElementById('sheet-triage');
+  const countEl = document.getElementById('triage-count');
+
+  function applyTriage() {
+    let hidden = 0;
+    tiles.forEach((t) => {
+      const off = dismissed.has(t.dataset.colors);
+      t.hidden = off;
+      if (off) {
+        hidden++;
+        if (t === active) stopSpin();
+        /* hand back the backing store of anything hidden */
+        const c = t.querySelector('.tile__canvas');
+        if (t.dataset.drawn === '1') { c.width = 0; c.height = 0; t.dataset.drawn = ''; }
+      }
+    });
+    triageEl.hidden = hidden === 0;
+    countEl.textContent = `${tiles.length - hidden} shown · ${hidden} dismissed`;
+    /* group headings for an emptied group are noise */
+    document.querySelectorAll('.sheet__group').forEach((g) => {
+      g.hidden = [...g.querySelectorAll('.tile')].every((t) => t.hidden);
+    });
+  }
+
   tiles.forEach((tile) => {
-    tile.querySelector('.tile__box').addEventListener('click', () => {
+    tile.querySelector('.tile__dismiss').addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismissed.add(tile.dataset.colors);
+      persist();
+      applyTriage();
+    });
+  });
+
+  document.getElementById('btn-restore').addEventListener('click', () => {
+    dismissed.clear();
+    persist();
+    applyTriage();
+  });
+
+  tiles.forEach((tile) => {
+    /* on the panel, not the button: the bar says "click to spin", so the bar
+       has to spin it, and a click on the button bubbles here too */
+    tile.querySelector('.window').addEventListener('click', () => {
       if (active === tile) stopSpin();
-      else { const wasActive = active; if (wasActive) stopSpin(); startSpin(tile); }
+      else { if (active) stopSpin(); startSpin(tile); }
     });
   });
 
@@ -284,7 +411,8 @@ const total = groups.reduce((n, g) => n + g.sets.length, 0);
         const r = t.getBoundingClientRect();
         if (r.bottom > -window.innerHeight && r.top < window.innerHeight * 2) draw(t);
       });
-      status();
+      applyTriage();
+  status();
     }, 150);
   });
 

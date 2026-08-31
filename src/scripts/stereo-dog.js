@@ -38,7 +38,6 @@ const MU = 1 / 3;
 const P_DOG = { RADIUS: 1.0, LENGTH: 5.0, CAP_FULL: 1.0, LUMP_AMP: 0.1, LUMP_FREQ: 0.6, LUMP_SEED: 0 };
 const TILT_X = THREE.MathUtils.degToRad(15);
 const TILT_Z = THREE.MathUtils.degToRad(-25);
-const TOTAL_AXIAL = P_DOG.LENGTH + 2 * P_DOG.CAP_FULL * P_DOG.RADIUS;
 
 /* The real tokens from styles/_globals/vars.scss, in the order /stereo-colours
    enumerates them. --bg-bottom is omitted: at #000d48 against --bg-top's
@@ -53,32 +52,61 @@ const BRAND = BRAND_HEX.map(hex2rgb);
  * guess. `planes: 33` is the "smooth" end — continuous depth. `blur: 0`
  * because GPU depth is exact and has no noise to hide.
  */
+/**
+ * Per-device settings, chosen by fusing them on the hardware in question.
+ *
+ * `sep` — the on-screen repeat — is the one that must NOT be a percentage of
+ * the frame. Fusing depends on the physical span between repeats against the
+ * eyes' geometry, and a fraction of the width walks straight off a cliff at the
+ * wide end: the 16.9% that gives 68px on a 402px phone would ask for 316px on a
+ * 1871px desktop, about 84mm, wider than any human's eye separation. It could
+ * not fuse at all. The two working values are not a constant fraction (16.9% vs
+ * 11.7%) nor a constant physical size (~11mm vs ~58mm), which is the other
+ * reason there is a table here and not a formula.
+ *
+ * The rest are here because they turned out to be device-dependent too. A
+ * phone wants more `blur` — at a short period the depth gradients are steeper
+ * per cell, and softening them stops the silhouette breaking up — and a deeper,
+ * narrower `room`.
+ *
+ * Everything else (relief, lift, fill, spin) holds across devices.
+ *
+ * Exported so the homepage and the colour sheet cannot disagree.
+ */
+export const presetForViewport = (w) =>
+  w < 700
+    ? { sep: 68, blur: 6, room: 55, wall: 14 }
+    : { sep: 218, blur: 0, room: 30, wall: 18 };
+
 export const STEREO_DEFAULTS = {
   sep: 101,    // ON-SCREEN repeat period in CSS px. See eyeSep() below.
   dot: 2,
   planes: 33,  // > 32 means unquantised
-  gain: 80,
-  spin: 0,
-  fill: 105,
-  lift: 40,
+  gain: 30,
+  spin: 100,
   /*
-   * OFF, after trying it on the shipped page and finding it did not help.
-   *
-   * The argument for it was that a flat backdrop gives the eye nothing to lock
-   * onto. That was wrong, and backwards: a large region at ONE constant period
-   * is the easiest thing in a stereogram to fuse — you converge on it and the
-   * subject pops relative to it. What a flat field lacks is information, not
-   * lockability. Ramping the outer 30% on every side replaced the one stable
-   * period with a gradient, right where the eye tends to start looking.
-   *
-   * Kept, not deleted, because it is two numbers and a branch and worth another
-   * look if the subject ever fills more of the frame. Tuning notes if so: the
-   * dog's whole relief is only ~7px of on-screen period, so room below ~70
-   * ramps less than the recovery can resolve and is invisible; room 100 / wall
-   * 30 ramps 5.2px; past wall ~40 the walls meet and there is no back wall.
+   * 135, not 105. Once the framing actually fitted the dog's real silhouette
+   * instead of a generous overestimate, `fill: 105` meant what it says — the
+   * subject filling ~95% of its binding axis — and that was far bigger than the
+   * page ever wanted. The old number only looked right because the fit was
+   * loose by about a third. This is the margin that reproduces the size the
+   * page had, now that the number means what it claims.
    */
-  room: 0,
-  wall: 30,
+  fill: 200,
+  lift: 80,
+  /*
+   * Back on, gently, at a value picked by eye rather than argued for.
+   *
+   * It was off for a while: the case for it — that a flat backdrop gives the
+   * eye nothing to lock onto — is backwards, since a large region at ONE
+   * constant period is the easiest thing in a stereogram to converge on. At
+   * room 100 it ramped the outer third and removed that stable period. At 30
+   * with a narrow wall it is a hint of recession at the very edge rather than a
+   * gradient across the field, which is a different thing and reads better in
+   * place. Past wall ~40 the walls meet and there is no back wall at all.
+   */
+  room: 30,
+  wall: 18,
   blur: 0,
   n: 5,
 };
@@ -145,6 +173,59 @@ export function createStereoDog(canvas, options = {}) {
   tiltGroup.add(new THREE.Mesh(geom, new THREE.MeshBasicMaterial()));
 
   /*
+   * The dog's real half-extents, swept over a full turn.
+   *
+   * Framing used to fit TOTAL_AXIAL — the 7-unit LENGTH — into whichever axis
+   * was tighter. But the dog is tilted 25 degrees, so it is only about 3 units
+   * wide on screen, and fitting its length into a narrow frame's width wasted
+   * both axes: on a 402x780 phone the dog covered 56% of the width and 45% of
+   * the height, filling neither.
+   *
+   * So: take the geometry's own bounding box (post-lumpiness, so the displaced
+   * vertices count), push its corners through the tilt and every yaw the spin
+   * will reach, and keep the worst case on each axis. Sweeping rather than
+   * measuring the current pose matters because the dog turns — a frame that
+   * fits it head-on clips it side-on, and a fit that changed as it rotated
+   * would pump the image in and out.
+   */
+  tiltGroup.updateMatrix();
+  let HALF_W = 0, HALF_H = 0, HALF_D = 0;
+  {
+    /*
+     * Real vertices, not bounding-box corners. A box around a rounded capsule
+     * has corners that stick out well past any actual surface, and fitting
+     * those left about 20% of the frame unused on top of whatever `fill` asks
+     * for — the dog reached 81% of its binding axis when it should have been
+     * near 95%.
+     */
+    /*
+     * One pass, no sweep, and exact — because the spin is about Y.
+     *
+     * Rotating a tilted vertex (x, y, z) by yaw leaves y untouched, so the
+     * vertical extent is simply max |y|. And it carries x into
+     * x·cos + z·sin, whose maximum over a full turn is the vertex's radius
+     * from the Y axis: sqrt(x² + z²). So the widest the dog can ever get,
+     * at any angle it will ever reach, is the largest such radius — no
+     * sampling of yaw angles required, and no chance of stepping over the
+     * true maximum between samples. Depth sweeps the same radius.
+     *
+     * Sampling 24 yaws over every vertex cost 23-60ms at startup; this is one
+     * pass and correct rather than approximate.
+     */
+    const pos = geom.attributes.position;
+    const v = new THREE.Vector3();
+    let maxRadiusSq = 0;
+    for (let vi = 0; vi < pos.count; vi++) {
+      v.fromBufferAttribute(pos, vi).applyMatrix4(tiltGroup.matrix);
+      const ay = v.y < 0 ? -v.y : v.y;
+      if (ay > HALF_H) HALF_H = ay;
+      const rSq = v.x * v.x + v.z * v.z;
+      if (rSq > maxRadiusSq) maxRadiusSq = rSq;
+    }
+    HALF_W = HALF_D = Math.sqrt(maxRadiusSq);
+  }
+
+  /*
    * Linear view-space depth, not gl_FragCoord.z. The hardware depth buffer is
    * heavily non-linear — it spends its precision near the near plane — and a
    * stereogram needs depth proportional to real distance or the dog comes out
@@ -193,15 +274,23 @@ export function createStereoDog(canvas, options = {}) {
     }
   }
 
+  /* `contain`: back off until BOTH axes hold the swept silhouette, so whichever
+     axis is tighter is the one that fills. `fill` is the margin on top — 100
+     touches the edges, 105 leaves a little air. */
   function fitCamera() {
     const fovY = THREE.MathUtils.degToRad(camera.fov);
     const fovX = 2 * Math.atan(Math.tan(fovY / 2) * camera.aspect);
-    const margin = TOTAL_AXIAL * (P.fill / 100);
-    const dist = Math.max(margin / (2 * Math.tan(fovY / 2)), margin / (2 * Math.tan(fovX / 2)));
+    const k = P.fill / 100;
+    const dist = Math.max(
+      (HALF_H * k) / Math.tan(fovY / 2),
+      (HALF_W * k) / Math.tan(fovX / 2)
+    );
     camera.position.z = dist;
-    const half = TOTAL_AXIAL * 0.7;
-    camera.near = Math.max(0.1, dist - half);
-    camera.far = dist + half;
+    /* near/far snug around the swept depth, not a guess: the frustum is what
+       the depth shader normalises against, and spending it on empty space
+       throws away the precision the relief is carved out of. */
+    camera.near = Math.max(0.1, dist - HALF_D * 1.15);
+    camera.far = dist + HALF_D * 1.15;
     camera.updateProjectionMatrix();
     depthMat.uniforms.uNear.value = camera.near;
     depthMat.uniforms.uFar.value = camera.far;

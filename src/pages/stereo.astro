@@ -1,204 +1,115 @@
 ---
 /**
- * The dog as a Magic Eye.
+ * The tuner — which is the homepage's stereogram, with knobs bolted on.
  *
- * A SIRDS (single-image random-dot stereogram) whose depth map is the dog's
- * own depth buffer. This is the whole point of doing it here rather than in
- * the camera prototype it grew out of: a photograph has no depth channel, so
- * that version had to *infer* depth — first from luminance (which inverts
- * near and far the moment a bright thing is far away) and then from a 19MB
- * monocular depth model. A three.js scene already knows exactly how far every
- * pixel is. The depth is free, exact, and noiseless.
+ * It renders the real `GlizzyStereo` rather than a copy of it. The previous
+ * version was a bespoke full-screen layout with its own sizing, which meant
+ * every number found here had to be re-checked against the homepage by hand,
+ * and twice did not survive the trip: the panel had a different width, and a
+ * different height, than the thing it was supposed to be tuning. Rendering the
+ * component puts it in the same `section`, the same window chrome, the same
+ * `contain` framing, so a setting that reads well here reads well there.
  *
- * Imports the real dog-model.js. Not a copy: the whole reason that module was
- * lifted out of hero-dog.js is that the model must not fork, and a stereogram
- * of a stale dog would be a silent way for it to.
+ * The controls reach the engine through `window.glizzyStereo`, the handle the
+ * component publishes.
  *
- * What is NOT here, deliberately: lights, textures, the bump map. Depth does
- * not care about shading, so the render is geometry only. One consequence
- * worth knowing — the asterisk end-cap imprint is a *bump map*, not geometry,
- * so it does not exist in the depth buffer and cannot appear in the
- * stereogram. The lumpiness does, because applyLumpiness displaces vertices.
+ * Colour is deliberately absent: the homepage pins an explicit palette now, so
+ * a count slider here would drive nothing. /stereo-colours is where palettes
+ * are chosen, and it shows every one at this same size.
  *
- * noindex, and off the nav. This is a toy.
+ * noindex, off the nav.
  */
 import Layout from '../layouts/Layout.astro';
+import GlizzyStereo from '../components/GlizzyStereo.astro';
 ---
 
-<Layout
-  title="Stereogram — Glizzy Store"
-  description="The dog, hidden in noise."
-  scripts={false}
-  noindex
->
-  <main class="stereo">
-    <div class="stereo__stage"><canvas id="view"></canvas></div>
+<Layout title="Stereogram tuner — Glizzy Store" description="Tuning the homepage stereogram." scripts={false} noindex>
+  <GlizzyStereo />
 
-    <button id="btn-tune" class="stereo__toggle" aria-expanded="false">tune</button>
+  <button id="btn-tune" class="tuner__toggle" aria-expanded="false">tune</button>
 
-    <div class="stereo__bar" id="bar">
-      <div class="stereo__btns">
-        <button id="btn-freeze" aria-pressed="false">freeze</button>
-        <button id="btn-depth" aria-pressed="false">depth</button>
-        <button id="btn-guide" aria-pressed="false">guides</button>
-        <button id="btn-invert" aria-pressed="false">invert</button>
-        <button id="btn-color" aria-pressed="false">color</button>
-      </div>
-      <div class="stereo__row"><label for="s-sep">period</label><input id="s-sep" type="range" min="55" max="190" step="1" value="101" /><output id="o-sep"></output></div>
-      <div class="stereo__row"><label for="s-dot">dot</label><input id="s-dot" type="range" min="1" max="6" step="1" value="2" /><output id="o-dot"></output></div>
-      <div class="stereo__row"><label for="s-plane">planes</label><input id="s-plane" type="range" min="2" max="33" step="1" value="33" /><output id="o-plane"></output></div>
-      <div class="stereo__row"><label for="s-gain">relief</label><input id="s-gain" type="range" min="10" max="100" step="5" value="80" /><output id="o-gain"></output></div>
-      <div class="stereo__row"><label for="s-spin">spin</label><input id="s-spin" type="range" min="0" max="100" step="5" value="0" /><output id="o-spin"></output></div>
-      <div class="stereo__row"><label for="s-fill">fill</label><input id="s-fill" type="range" min="70" max="180" step="5" value="105" /><output id="o-fill"></output></div>
-      <div class="stereo__row"><label for="s-lift">lift</label><input id="s-lift" type="range" min="0" max="80" step="5" value="40" /><output id="o-lift"></output></div>
-      <div class="stereo__row"><label for="s-room">room</label><input id="s-room" type="range" min="0" max="100" step="5" value="0" /><output id="o-room"></output></div>
-      <div class="stereo__row"><label for="s-wall">wall</label><input id="s-wall" type="range" min="2" max="40" step="1" value="30" /><output id="o-wall"></output></div>
-      <div class="stereo__row"><label for="s-blur">blur</label><input id="s-blur" type="range" min="0" max="6" step="1" value="0" /><output id="o-blur"></output></div>
-      <div class="stereo__row"><label for="s-n">colors</label><input id="s-n" type="range" min="2" max="8" step="1" value="5" /><output id="o-n"></output></div>
-      <p id="status" class="stereo__status"></p>
+  <div class="tuner" id="bar">
+    <div class="tuner__btns">
+      <button id="btn-freeze" aria-pressed="false">freeze</button>
+      <button id="btn-depth" aria-pressed="false">depth</button>
+      <button id="btn-guide" aria-pressed="false">guides</button>
+      <button id="btn-invert" aria-pressed="false">invert</button>
     </div>
-  </main>
+    <div class="tuner__row"><label for="s-sep">period</label><input id="s-sep" type="range" min="55" max="220" step="1" value="101" /><output id="o-sep"></output></div>
+    <div class="tuner__row"><label for="s-dot">dot</label><input id="s-dot" type="range" min="1" max="6" step="1" value="2" /><output id="o-dot"></output></div>
+    <div class="tuner__row"><label for="s-plane">planes</label><input id="s-plane" type="range" min="2" max="33" step="1" value="33" /><output id="o-plane"></output></div>
+    <div class="tuner__row"><label for="s-gain">relief</label><input id="s-gain" type="range" min="10" max="100" step="5" value="80" /><output id="o-gain"></output></div>
+    <div class="tuner__row"><label for="s-spin">spin</label><input id="s-spin" type="range" min="0" max="100" step="5" value="0" /><output id="o-spin"></output></div>
+    <div class="tuner__row"><label for="s-fill">fill</label><input id="s-fill" type="range" min="70" max="220" step="5" value="135" /><output id="o-fill"></output></div>
+    <div class="tuner__row"><label for="s-lift">lift</label><input id="s-lift" type="range" min="0" max="80" step="5" value="40" /><output id="o-lift"></output></div>
+    <div class="tuner__row"><label for="s-room">room</label><input id="s-room" type="range" min="0" max="100" step="5" value="0" /><output id="o-room"></output></div>
+    <div class="tuner__row"><label for="s-wall">wall</label><input id="s-wall" type="range" min="2" max="40" step="1" value="30" /><output id="o-wall"></output></div>
+    <div class="tuner__row"><label for="s-blur">blur</label><input id="s-blur" type="range" min="0" max="6" step="1" value="0" /><output id="o-blur"></output></div>
+    <p class="tuner__status" id="status"></p>
+  </div>
 </Layout>
 
 <style lang="scss">
-  /*
-   * The panel OVERLAYS the stage, it does not sit above it in flow.
-   *
-   * Sharing the height was unusable on a phone: nine slider rows took most of
-   * the screen, the stereogram was left 201x165 and the button row was clipped
-   * off the top. A stereogram also wants to be as large as it can get — a
-   * short one gives the eyes nothing to lock onto — so the canvas now always
-   * gets the full viewport and the controls slide over it when wanted.
-   *
-   * Overlaying also means opening the panel does not resize the grid, so the
-   * image no longer re-rolls under you every time you reach for a slider.
-   */
-  .stereo {
-    position: fixed; inset: 0; height: 100dvh; overflow: hidden;
-    display: flex; align-items: center; justify-content: center;
-    background: #0a0a0a; color: #d8d8d8;
+  .tuner__toggle {
+    position: fixed;
+    z-index: 5;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 12px 20px;
+    background: #1c1c1c;
+    color: #d8d8d8;
+    border: 1px solid #555;
+    border-radius: 4px;
     font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  .stereo__stage {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-  }
-  #view { display: block; image-rendering: pixelated; touch-action: manipulation; }
-
-  .stereo__toggle {
-    position: fixed; z-index: 5;
-    right: 10px; bottom: calc(10px + env(safe-area-inset-bottom));
-    width: auto; padding: 12px 20px;
-    background: #1c1c1c; border: 1px solid #555;
+    letter-spacing: 0.04em;
+    cursor: pointer;
     box-shadow: 0 2px 12px rgb(0 0 0 / 70%);
   }
-  .stereo__toggle[aria-expanded='true'] { background: #4a2113; border-color: #dc512a; color: #ffd9c9; }
+  .tuner__toggle[aria-expanded='true'] { background: #4a2113; border-color: var(--dog-color); color: #ffd9c9; }
 
-  .stereo__bar {
-    position: absolute; z-index: 3; left: 50%; bottom: 0;
-    width: 100%; max-width: 640px;
+  /*
+   * Overlays, never shares height with the stereogram — the whole point is that
+   * the panel keeps the size it has on the homepage while it is being tuned.
+   */
+  .tuner {
+    position: fixed;
+    z-index: 4;
+    left: 50%;
+    bottom: 0;
+    width: 100%;
+    max-width: 640px;
     transform: translate(-50%, 100%);
     transition: transform 0.18s ease-out;
-    max-height: 78dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    max-height: 78dvh;
+    overflow-y: auto;
     padding: 10px 10px calc(64px + env(safe-area-inset-bottom));
-    background: #111; border-top: 1px solid #262626;
+    background: #111;
+    border-top: 1px solid #262626;
+    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #d8d8d8;
   }
-  .stereo__bar.is-open { transform: translate(-50%, 0); }
-  @media (prefers-reduced-motion: reduce) { .stereo__bar { transition: none; } }
+  .tuner.is-open { transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { .tuner { transition: none; } }
 
-  .stereo__btns { display: flex; gap: 6px; margin-bottom: 10px; }
-  .stereo__row { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
-  .stereo__row label { flex: 0 0 56px; color: #8a8a8a; }
-  .stereo__row output { flex: 0 0 42px; text-align: right; font-variant-numeric: tabular-nums; }
-  input[type='range'] { flex: 1 1 auto; min-width: 0; accent-color: #dc512a; height: 34px; }
-  button {
+  .tuner__btns { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tuner__btns button {
     flex: 1 1 auto; padding: 9px 8px; background: #1c1c1c; color: #d8d8d8;
     border: 1px solid #333; border-radius: 4px; font: inherit; cursor: pointer;
   }
-  button[aria-pressed='true'] { background: #4a2113; border-color: #dc512a; color: #ffd9c9; }
-  .stereo__status { color: #6a6a6a; font-size: 11px; margin: 6px 0 0; min-height: 1.4em; }
+  .tuner__btns button[aria-pressed='true'] { background: #4a2113; border-color: var(--dog-color); color: #ffd9c9; }
+
+  .tuner__row { display: flex; align-items: center; gap: 8px; margin: 2px 0; }
+  .tuner__row label { flex: 0 0 56px; color: #8a8a8a; }
+  .tuner__row output { flex: 0 0 46px; text-align: right; font-variant-numeric: tabular-nums; }
+  .tuner input[type='range'] { flex: 1 1 auto; min-width: 0; accent-color: var(--dog-color); height: 34px; }
+  .tuner__status { color: #6a6a6a; font-size: 11px; margin: 8px 0 0; min-height: 1.4em; }
 </style>
 
 <script>
-  /*
-   * The tuner is a thin skin over src/scripts/stereo-dog.js. Everything that
-   * renders lives in the engine, shared with the homepage's GlizzyStereo, so a
-   * fix made while tuning cannot fail to reach the page people actually see.
-   */
-  import { createStereoDog, STEREO_DEFAULTS } from '../scripts/stereo-dog.js';
-
-  const canvas = document.getElementById('view');
-  const statusEl = document.getElementById('status');
   const barEl = document.getElementById('bar');
   const tuneBtn = document.getElementById('btn-tune');
-
-  const dog = createStereoDog(canvas, {
-    maxWidth: 640,
-    colorMode: 'grey',
-    guides: false,
-    pauseWhenOffscreen: false,
-    /* visualViewport, not innerHeight: Safari's toolbars collapse on scroll
-       and innerHeight does not track it, which leaves the canvas taller than
-       the screen with its bottom rows unreachable. */
-    measure: () => {
-      const vv = window.visualViewport;
-      return {
-        width: vv ? vv.width : document.documentElement.clientWidth,
-        height: Math.min(vv ? vv.height : window.innerHeight, 1200),
-      };
-    },
-  });
-  dog.start();
-
-  function report() {
-    const s = dog.stats();
-    statusEl.textContent =
-      `${s.gW}\u00d7${s.gH} \u00b7 ${s.fps} fps \u00b7 gpu depth \u00b7 repeat ${dog.params.sep}px (E=${s.E})` +
-      `${s.dot !== dog.params.dot ? ' \u00b7 dot\u2192' + s.dot : ''}` +
-      `${dog.params.spin === 0 ? ' \u00b7 still' : ''}`;
-  }
-  setInterval(report, 500);
-
-  function bind(id, key, fmt) {
-    const el = document.getElementById('s-' + id);
-    const out = document.getElementById('o-' + id);
-    const sync = () => {
-      dog.setParam(key, +el.value);
-      out.textContent = fmt ? fmt(+el.value) : el.value;
-      report();
-    };
-    el.addEventListener('input', sync);
-    sync();
-  }
-
-  function toggle(id, apply, initial) {
-    const b = document.getElementById(id);
-    let on = initial;
-    b.setAttribute('aria-pressed', String(on));
-    b.addEventListener('click', () => {
-      on = !on;
-      b.setAttribute('aria-pressed', String(on));
-      apply(on);
-    });
-  }
-
-  bind('sep', 'sep', (v) => v + 'px');
-  bind('dot', 'dot');
-  bind('plane', 'planes', (v) => (v > 32 ? 'smooth' : v));
-  bind('gain', 'gain', (v) => v + '%');
-  bind('spin', 'spin', (v) => (v === 0 ? 'off' : v + '%'));
-  bind('fill', 'fill', (v) => v + '%');
-  bind('lift', 'lift', (v) => v + '%');
-  bind('room', 'room', (v) => (v === 0 ? 'off' : v + '%'));
-  bind('wall', 'wall', (v) => v + '%');
-  bind('blur', 'blur');
-  bind('n', 'n');
-
-  toggle('btn-freeze', (v) => dog.setFrozen(v), false);
-  toggle('btn-depth', (v) => dog.setShowDepth(v), false);
-  toggle('btn-guide', (v) => dog.setGuides(v), false);
-  toggle('btn-invert', (v) => dog.setInvert(v), false);
-  toggle('btn-color', (v) => dog.setColorMode(v ? 'brand' : 'grey'), false);
+  const statusEl = document.getElementById('status');
 
   function closeDrawer() {
     barEl.classList.remove('is-open');
@@ -210,14 +121,66 @@ import Layout from '../layouts/Layout.astro';
     tuneBtn.setAttribute('aria-expanded', String(open));
     tuneBtn.textContent = open ? 'close' : 'tune';
   });
-  canvas.addEventListener('click', () => {
-    if (barEl.classList.contains('is-open')) { closeDrawer(); return; }
-    const next = !dog.frozen;
-    dog.setFrozen(next);
-    document.getElementById('btn-freeze').setAttribute('aria-pressed', String(next));
-  });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 
-  report();
-  window.__stereo = dog;
+  /* The component may boot before or after this script; take whichever arrives. */
+  function withDog(fn) {
+    if (window.glizzyStereo) fn(window.glizzyStereo);
+    else document.addEventListener('stereo:ready', (e) => fn(e.detail), { once: true });
+  }
+
+  withDog((dog) => {
+    function report() {
+      const s = dog.stats();
+      statusEl.textContent =
+        `${s.gW}×${s.gH} · ${s.fps} fps · gpu depth · ` +
+        `repeat ${dog.params.sep}px (E=${s.E})` +
+        `${s.dot !== dog.params.dot ? ' · dot→' + s.dot : ''}` +
+        `${dog.params.spin === 0 ? ' · still' : ''}`;
+    }
+    setInterval(report, 500);
+
+    function bind(id, key, fmt) {
+      const el = document.getElementById('s-' + id);
+      const out = document.getElementById('o-' + id);
+      /* Seed from the engine, so the sliders show what the homepage actually
+         ships rather than whatever was typed into the markup. */
+      el.value = dog.params[key];
+      const sync = () => {
+        dog.setParam(key, +el.value);
+        out.textContent = fmt ? fmt(+el.value) : el.value;
+        report();
+      };
+      el.addEventListener('input', sync);
+      sync();
+    }
+
+    function toggle(id, apply) {
+      const b = document.getElementById(id);
+      let on = false;
+      b.addEventListener('click', () => {
+        on = !on;
+        b.setAttribute('aria-pressed', String(on));
+        apply(on);
+      });
+    }
+
+    bind('sep', 'sep', (v) => v + 'px');
+    bind('dot', 'dot');
+    bind('plane', 'planes', (v) => (v > 32 ? 'smooth' : v));
+    bind('gain', 'gain', (v) => v + '%');
+    bind('spin', 'spin', (v) => (v === 0 ? 'off' : v + '%'));
+    bind('fill', 'fill', (v) => v + '%');
+    bind('lift', 'lift', (v) => v + '%');
+    bind('room', 'room', (v) => (v === 0 ? 'off' : v + '%'));
+    bind('wall', 'wall', (v) => v + '%');
+    bind('blur', 'blur');
+
+    toggle('btn-freeze', (v) => dog.setFrozen(v));
+    toggle('btn-depth', (v) => dog.setShowDepth(v));
+    toggle('btn-guide', (v) => dog.setGuides(v));
+    toggle('btn-invert', (v) => dog.setInvert(v));
+
+    report();
+  });
 </script>
