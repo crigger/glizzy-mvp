@@ -8,48 +8,39 @@
  *
  * The asterisks are `aria-hidden`: they are typographic ornament, and a screen
  * reader announcing "asterisk asterisk asterisk" either side of every line is
- * noise, not content. The two between the display line and the sub-line are
- * the same ornament and the same rule, and they belong to the sub-line — no
- * sub, no separator, or the flanking rules would sit two lines apart with
- * nothing between them.
+ * noise, not content.
+ *
+ * There used to be a third pair BETWEEN two lines of type, and four more in the
+ * card's corners. Both sets are gone, along with the second line — see below.
+ * What is left is the pair of rules flanking the stack, which is the one job
+ * the marks were doing that nothing else does.
  *
  * Sequoia Light rather than Magnolia — the wordmark face is the page's, and
  * these lines are asides between the repeats, not more wordmarks.
  *
- * The sub-line is an OPTIONAL NAMED slot, and both halves of that matter.
- * NAMED because a second bare `<slot />` renders the DEFAULT slot's content a
- * second time rather than waiting to be filled — which is exactly what the
- * first attempt did, printing each interlude's display line twice. OPTIONAL
- * because `Astro.slots.has` keeps the <p> out of the markup entirely when
- * nothing is passed, so an interlude with no sub-line is the markup it was
- * before this existed rather than an empty paragraph taking up leading.
+ * ONE line, one default slot. There was a second — a small uppercase spec
+ * stamped between hairline rules under the display line — carrying "Hot Link
+ * Chain Technology" and "Fully Fungible". Those two phrases are the display
+ * line itself now, and the claims they sat under ("Get in on the ground
+ * level", "The currency of the future") are gone: one voice per interlude
+ * rather than a claim and its own footnote in the same card.
+ *
+ * If a second line is ever wanted back, the trap that cost the first attempt
+ * is worth knowing going in: a second BARE `<slot />` renders the DEFAULT
+ * slot's content a second time rather than waiting to be filled, so it printed
+ * every interlude's line twice. It has to be a NAMED slot, and guarded with
+ * `Astro.slots.has` so an unfilled one is absent rather than an empty
+ * paragraph taking up leading.
  */
 import WindowPanel from './WindowPanel.astro';
-
-const hasSub = Astro.slots.has('sub');
 ---
 
 <section class="interlude">
   <div class="interlude__panel">
     <WindowPanel>
-      {/*
-        Four corner asterisks, ornament only. Absolutely positioned, so they
-        take no part in the card's flex column, and aria-hidden for the same
-        reason the rules are: a screen reader counting asterisks in the corners
-        of a decorative frame is noise.
-      */}
-      {['tl', 'tr', 'bl', 'br'].map((corner) => (
-        <span class={`interlude__corner interlude__corner--${corner} f-sequoia-light`} aria-hidden="true">*</span>
-      ))}
       <div class="interlude__stack">
         <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
         <p class="interlude__line f-sequoia-light"><slot /></p>
-        {hasSub && (
-          <>
-            <span class="interlude__stars f-sequoia-light" aria-hidden="true">* *</span>
-            <p class="interlude__line interlude__line--sub f-bricolage"><slot name="sub" /></p>
-          </>
-        )}
         <span class="interlude__stars f-sequoia-light" aria-hidden="true">* * *</span>
       </div>
     </WindowPanel>

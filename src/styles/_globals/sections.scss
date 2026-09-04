@@ -23,9 +23,6 @@
   --q-size: var(--q-size-base);
   /* The air above and below an interlude line — 2em of its own type. */
   --interlude-air: calc(var(--q-size) * 2);
-  /* Card edge to the corner asterisk's INK — see the offsets on
-     .interlude__corner, which turn this into four box positions. */
-  --corner-inset: 0.75rem;
 }
 
 .glizzy-repeat {
@@ -161,18 +158,19 @@
 }
 
 /*
- * The rules — above the display line, between it and the sub-line, and below.
- * All three are ONE declaration at the LINE'S OWN SIZE: same token, no
- * multiplier, so they read as part of the setting rather than a caption on it.
+ * The rules above and below the stack. ONE declaration at the LINE'S OWN SIZE:
+ * same token, no multiplier, so they read as part of the setting rather than a
+ * caption on it.
  *
- * The middle pair was briefly given its own smaller size and its own tracking.
- * Both are gone, and the tracking is why they cannot come back separately:
- * `letter-spacing` adds its space after the LAST character too, so a centred
- * group sits half its tracking left of centre. That offset is harmless while
- * every group shares one size and one tracking — they are all shifted by the
- * same amount, so they stay aligned with each other, which is the only thing
- * anyone can see. Give one group its own size and it alone moves off the axis
- * the other two share.
+ * There was a third pair between the display line and the sub-line, removed on
+ * 2026-09-04. If any group is ever added back, it takes THIS size and THIS
+ * tracking or none: `letter-spacing` adds its space after the LAST character
+ * too, so a centred group sits half its tracking left of centre. That offset is
+ * harmless while every group shares one size and one tracking — they are all
+ * shifted by the same amount, so they stay aligned with each other, which is
+ * the only thing anyone can see. Give one group its own size and it alone moves
+ * off the axis the others share. The old middle pair was given a smaller size
+ * and its own tracking once, and that is what it did.
  */
 .interlude__stars {
   font-size: var(--q-size);
@@ -194,84 +192,6 @@
    */
   transform: translateY(0.29em);
 }
-
-/*
- * The four corner asterisks on an interlude's card.
- *
- * `.window-content__inner` is already `position: relative`, so these anchor to
- * the card rather than the panel — the bone field is the thing being framed,
- * and the panel's own keyline already frames the glass.
- *
- * The same `translateY` correction as .interlude__stars, and for the same
- * reason: `*` is drawn high in its em box, so a box placed symmetrically puts
- * the MARK high. With the correction the ink sits centred in the line box and
- * one inset can serve all four corners. See the measurements below it.
- */
-.interlude__corner {
-  position: absolute;
-  /*
-   * The same size as every other asterisk on the card — one token, no
-   * multiplier, exactly as .interlude__stars takes it. Every mark in this
-   * panel is then the same mark.
-   *
-   * A consequence worth knowing: at this size the offsets below are larger
-   * than --corner-inset, so top/left resolve NEGATIVE and each mark's line box
-   * hangs outside the card. That is correct and not a bug — the box is empty
-   * space, and it is the INK the inset is measured to.
-   */
-  font-size: var(--q-size);
-  line-height: 1;
-  transform: translateY(0.29em);
-  /*
-   * Mustard, not the card's ink. These are the one thing in the panel that is
-   * ornament rather than setting, and the colour is what says so — the marks
-   * inside the frame carry the line, these hold the corners.
-   *
-   * Mustard on bone measures 1.57:1, far under any text threshold, and that is
-   * fine HERE and only here: they are `aria-hidden` decoration carrying no
-   * information, which is exactly the case WCAG 1.4.11 exempts. Do not reach
-   * for this colour for the asterisks inside the card — those sit in a line
-   * with the copy and are read as part of it.
-   */
-  color: var(--mustard);
-  /* Ornament: never a drag target, never part of a selection of the copy. */
-  pointer-events: none;
-  user-select: none;
-}
-
-/*
- * --corner-inset is the distance from the card's edge to the MARK, not to the
- * mark's box, and the three offsets below are what makes those different
- * things agree. One inset on all four sides put the ink 10.5px from the sides
- * but 16.5px from the top and 19.5px from the bottom — a corner ornament
- * visibly further in vertically than horizontally, and not even level with
- * itself top to bottom.
- *
- * The offsets are Sequoia's asterisk measured off rendered pixels, as ems of
- * its own size, so they hold at any size the mark is set at:
- *
- *     left/right   0.0324em   side bearing
- *     top          0.2722em   box top -> ink, after the translateY above
- *     bottom       0.4176em   ink -> box bottom, likewise
- *
- * Re-derived at --q-size after the marks were matched to the other asterisks:
- * the first set was measured off a 24px mark whose ink was only 8px tall, so
- * a half-pixel of rasterization was 1/16th of the reading. Take these off the
- * largest rendering available.
- *
- * The top and bottom differ because the correction centres the mark on the
- * CAP-HEIGHT centre, which is not the line box's centre — it is the right
- * correction for asterisks sitting beside caps, and about 1.5em/100 out for
- * one floating in a corner.
- */
-.interlude__corner--tl,
-.interlude__corner--tr { top:    calc(var(--corner-inset) - 0.2722em); }
-.interlude__corner--bl,
-.interlude__corner--br { bottom: calc(var(--corner-inset) - 0.4176em); }
-.interlude__corner--tl,
-.interlude__corner--bl { left:   calc(var(--corner-inset) - 0.0324em); }
-.interlude__corner--tr,
-.interlude__corner--br { right:  calc(var(--corner-inset) - 0.0324em); }
 
 /*
  * The screen behind an interlude is the CTA blue, not the mustard every other
@@ -378,6 +298,8 @@
   letter-spacing: 0.01em;
   word-spacing: 0.05em;
   line-height: 1;
+  /* The interlude takes 9em instead — see the rule directly below. This stays
+     the shared default because the contact title still wants it. */
   max-width: 10em;
   margin-inline: auto;
   text-align: center;
@@ -385,141 +307,26 @@
 }
 
 /*
- * The sub-line under the display line — same panel, same centring, smaller
- * voice (Bricolage, the body copy's face, not the heading's).
+ * The interlude's measure, one em tighter than the contact title's.
  *
- * Written `.interlude__line.interlude__line--sub` so it cannot lose a
- * specificity TIE, the same reason `.window.window--untitled` is written that
- * way in windows.scss. The shared rule above is `.window-content__inner
- * .interlude__line` at (0,2,0) and sets the size from --q-size; a modifier
- * qualified only as `.window-content__inner .interlude__line--sub` would also
- * be (0,2,0) and win on source order alone — which holds only until someone
- * moves a block. Doubling the class makes it (0,3,0) and settles it.
+ * A SEPARATE rule rather than a smaller number in the shared one above: these
+ * two lines share a treatment on purpose, and the shared rule is what makes
+ * "same treatment" a fact instead of two sets of numbers that agree today.
+ * Editing the value there would have reflowed the contact form's title, which
+ * nobody asked for and which nothing on this page would have shown.
+ *
+ * (0,3,0), taking the section as the third class. The shared rule is (0,2,0)
+ * and a bare `.window-content__inner .interlude__line` here would only TIE with
+ * it, settled by which block came last — the tiebreak this file has been caught
+ * by before (see `.window.window--untitled` in windows.scss, and the note on
+ * `.interlude .window` above).
+ *
+ * Scoped by `.interlude` rather than by the `.f-sequoia-light` on the element,
+ * which would also reach (0,3,0): a measure hung off a font utility disappears
+ * the moment the face is swapped, and the two have no reason to be tied.
  */
-.window-content__inner .interlude__line.interlude__line--sub {
-  /*
-   * Fluid, but on a much shallower ramp than the display line above it.
-   *
-   * The CAP is the part worth keeping: --q-size tops out where 9vw reaches its
-   * 7rem maximum, at 1244px, and 2.44vw reaches 1.9rem at the same width — the
-   * ratio of slope to maximum is identical (0.09/7 = 0.0244/1.9). So the claim
-   * and its spec stop growing together, and the panel looks the same at 1440
-   * as it does at 2560 rather than the small line creeping up alone.
-   *
-   * The FLOOR deliberately does not match. --q-size bottoms out at 489px, this
-   * at 918px, so between those widths the display line keeps shrinking while
-   * the sub-line holds. That is the right way round: 1.4rem is a reading size
-   * and there is nothing to gain by taking it below one.
-   */
-  font-size: clamp(1.4rem, 2.44vw, 1.9rem);
-  /*
-   * Both of these are RESTATED off the shared rule, which is written for
-   * display type and does the wrong thing at this size. `max-width: 10em` is
-   * 224px at 1.4rem — the sub-line wrapped after four words — and
-   * `line-height: 1` then sat the wrapped lines directly on each other.
-   * 1.35 is the panel's own body-copy leading, from windows.scss: this is
-   * body-sized type in the body copy's face, so it takes the body's measure.
-   */
-  /*
-   * A FIXED measure, so the two stamps match. The rules hug the element and
-   * the element used to hug its text, which drew a long rule under "Hot Link
-   * Chain Technology" and a much shorter one under "Fully Fungible" — read
-   * down the page they looked like two different devices rather than one
-   * repeating.
-   *
-   * 20em is measured, not picked: the longer of the two lines is 17.8em of its
-   * own size (the shorter, 9.6em), so 20 clears it with about 1.1em of air at
-   * each end and the rule always overhangs the type it underlines. A new spec
-   * longer than 17.8em wraps to two lines rather than overflowing — check a
-   * new one against that number.
-   *
-   * It is a CAP plus `align-self: stretch`, and NOT `width: 20em`. That was
-   * tried and it tore the panel off both edges of a phone: at 390 the panel
-   * ran from x=-67 to x=457 against a 390 viewport. `.interlude__panel` is
-   * `width: auto` by design — it hugs its line — so a fixed width on a child
-   * does not fit inside the card, it DEMANDS that width from it. `max-width:
-   * 100%` cannot rescue that either, because the containing block is itself
-   * shrink-to-fit: the percentage resolves against a width the child is still
-   * determining, so the fixed width simply wins.
-   *
-   * A PERCENTAGE width is what works, and the reason is the same one that
-   * sinks the fixed width: against an indefinite containing block a percentage
-   * is treated as `auto` when the parent's intrinsic size is calculated, so it
-   * contributes no demand at all. The card is still sized by its display line;
-   * only afterwards does 100% resolve against the stack. `max-width` then caps
-   * it at 20em, and the inherited `margin-inline: auto` centres it.
-   *
-   * `align-self: stretch` was tried here first and silently did nothing: an
-   * auto margin on the cross axis disables stretching, and this line inherits
-   * `margin-inline: auto` from the shared rule. Both stamps kept hugging their
-   * own text (540px and 295px at 1440) with no error anywhere.
-   *
-   * The cap also has to beat the shared rule's `max-width: 10em`, which is why
-   * it is restated here at all — that (0,2,0) rule would otherwise clamp this
-   * line to well under its own text.
-   */
-  width: 100%;
-  max-width: 20em;
-  line-height: 1.35;
-  /*
-   * Set as a label rather than as a sentence — the display line above makes
-   * the claim, this one reads as the spec stamped under it.
-   *
-   * 0.14em is the house tracking for uppercase (base.scss's caption, the shop
-   * meta rows), taken at its tight end because this is 1.4rem and every one of
-   * those is 1rem or smaller: tracking is an em, so it grows with the type and
-   * the same 0.2em that suits a 0.75rem label opens gaps at this size. It also
-   * has to be stated here at all because the shared rule sets 0.01em for
-   * display type.
-   */
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  /*
-   * 500 is BOLDER AND ALSO THE CEILING. The shipped Bricolage is instanced to
-   * `wght=400:500` (see the regeneration command in fonts.scss), so 600 or 700
-   * would not reach a drawn weight — the browser would synthesize one, which
-   * is the smeared faux-bold that shipped on /thanks for weeks and is written
-   * up beside `.f-magnolia`. If this ever needs to be genuinely heavier, the
-   * font has to be re-instanced with a wider axis range first.
-   */
-  font-weight: 500;
-  /*
-   * Rules above and below, which is what turns the line from a caption into a
-   * plate stamped under the claim.
-   *
-   * `currentColor` rather than a token: this line is set in the card's own ink
-   * and the rules are part of the same mark, so they cannot drift from it if
-   * the card is ever inverted. 2px matches the panel's keyline — the one fixed
-   * hairline weight this design already has — rather than inventing a second.
-   *
-   * The rules hug the TEXT, not the card, because `.interlude__stack` is a
-   * column flex container with `align-items: center`: its items size to their
-   * content instead of stretching. That is what makes this read as a stamp on
-   * the line and not as a divider across the panel — and it is also why the
-   * `max-width` above still matters, since it is what stops a long spec from
-   * drawing a rule the full width of the card.
-   */
-  border-top: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  padding-block: 0.55em;
-  /*
-   * The stamp does not sit centred between the asterisk pairs on its own, and
-   * the reason is not the layout — it is where the INK sits. `*` is drawn high
-   * in its em box and then pushed down 0.29em by the correction on
-   * .interlude__stars, so the two pairs are not symmetric about this line even
-   * though their boxes are: measured off the rendered pixels, 46.5px of air
-   * above against 33.0px below at 1440, and 22.5 against 15.5 at 390.
-   *
-   * Half the difference, moved off each side. Expressed against --q-size
-   * because the imbalance is a property of the ASTERISKS, which are set at
-   * that size — scaling it off this line's own em would track the wrong thing,
-   * since the sub-line rides a much shallower clamp than the stars do.
-   *
-   * Measure with ink, never with getBoundingClientRect: the correction is a
-   * `transform`, so the boxes look symmetric while the marks are not.
-   */
-  margin-top: calc(var(--q-size) * -0.07);
-  margin-bottom: calc(var(--q-size) * 0.07);
+.interlude .window-content__inner .interlude__line {
+  max-width: 9em;
 }
 
 .btn-acquire {
