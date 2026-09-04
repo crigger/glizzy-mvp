@@ -34,6 +34,7 @@ import GlizzyStereo from '../components/GlizzyStereo.astro';
       <button id="btn-depth" aria-pressed="false">depth</button>
       <button id="btn-guide" aria-pressed="false">guides</button>
       <button id="btn-invert" aria-pressed="false">invert</button>
+      <button id="btn-tone" aria-pressed="false">2-tone</button>
     </div>
     <div class="tuner__row"><label for="s-sep">period</label><input id="s-sep" type="range" min="55" max="220" step="1" value="101" /><output id="o-sep"></output></div>
     <div class="tuner__row"><label for="s-dot">dot</label><input id="s-dot" type="range" min="1" max="6" step="1" value="2" /><output id="o-dot"></output></div>
@@ -44,6 +45,8 @@ import GlizzyStereo from '../components/GlizzyStereo.astro';
     <div class="tuner__row"><label for="s-lift">lift</label><input id="s-lift" type="range" min="0" max="80" step="5" value="40" /><output id="o-lift"></output></div>
     <div class="tuner__row"><label for="s-room">room</label><input id="s-room" type="range" min="0" max="100" step="5" value="0" /><output id="o-room"></output></div>
     <div class="tuner__row"><label for="s-wall">wall</label><input id="s-wall" type="range" min="2" max="40" step="1" value="30" /><output id="o-wall"></output></div>
+    <div class="tuner__row"><label for="s-wig">wiggle</label><input id="s-wig" type="range" min="4" max="72" step="1" value="17" /><output id="o-wig"></output></div>
+    <div class="tuner__row"><label for="s-wigms">rate</label><input id="s-wigms" type="range" min="300" max="2400" step="50" value="300" /><output id="o-wigms"></output></div>
     <div class="tuner__row"><label for="s-blur">blur</label><input id="s-blur" type="range" min="0" max="6" step="1" value="0" /><output id="o-blur"></output></div>
     <p class="tuner__status" id="status"></p>
   </div>
@@ -155,9 +158,12 @@ import GlizzyStereo from '../components/GlizzyStereo.astro';
       sync();
     }
 
-    function toggle(id, apply) {
+    function toggle(id, apply, initial = false) {
       const b = document.getElementById(id);
-      let on = false;
+      /* Seeded, like the sliders: a toggle that reads "off" while the engine
+         has it on is a control that lies. */
+      let on = initial;
+      b.setAttribute('aria-pressed', String(on));
       b.addEventListener('click', () => {
         on = !on;
         b.setAttribute('aria-pressed', String(on));
@@ -175,11 +181,18 @@ import GlizzyStereo from '../components/GlizzyStereo.astro';
     bind('room', 'room', (v) => (v === 0 ? 'off' : v + '%'));
     bind('wall', 'wall', (v) => v + '%');
     bind('blur', 'blur');
+    /* Only bite in the wiggle view — switch to it with the panel's own button.
+       They are here because they are exactly the kind of number this page
+       exists for: picked by watching the thing move, not by argument. */
+    bind('wig', 'wig', (v) => v + 'px');
+    bind('wigms', 'wigMs', (v) => v + 'ms');
 
     toggle('btn-freeze', (v) => dog.setFrozen(v));
     toggle('btn-depth', (v) => dog.setShowDepth(v));
     toggle('btn-guide', (v) => dog.setGuides(v));
     toggle('btn-invert', (v) => dog.setInvert(v));
+    /* every view: darkest + lightest brand colour, one light dot in four */
+    toggle('btn-tone', (v) => dog.setParam('tone', v ? 1 : 0), dog.params.tone === 1);
 
     report();
   });

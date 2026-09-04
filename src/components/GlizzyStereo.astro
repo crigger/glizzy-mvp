@@ -30,42 +30,62 @@
  * show as a margin around the stereogram, and what keeps the square canvas away
  * from the 8px corner radius so the radius actually reads.
  *
- * The bar carries the only visible copy, centred: it says what to do, and it
- * says it in the panel's own furniture rather than as a caption competing with
- * the image. It swaps to "click to stop" while spinning. The accessible name
- * carries the same state — unavoidably, since a stereogram is invisible without
- * binocular vision and no amount of markup fixes that.
+ * The bar carries the NAME — "magic glizzy" — and the three views sit under
+ * the image as buttons. It used to work the other way round: the bar said
+ * "click to spin" and the whole panel was the control. That was one hidden
+ * affordance doing one thing, and it could not grow a third state without the
+ * label becoming a lie ("click to spin… or wiggle?"). Buttons say what is
+ * available, say which one is on, and can be tabbed to.
  *
- * The SERVER-RENDERED markup states the still state too — "click to spin",
- * `aria-pressed="false"`. render() would correct it a moment later either way,
- * but only once the module has loaded and run: markup that ships claiming the
- * opposite is a label that is wrong for as long as the page is not yet
- * interactive, which is exactly when someone is reading it.
+ * The SERVER-RENDERED markup states the still state — `aria-pressed="true"` on
+ * `still`. The script would set it a moment later either way, but only once the
+ * module has loaded and run: markup that ships claiming the opposite is wrong
+ * for as long as the page is not yet interactive, which is exactly when someone
+ * is reading it.
  *
- * STILL by default, spins on tap — the opposite of where this started, for two
- * reasons that point the same way. Fusing takes several seconds of steady
- * staring and the image keeps changing while it turns, so the still frame is
- * where people will actually find the dog. And a still stereogram costs
- * nothing: the engine draws one frame and cancels its own loop, where spinning
- * costs ~16ms of main thread per frame on a page already running the hero's
- * dog and ScrollTrigger. The cheap default is also the legible one.
+ *   still   — default. Fusing takes several seconds of steady staring, and the
+ *             image must not change while you do it, so this is the frame where
+ *             people actually find the dog. It also costs nothing: the engine
+ *             draws once and cancels its own loop.
+ *   spin    — the dog turns. Capped to 24fps; nothing about a rotating dog
+ *             needs 60, and the cap roughly halves the cost on a page already
+ *             running the hero's dog and ScrollTrigger.
+ *   wiggle  — the depth as motion parallax: the dot field sweeps sideways and
+ *             back, the dog holds still. See makePlane()/makeSlide() in
+ *             stereo-dog.js: every frame alone is blank noise, and the dog
+ *             appears out of the boundary between what moves and what does
+ *             not.
  *
- * When it does spin it is capped to 24fps. Nothing about a rotating dog needs
- * 60, and the cap roughly halves the cost.
+ * WHY THE THIRD ONE EXISTS. A stereogram is invisible to anyone who cannot
+ * free-view — through inexperience, or amblyopia, or one eye. Until now the
+ * honest answer to "what am I supposed to be seeing" was "trust us". The
+ * wiggle is the answer: same depth buffer, same dot field, same palette, laid
+ * out in time rather than in space, and it asks nothing of the viewer. It is
+ * also the fastest way for someone who DID fuse it to check they saw the dog
+ * and not a dog-shaped wish.
+ *
+ * It is not the default, because it gives the answer away. Someone who lands on
+ * `still` gets to find the dog themselves, which is the whole pleasure of the
+ * thing; `wiggle` is there for when that has stopped being fun.
  */
 import WindowPanel from './WindowPanel.astro';
 ---
 
 <section class="glizzy-stereo">
-  <WindowPanel flush title="click to spin">
-    <button
-      class="glizzy-stereo__tap"
-      id="glizzy-stereo-tap"
-      aria-pressed="false"
-      aria-label="A hidden-image stereogram of the dog. Currently still. Activate to start it spinning."
+  <WindowPanel flush title="magic glizzy">
+    <div
+      class="glizzy-stereo__field"
+      id="glizzy-stereo-field"
+      role="img"
+      aria-label="A hidden-image stereogram of the dog. Relax your eyes past the screen and a hot dog appears in three dimensions. Currently still."
     >
       <canvas class="glizzy-stereo__canvas" id="glizzy-stereo-canvas"></canvas>
-    </button>
+    </div>
+    <div class="glizzy-stereo__views" role="group" aria-label="How to view the stereogram">
+      <button type="button" class="glizzy-stereo__view" data-view="still" aria-pressed="true">still</button>
+      <button type="button" class="glizzy-stereo__view" data-view="spin" aria-pressed="false">spin</button>
+      <button type="button" class="glizzy-stereo__view" data-view="wiggle" aria-pressed="false">wiggle</button>
+    </div>
   </WindowPanel>
 </section>
 
@@ -132,22 +152,78 @@ import WindowPanel from './WindowPanel.astro';
     min-height: 0;
   }
 
-  .glizzy-stereo__tap {
+  /*
+   * A plain div now, not a button: the three view buttons below carry the
+   * interaction, and an interactive element wrapping the image would put a
+   * second, unlabelled control in the tab order that does the same job worse.
+   */
+  .glizzy-stereo__field {
     display: block;
     position: relative;
     width: 100%;
-    /* grows into whatever the panel has left under the chrome bar */
+    /* grows into whatever the panel has left under the chrome bar and the
+       view row — both of those are fixed-height, this is the one that flexes */
     flex: 1 1 auto;
     min-height: 320px;
-    margin: 0;
-    padding: 0;
-    border: 0;
     background: #0a0a0a;
-    cursor: pointer;
     overflow: hidden;
+  }
+
+  /*
+   * The view row. Monospace, uppercase, 0.18em — the same face and tracking as
+   * `.window-title` in windows.scss, because these are the panel's own
+   * furniture and should read as part of the frame rather than as page CTAs
+   * that wandered inside it. 2px borders for the same reason: that is the
+   * keyline weight every window is drawn with.
+   */
+  .glizzy-stereo__views {
+    display: flex;
+    gap: 6px;
+    padding-top: 1rem;
+    flex: 0 0 auto;
+  }
+  /*
+   * `flex: 1 1 0` — a ZERO basis, so the three share the row equally rather
+   * than in proportion to their labels. `1 1 auto` would make WIGGLE the widest
+   * and STILL the narrowest, which reads as a ranking of three things that are
+   * peers. `min-width: 0` because a flex item's default `min-width: auto`
+   * refuses to shrink below its content and would put the row back out of
+   * balance on a narrow phone.
+   */
+  .glizzy-stereo__view {
+    flex: 1 1 0;
+    min-width: 0;
+    font: 11px/1 ui-monospace, SFMono-Regular, monospace;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    margin: 0;
+    color: var(--mustard);
+    /*
+     * Opaque, not transparent. The panel's dot screen runs behind this row, and
+     * a transparent button put that texture directly under 11px mono set at
+     * 0.18em — the one thing the whole design is otherwise careful never to do.
+     * Navy is also what the pressed state uses as its INK, so the two states
+     * are one pair of colours swapping places rather than three colours.
+     */
+    background: var(--bg-top);
+    border: 2px solid var(--mustard);
+    border-radius: 2px;
+    cursor: pointer;
     touch-action: manipulation;
   }
-  .glizzy-stereo__tap:focus-visible { outline: 2px solid var(--mustard); outline-offset: 2px; }
+  /*
+   * The on state is the FILL, not a colour shift. A stereogram sits next to
+   * this and the eye is about to be asked to hold a difficult convergence on
+   * it; two states told apart by a shade of mustard is exactly the kind of
+   * low-contrast judgement to keep away from that.
+   */
+  .glizzy-stereo__view[aria-pressed='true'] {
+    background: var(--mustard);
+    color: var(--bg-top);
+  }
+  .glizzy-stereo__view:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
 
   /*
    * Centred and clipped, never scaled. The engine renders a grid at least as
@@ -168,11 +244,11 @@ import WindowPanel from './WindowPanel.astro';
   import { createStereoDog, presetForViewport } from '../scripts/stereo-dog.js';
 
   const canvas = document.getElementById('glizzy-stereo-canvas');
-  const tap = document.getElementById('glizzy-stereo-tap');
+  const field = document.getElementById('glizzy-stereo-field');
   const section = document.querySelector('.glizzy-stereo');
-  const barLabel = section && section.querySelector('.window-title');
+  const viewBtns = section ? [...section.querySelectorAll('[data-view]')] : [];
 
-  if (canvas && tap) {
+  if (canvas && field) {
     const still = window.matchMedia('(prefers-reduced-motion: reduce)');
     const SPIN = 100;
 
@@ -190,7 +266,19 @@ import WindowPanel from './WindowPanel.astro';
        * `spin`, so it cannot put this back. If a spin key is ever added there,
        * this stops working and the only symptom is a dog that spins on load.
        */
-      params: { spin: 0 },
+      params: {
+        spin: 0,
+        /*
+         * Two-tone for every view — navy, one bone dot in four. This was a
+         * wiggle-only aid until it turned out to be the setting that made the
+         * wiggle readable, and the stereogram then had to wear the same field:
+         * three views of one thing should not look like three things. The
+         * four-colour palette below still decides WHICH two — darkest and
+         * lightest — and is what the colour sheet compared. See paint() in
+         * stereo-dog.js for what it costs the stereogram.
+         */
+        tone: 1,
+      },
       maxFps: 24,
       /*
        * Palette 4.15 off /stereo-colours: mustard, bone, cta, bg-top. Chosen by
@@ -207,7 +295,7 @@ import WindowPanel from './WindowPanel.astro';
          dropping frames, and holds the on-screen repeat at 101px whatever the
          dot size, so fusing is unaffected. */
       maxCells: 220000,
-      measure: () => tap.getBoundingClientRect(),
+      measure: () => field.getBoundingClientRect(),
     });
     dog.start();
 
@@ -233,43 +321,48 @@ import WindowPanel from './WindowPanel.astro';
     window.glizzyStereo = dog;
     document.dispatchEvent(new CustomEvent('stereo:ready', { detail: dog }));
 
-    function render() {
-      const spinning = dog.spinning;
-      if (barLabel) barLabel.textContent = spinning ? 'click to stop' : 'click to spin';
-      tap.setAttribute('aria-pressed', String(spinning));
-      tap.setAttribute(
-        'aria-label',
-        'A hidden-image stereogram of the dog. ' +
-          (spinning
-            ? 'Currently spinning. Activate to stop it, which makes it easier to see.'
-            : 'Currently still. Activate to start it spinning.')
-      );
+    /*
+     * One switch for all three views, rather than a spin toggle with a wiggle
+     * bolted beside it. They are mutually exclusive — the wiggle's two slides
+     * are built from a still pose, and spinning while it flips would be two
+     * kinds of motion arguing — so a single function that puts the engine in
+     * exactly one state cannot leave it in a combination nobody designed.
+     */
+    const VIEW_LABEL = {
+      still:
+        'A hidden-image stereogram of the dog. Relax your eyes past the screen and a hot dog appears in three dimensions. Currently still.',
+      spin: 'A hidden-image stereogram of the dog, currently spinning. The still view is easier to see.',
+      wiggle:
+        'The dot field sweeping from side to side while the hidden dog holds still, which makes it appear as a shape. No relaxed focus needed.',
+    };
+
+    let view = 'still';
+
+    function setView(next) {
+      view = next;
+      /* Order does not matter to the engine — both call invalidate() — but the
+         pair is built from the pose, so spin goes off in the same breath. */
+      dog.setView(next === 'wiggle' ? 'wiggle' : 'sirds');
+      dog.setSpin(next === 'spin' ? SPIN : 0);
+      for (const b of viewBtns) b.setAttribute('aria-pressed', String(b.dataset.view === next));
+      field.setAttribute('aria-label', VIEW_LABEL[next] || VIEW_LABEL.still);
     }
 
+    for (const b of viewBtns) b.addEventListener('click', () => setView(b.dataset.view));
+
     /*
-     * Listener on the SECTION, not the button. The bar says "click to spin", so
-     * clicking the bar has to spin it — and a click on the button bubbles here
-     * too, so this fires exactly once either way without nesting one
-     * interactive element inside another.
+     * `still.matches` is NOT consulted when a button is pressed, and that is
+     * deliberate. prefers-reduced-motion governs motion the user did not ask
+     * for, and nothing here starts moving on its own: the default view is
+     * still, for everyone. Gating the buttons on it would make them silently
+     * inert for those users while sitting there offering `spin` and `wiggle` —
+     * a control that lies is worse than the motion. What the setting does do is
+     * stop motion already running if it is switched on mid-visit.
      */
-    section.addEventListener('click', () => {
-      /*
-       * `still.matches` is NOT consulted here, and that is deliberate.
-       * prefers-reduced-motion governs motion the user did not ask for, and
-       * nothing here starts moving on its own any more. Leaving the check in
-       * made the control silently inert for those users while the bar sat there
-       * promising "click to spin" — a label that lies is worse than the motion.
-       * The media query still decides the DEFAULT, which is now still for
-       * everyone anyway, and still stops a spin already running if the setting
-       * is switched on mid-visit (below).
-       */
-      dog.setSpin(dog.spinning ? 0 : SPIN);
-      render();
-    });
     still.addEventListener('change', (e) => {
-      if (e.matches) dog.setSpin(0);
-      render();
+      if (e.matches && view !== 'still') setView('still');
     });
-    render();
+
+    setView('still');
   }
 </script>

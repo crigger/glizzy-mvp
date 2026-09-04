@@ -58,16 +58,35 @@ const BRAND = BRAND_HEX.map(hex2rgb);
  * `sep` — the on-screen repeat — is the one that must NOT be a percentage of
  * the frame. Fusing depends on the physical span between repeats against the
  * eyes' geometry, and a fraction of the width walks straight off a cliff at the
- * wide end: the 16.9% that gives 68px on a 402px phone would ask for 316px on a
- * 1871px desktop, about 84mm, wider than any human's eye separation. It could
- * not fuse at all. The two working values are not a constant fraction (16.9% vs
- * 11.7%) nor a constant physical size (~11mm vs ~58mm), which is the other
- * reason there is a table here and not a formula.
+ * wide end: the 38% that gives 154px on a 402px phone would ask for 711px on a
+ * 1871px desktop, about 190mm, three times any human's eye separation. It could
+ * not fuse at all. So the table stays.
+ *
+ * WHAT THE TWO VALUES HAVE IN COMMON, now that the phone one is right. 154px
+ * across a 402px-wide phone is ~27mm of glass; 218px across a 1871px desktop is
+ * ~58mm. Not the same fraction (38% vs 11.7%) and not the same size — but a
+ * phone is held at about 30cm and a monitor sat at about 60cm, and at those
+ * distances the two subtend 5.2 and 5.5 DEGREES. The same angle, within 6%.
+ *
+ * That is the number fusing actually depends on, and it is why the old 68px was
+ * wrong rather than merely small: 12mm at 30cm is 2.3 degrees, less than half
+ * of what the same eyes were being asked for on the desktop. It was tuned by
+ * fusing it, so it did fuse — it was just the hard end of the range, and 154
+ * was reported as better on the device without any of this being worked out
+ * first.
+ *
+ * It is still a table and not a formula, because the browser cannot know the
+ * viewing distance and both distances above are assumptions. But a new device
+ * now has a starting point instead of a search: pick `sep` so it spans ~5.3
+ * degrees at the distance that device is actually held.
  *
  * The rest are here because they turned out to be device-dependent too. A
  * phone wants more `blur` — at a short period the depth gradients are steeper
  * per cell, and softening them stops the silhouette breaking up — and a deeper,
- * narrower `room`.
+ * narrower `room`. NOTE that the blur reasoning was written against `sep: 68`
+ * and the period has since more than doubled, which flattens exactly the
+ * gradients it exists to soften. It is left at 6 because nobody has compared
+ * them on a phone at 154; it is the first thing to try turning down.
  *
  * Everything else (relief, lift, fill, spin) holds across devices.
  *
@@ -75,7 +94,7 @@ const BRAND = BRAND_HEX.map(hex2rgb);
  */
 export const presetForViewport = (w) =>
   w < 700
-    ? { sep: 68, blur: 6, room: 55, wall: 14 }
+    ? { sep: 154, blur: 6, room: 55, wall: 14 }
     : { sep: 218, blur: 0, room: 30, wall: 18 };
 
 export const STEREO_DEFAULTS = {
@@ -107,6 +126,50 @@ export const STEREO_DEFAULTS = {
    */
   room: 30,
   wall: 18,
+  /*
+   * The wiggle view's parallax, peak to peak, in ON-SCREEN px — the same units
+   * as `sep`, and for the same reason: what the eye gets is a physical
+   * distance, not a fraction of a frame.
+   *
+   * It is deliberately NOT the stereogram's own disparity. That comes to about
+   * 5 cells at these settings, because `gain` puts the dog in the top fifth of
+   * the depth range and MU flattens it further; 5 cells is plenty to see in
+   * depth and very nearly nothing to see MOVE. Fusing and motion have
+   * different thresholds, so the wiggle gets its own amplitude.
+   *
+   * 17, halved from 34, and picked on /stereo by watching it rather than
+   * argued for. A wide sweep reads as the whole picture being dragged about; a
+   * short one reads as the ground rocking behind a dog that is standing still,
+   * which is the illusion this view is for. The dog is found in the boundary
+   * between what moves and what does not, and that boundary is no less sharp
+   * for the motion being small.
+   */
+  wig: 17,
+  /*
+   * ms per full back-and-forth of the ground. A PERIOD, not a flip rate: the
+   * wiggle was a two-slide flip first, and a two-slide flip of a random-dot
+   * field is about the weakest motion stimulus there is. Dots only match
+   * between frames within a few dot-widths (Dmax); a 30px jump is far past
+   * that, so what the eye got was flicker with a dog-shaped difference in its
+   * texture, and it could barely be seen. The ground now slides CONTINUOUSLY
+   * — a couple of px per frame, well inside Dmax — and the dog is the part
+   * that does not.
+   *
+   * 300, down from 900 — the tuner's floor, and the fastest this can honestly
+   * go. Halving the travel does NOT pay for cutting the period to a third: the
+   * ground's peak speed is pi * wig / wigMs, so it went from ~119px/s to
+   * ~178px/s, and at the 24fps cap that is ~7px per frame against ~5 before.
+   * At dot 2 that is still under four dot-widths, which is inside Dmax and so
+   * the field still reads as one sheet SLIDING rather than as flicker. Faster
+   * or wider than this and the two multiply, the step leaves Dmax, and the
+   * whole illusion collapses back into the two-slide flip this replaced.
+   */
+  wigMs: 300,
+  /* 1 = two-tone: the palette's darkest and lightest only, one light dot in
+     four. Applies to EVERY view — it started as a wiggle-only aid, and it was
+     the setting that made the wiggle legible, so the stereogram wears the
+     same field rather than changing clothes between views. See paint(). */
+  tone: 0,
   blur: 0,
   n: 5,
 };
@@ -148,11 +211,13 @@ export function createStereoDog(canvas, options = {}) {
   const vctx = canvas.getContext('2d');
   let gW = 0, gH = 0, dotUsed = P.dot;
   let depth = null, rawSrc = null, raw = null, tmp = null, idx = null, sameBuf = null;
+  let wigPlane = null, wigSlide = null, planeReady = false, wigT0 = 0;
   let grid = null, gctx = null, imgData = null, colors = [];
   let rt = null, rtBuf = null;
   let yaw = 0, lastDraw = 0, rafId = null, dirty = true, depthReady = false;
   let frames = 0, t0 = 0, fps = 0;
   let frozen = false, showDepth = false, invert = false;
+  let view = 'sirds';   // 'sirds' | 'wiggle'
   let running = false, onScreen = true, destroyed = false;
 
   const scene = new THREE.Scene();
@@ -343,6 +408,9 @@ export function createStereoDog(canvas, options = {}) {
     raw = new Float32Array(gW * gH);
     tmp = new Float32Array(gW * gH);
     idx = new Uint8Array(gW * gH);
+    wigPlane = new Float32Array(gW * gH);
+    wigSlide = new Uint8Array(gW * gH);
+    planeReady = false;
     sameBuf = new Int32Array(gW);
 
     if (rt) rt.dispose();
@@ -504,6 +572,111 @@ export function createStereoDog(canvas, options = {}) {
     }
   }
 
+  /*
+   * THE WIGGLE — the stereogram's depth shown as MOTION PARALLAX instead of
+   * binocular parallax: the ground sweeps sideways and back, the dog does not,
+   * and the eye reads the figure out of the boundary between the two.
+   *
+   * THE TEXTURE IS THE STEREOGRAM ITSELF. Each frame samples the SIRDS's own
+   * dot field (`idx`) at x offset by the cell's share of the current sweep —
+   * not a fresh hash. At rest the wiggle frame is therefore bit-for-bit the
+   * still frame, and the sweep is that exact picture with its ground sliding
+   * and its dog staying put. This matters for the seams: a SIRDS carries a
+   * horizontal grain — every dot is copied to the right at the repeat period,
+   * and where depth changes two neighbours land on one target and come out the
+   * same tone — and a hashed field has none. Built from a hash, switching views
+   * changed the weave; built from `idx`, it is one field in three states.
+   *
+   * No single frame contains the dog any more than the still does. What
+   * carries it is the motion: the ground translates as one rigid sheet, the
+   * dog does not, and the eye reads the figure out of the boundary. Julesz's
+   * kinematogram — no frame contains the figure, the sequence does.
+   *
+   * It asks nothing of the viewer: no fusing, no glasses, no several seconds of
+   * staring. It is the answer to "what am I supposed to be seeing", for anyone
+   * who cannot free-view, and for everyone else a way to check what they found.
+   *
+   * THE DOG HOLDS STILL AND THE ROOM SWIMS BEHIND IT — the arrangement kudzu's
+   * wigglegrams settled on, where every frame is aligned on a focal point so the
+   * subject does not skate about its own frame.
+   *
+   * What that needs is a RIGID GROUND. The background is pinned flat: no room,
+   * no walls, one plane at one parallax, so all of it slides together. The
+   * recessed box ramps the depth up towards the frame edge, so with it the walls
+   * slid at one speed and the rear wall at another, and a motion field carrying
+   * two speeds does not segment into figure and ground — it churns, with the dog
+   * one more thing churning inside it. Losing the room here costs nothing: it
+   * exists to give the eye a ramp of periods to FUSE against, and nothing fuses
+   * in this view.
+   *
+   * BASE makes the silhouette a STEP rather than a slope. Every foreground cell
+   * is pushed to at least BASE of the amplitude regardless of its own depth, so
+   * the outline is a hard discontinuity in the motion field even where `blur`
+   * has smeared the depth across it — and `blur` runs at 6 on a phone, which is
+   * most of a silhouette. The dog's own relief lives in the [BASE, 1] remainder:
+   * enough for the near flank to travel visibly less than the ends, not enough
+   * for the body to look like it is coming apart while the room goes past.
+   *
+   * The mask is `rawSrc > 0.002` — the GPU's depth before conditioning, the same
+   * test condition() uses to decide what is foreground. Thresholding the
+   * CONDITIONED depth instead would break the moment `lift` moved, since the
+   * room's walls are scaled by it.
+   *
+   * Split in two so the per-frame part is cheap: makePlane() turns depth into a
+   * per-cell share of the sweep and runs only when the depth changes (a
+   * re-pose, a slider); makeSlide() scales that by the sweep's current phase and
+   * hashes a frame, and runs every frame. On a still dog the whole per-frame
+   * cost is one multiply and one hash per cell — cheaper than the SIRDS pass.
+   */
+  function makePlane() {
+    /* The dog's own relief gets the top quarter of the travel; the step from
+       room to dog gets the other three. Lower, and the body pulls apart into
+       bands moving at different speeds while it is supposed to be the still
+       thing; higher, and it is a flat cutout again. */
+    const BASE = 0.75;
+    let fgLo = Infinity, fgHi = -Infinity, sum = 0, fg = 0;
+    for (let i = 0; i < depth.length; i++) {
+      if (rawSrc[i] > 0.002) {
+        const v = depth[i];
+        if (v < fgLo) fgLo = v;
+        if (v > fgHi) fgHi = v;
+        sum += v; fg++;
+      }
+    }
+    if (!fg) { fgLo = 0; fgHi = 1; }
+    const fgSpan = Math.max(fgHi - fgLo, 1e-6);
+    /* The dog's mean depth is the plane that holds still. Ground is at 0. */
+    const anchor = fg ? BASE + ((1 - BASE) * (sum / fg - fgLo)) / fgSpan : BASE;
+    for (let i = 0; i < depth.length; i++) {
+      const plane = rawSrc[i] > 0.002 ? BASE + ((1 - BASE) * (depth[i] - fgLo)) / fgSpan : 0;
+      wigPlane[i] = plane - anchor;
+    }
+  }
+
+  /* `phase` is -1..1: the sweep's current position. `wig` is the peak-to-peak
+     travel in on-screen px, so half of it in cells is the amplitude each way.
+     Shifts are ROUNDED, not dithered: the ground has one plane, so it lands on
+     one integer and translates as a solid sheet, which is the whole point.
+     Dithering the sub-cell part would have cells jumping at different moments
+     and the sheet would shimmer instead of slide.
+
+     Samples wrap within the row. What slides in at one edge is the far end of
+     the same row of dots, which is as random as anything else in it — a seam
+     in a random field is not a seam anyone can see. `idx` must be current:
+     the caller runs makeSIRDS() whenever the pose or a parameter changes. */
+  function makeSlide(phase) {
+    const amp = ((P.wig / dotUsed) * 0.5) * phase;
+    for (let y = 0; y < gH; y++) {
+      const row = y * gW;
+      for (let x = 0; x < gW; x++) {
+        const i = row + x;
+        let sx = (x - Math.round(amp * wigPlane[i])) % gW;
+        if (sx < 0) sx += gW;
+        wigSlide[i] = idx[row + sx];
+      }
+    }
+  }
+
   function paint() {
     const px = imgData.data;
     if (showDepth) {
@@ -513,9 +686,38 @@ export function createStereoDog(canvas, options = {}) {
         px[p] = px[p + 1] = px[p + 2] = v;
         px[p + 3] = 255;
       }
+    } else if (P.tone) {
+      /*
+       * Two-tone: the palette's darkest and lightest, one light dot in four
+       * on a dark field. Motion detection runs on LUMINANCE. Four brand
+       * colours spend most of the field's contrast on hue — mustard and cta
+       * blue are near each other in brightness — and a moving sheet of
+       * hue-contrast is much harder to see move than the same sheet in
+       * black and white. Sparse rather than half-and-half because a sparse
+       * dot is a thing the eye can follow; a 50% field is a texture.
+       *
+       * On the STEREOGRAM this is a trade, and an honest one. Two dots only
+       * "match" when they share an index, so the coincidental-match rate is
+       * what the colour count buys: 1 in 4 with four colours, and at 25/75
+       * two-tone it is 0.25² + 0.75² — 62%. That is the whole reason
+       * /stereo-colours exists. It still fuses, on a noisier signal; it was
+       * taken because the wiggle became legible in this field and it is one
+       * picture, not one that changes clothes between views. The index
+       * structure is untouched either way — linked cells share an index and
+       * so share a tone — so nothing about the depth encoding moves.
+       */
+      const src = view === 'wiggle' ? wigSlide : idx;
+      const lum = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+      let dark = colors[0], light = colors[0];
+      for (const c of colors) { if (lum(c) < lum(dark)) dark = c; if (lum(c) > lum(light)) light = c; }
+      for (let i = 0, p = 0; i < src.length; i++, p += 4) {
+        const c = src[i] === 0 ? light : dark;
+        px[p] = c[0]; px[p + 1] = c[1]; px[p + 2] = c[2]; px[p + 3] = 255;
+      }
     } else {
-      for (let i = 0, p = 0; i < idx.length; i++, p += 4) {
-        const c = colors[idx[i]] || colors[0];
+      const src = view === 'wiggle' ? wigSlide : idx;
+      for (let i = 0, p = 0; i < src.length; i++, p += 4) {
+        const c = colors[src[i]] || colors[0];
         px[p] = c[0]; px[p + 1] = c[1]; px[p + 2] = c[2]; px[p + 3] = 255;
       }
     }
@@ -550,7 +752,10 @@ export function createStereoDog(canvas, options = {}) {
    */
   function frame(now) {
     if (!running || destroyed) return;
-    const moving = P.spin > 0 && !frozen;
+    const spinning = P.spin > 0 && !frozen;
+    /* The wiggle keeps the loop alive on its own: the pose is not moving, the
+       VIEW is, and it has two slides to alternate. */
+    const moving = spinning || view === 'wiggle';
     if (!moving && !dirty) { stop(); return; }
     rafId = requestAnimationFrame(frame);
     if (!depth) return;
@@ -568,8 +773,22 @@ export function createStereoDog(canvas, options = {}) {
     /* Outside the frozen branch on purpose: freezing holds the POSE, it does
        not mean the conditioning sliders stop working. */
     if (depthReady) condition();
-    makeSIRDS(eyeSep(), colors.length);
-    paint();
+    if (view === 'wiggle') {
+      /* Plane and stereogram only change when the depth does, and in this
+         view the dog is normally still — so the steady per-frame work is
+         makeSlide() alone, one lookup per cell. */
+      if (spinning || dirty || !planeReady) {
+        makePlane();
+        makeSIRDS(eyeSep(), colors.length);
+        planeReady = true;
+      }
+      if (!wigT0) wigT0 = now;
+      makeSlide(Math.sin(((now - wigT0) / P.wigMs) * Math.PI * 2));
+      paint();
+    } else {
+      makeSIRDS(eyeSep(), colors.length);
+      paint();
+    }
     if (opts.onFrame) opts.onFrame();
     dirty = false;
     frames++;
@@ -632,6 +851,14 @@ export function createStereoDog(canvas, options = {}) {
     stop,
     get spinning() { return P.spin > 0; },
     setSpin(v) { P.spin = v; invalidate(); },
+    get view() { return view; },
+    /* 'sirds' | 'wiggle'. Switching restarts the sweep from centre, so the
+       view always opens on the un-shifted frame rather than mid-swing. */
+    setView(v) {
+      view = v === 'wiggle' ? 'wiggle' : 'sirds';
+      wigT0 = 0;
+      invalidate();
+    },
     get frozen() { return frozen; },
     setFrozen(v) { frozen = v; invalidate(); },
     setShowDepth(v) { showDepth = v; invalidate(); },
@@ -654,6 +881,7 @@ export function createStereoDog(canvas, options = {}) {
       if (recomputeDepth || !depthReady) { depthFromScene(); depthReady = true; }
       condition();
       makeSIRDS(eyeSep(), colors.length);
+      if (view === 'wiggle') { makePlane(); planeReady = true; makeSlide(0); }
       paint();
       dirty = false;
     },
@@ -661,7 +889,8 @@ export function createStereoDog(canvas, options = {}) {
     setGuides(v) { opts.guides = v; invalidate(); },
     stats() { return { fps, gW, gH, dot: dotUsed, E: eyeSep() }; },
     /* test hooks; the tuner's verification harness leans on these */
-    __internals: { depthFromScene, condition, makeSIRDS, paint, eyeSep,
+    __internals: { depthFromScene, condition, makeSIRDS, makePlane, makeSlide, paint, eyeSep,
+      get wigPlane() { return wigPlane; }, get wigSlide() { return wigSlide; },
       get depth() { return depth; }, get idx() { return idx; }, get raw() { return raw; },
       get gW() { return gW; }, get gH() { return gH; }, MU },
     destroy() {
