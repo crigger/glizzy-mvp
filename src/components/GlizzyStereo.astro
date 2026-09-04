@@ -110,6 +110,26 @@ import WindowPanel from './WindowPanel.astro';
   .glizzy-stereo {
     width: 100%;
     display: flex;
+    /*
+     * The panel fills the section, so the FIELD's height is the section's less
+     * the section's padding and the panel's own furniture. base.scss gives
+     * every section `100svh - 120px`, which after its 48px top and bottom left
+     * the panel at `100svh - 216px` — and the view row then took another ~51px
+     * out of the image from the inside. One viewport here puts the panel at
+     * `100svh - 96px` and hands that back with room over.
+     *
+     * This is also how the panel is kept under 100svh: BY CONSTRUCTION, not by
+     * a cap. A `max-height` on `.window` is the one thing windows.scss tells
+     * you not to add back (see its "NO viewport cap" note) — with the panel's
+     * `overflow: hidden` and no inner scroll, a cap does not clip gracefully,
+     * it just hides whatever did not fit. The section is a border-box, so its
+     * own padding guarantees 96px of headroom and the panel cannot reach the
+     * viewport height. The one case a cap WOULD bite — a landscape phone,
+     * where the field's 320px minimum plus the bar and the row exceed the
+     * screen — is exactly the case where clipping would eat the view buttons,
+     * and growing past the fold is the better failure.
+     */
+    min-height: 100svh;
   }
   .glizzy-stereo :global(.window) { flex: 1 1 auto; }
 
@@ -153,9 +173,12 @@ import WindowPanel from './WindowPanel.astro';
   }
 
   /*
-   * A plain div now, not a button: the three view buttons below carry the
-   * interaction, and an interactive element wrapping the image would put a
-   * second, unlabelled control in the tab order that does the same job worse.
+   * Still a plain div, even though it now takes a click. The three buttons
+   * below carry the KEYBOARD interaction and the pressed state; making this a
+   * button as well would put a second control in the tab order that reaches a
+   * subset of the same views and announces itself worse. So the click here is
+   * a pointer-only shortcut to a control that already exists — the rule being
+   * that nothing is reachable ONLY by clicking the image.
    */
   .glizzy-stereo__field {
     display: block;
@@ -166,7 +189,44 @@ import WindowPanel from './WindowPanel.astro';
     flex: 1 1 auto;
     min-height: 320px;
     background: #0a0a0a;
+    /*
+     * 4px, not the panel's 8. `.window-content__inner` is the precedent for an
+     * inner radius in this system, and a box sitting inside 1rem of padding can
+     * never be concentric with its parent's corner anyway — the concentric
+     * inner radius for an 8px corner inset by 16px is 0. Matching the 8 would
+     * read as a second frame competing with the keyline rather than as the
+     * image's own edge.
+     *
+     * The stroke is `--bg-bottom`, at the 2px keyline weight every window on
+     * the site is drawn with. It is the darker of the page's two grounds, so
+     * against the panel's dot screen it reads as a definite edge while staying
+     * inside the palette — black would be the only true black anywhere on the
+     * page. It sits one step under the stereogram's own navy ground
+     * (`--bg-top`), which is what makes the image end somewhere rather than
+     * dissolving into the mustard.
+     *
+     * This is the one place `--bg-bottom` earns its keep near the stereogram.
+     * It is deliberately kept OUT of the dot palette — 24 apart from
+     * `--bg-top` in blue alone is the same colour twice in a dot field, and
+     * raises the coincidental-match rate — but as a line against a boundary
+     * that is exactly the relationship wanted.
+     *
+     * `overflow: hidden` was already here, so the canvas is clipped to the new
+     * radius with nothing further to do. It is measured with
+     * getBoundingClientRect on this element, which under `box-sizing:
+     * border-box` includes the 2px — so the dot grid runs 4px wider and taller
+     * than the visible area and loses an edge cell under the stroke. That is
+     * the same clipping the canvas was always designed around, and the repeat
+     * period, which is the only number fusing depends on, is untouched by it.
+     */
+    border: 2px solid var(--bg-bottom);
+    border-radius: 4px;
     overflow: hidden;
+    /* The field is a click target now — see the toggle below. `manipulation`
+       kills the double-tap zoom delay without taking pan or pinch away, which
+       `none` would: that mistake cost this page 65% of a phone screen once. */
+    cursor: pointer;
+    touch-action: manipulation;
   }
 
   /*
@@ -349,6 +409,22 @@ import WindowPanel from './WindowPanel.astro';
     }
 
     for (const b of viewBtns) b.addEventListener('click', () => setView(b.dataset.view));
+
+    /*
+     * Clicking the image itself toggles spin. It is the gesture people try
+     * first — this panel WAS a single tap-to-spin button before the views
+     * existed — and losing it entirely to a button row was a step backwards for
+     * anyone using a phone.
+     *
+     * It runs through setView(), not dog.setSpin(), so the buttons and the
+     * accessible name cannot fall out of step with the engine. Which means it
+     * also resolves the third state honestly: a click from WIGGLE goes to spin
+     * rather than doing nothing, because "not spinning" is the branch it
+     * matches, and the alternative — a click that is silently inert in one of
+     * three views — is the kind of dead affordance this row was built to
+     * remove.
+     */
+    field.addEventListener('click', () => setView(view === 'spin' ? 'still' : 'spin'));
 
     /*
      * `still.matches` is NOT consulted when a button is pressed, and that is
