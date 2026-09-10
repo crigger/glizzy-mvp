@@ -32,6 +32,34 @@ const origin = (site: URL | undefined) => (site ? new URL('/', site).href : 'htt
 export const productUrl = (product: ShopProduct, site: URL | undefined) =>
   `${origin(site)}shop/${product.handle}/`;
 
+/**
+ * Who writes this site.
+ *
+ * A name and nothing else — no URL, no `sameAs`, no link on the page. The same
+ * constant, with the same spelling, on vinton.land and mmmornings-com: the
+ * three sites share a Shopify store and a checkout domain, and someone asking
+ * who is behind any of them should get one answer.
+ */
+export const AUTHOR = { name: 'Adam Crigger' } as const;
+
+/** The person, as a fragment on this domain — he has no site of his own here. */
+export const authorId = (site: URL | undefined) => `${origin(site)}#author`;
+
+/**
+ * The author as a `Person` node.
+ *
+ * One property, deliberately. A node with a single field is not impoverished;
+ * it is the exact size of what is being claimed, and every field added would be
+ * a second claim that something then has to keep true.
+ */
+export function authorNode(site: URL | undefined) {
+  return {
+    '@type': 'Person',
+    '@id': authorId(site),
+    name: AUTHOR.name,
+  };
+}
+
 export const organizationId = (site: URL | undefined) => `${origin(site)}#organization`;
 
 /** The seller, once, for `WebSite.publisher` and every `Offer.seller` to point at. */

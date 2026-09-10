@@ -11,7 +11,7 @@
 import Layout from '../../layouts/Layout.astro';
 import SiteIcon from '../../components/SiteIcon.astro';
 import WindowPanel from '../../components/WindowPanel.astro';
-import { breadcrumbNode, organizationNode, productNode } from '../../lib/productJsonLd';
+import { authorNode, breadcrumbNode, organizationNode, productNode } from '../../lib/productJsonLd';
 import {
   cdnImage,
   cdnSrcset,
@@ -63,6 +63,7 @@ const body = product.descriptionHtml.trim();
  */
 const jsonLdNodes = [
   organizationNode(Astro.site),
+  authorNode(Astro.site),
   productNode(product, Astro.site),
   breadcrumbNode(product, Astro.site),
 ];

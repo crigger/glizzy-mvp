@@ -30,6 +30,7 @@
 import Layout from '../layouts/Layout.astro';
 import SiteIcon from '../components/SiteIcon.astro';
 import WindowPanel from '../components/WindowPanel.astro';
+import { AUTHOR } from '../lib/productJsonLd';
 
 interface Credit {
   name: string;
@@ -43,6 +44,17 @@ interface Section {
 }
 
 const sections: Section[] = [
+  /*
+   * First, because "who is behind this" is the question a trust check asks
+   * before any of the others. A NAME, NOT A LINK: the `by` branch below renders
+   * an unlinked credit, while an item with an `href` and no `by` renders as
+   * "name — hostname", which is the shape for a tool with a homepage and the
+   * wrong shape for a person.
+   */
+  {
+    label: 'This site',
+    items: [{ name: 'Glizzy Store', by: AUTHOR.name }],
+  },
   {
     label: 'Type',
     items: [

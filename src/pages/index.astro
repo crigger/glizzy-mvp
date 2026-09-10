@@ -23,7 +23,7 @@ import GlizzyRepeat from '../components/GlizzyRepeat.astro';
 import GlizzyStereo from '../components/GlizzyStereo.astro';
 import Interlude from '../components/Interlude.astro';
 import DebugPanel from '../components/DebugPanel.astro';
-import { organizationNode } from '../lib/productJsonLd';
+import { authorNode, organizationNode } from '../lib/productJsonLd';
 ---
 
 {/*
@@ -31,7 +31,7 @@ import { organizationNode } from '../lib/productJsonLd';
   and cart.js only reveals it once a stored cart comes back with something in
   it — so an empty cart costs the homepage a hidden button and nothing else.
 */}
-<Layout cart jsonLdNodes={[organizationNode(Astro.site)]}>
+<Layout cart jsonLdNodes={[organizationNode(Astro.site), authorNode(Astro.site)]}>
   <SiteIcon />
 
   {/* The dog. Built procedurally by glizzy-path.js into this empty element. */}
