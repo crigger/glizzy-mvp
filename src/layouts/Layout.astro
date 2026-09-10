@@ -57,7 +57,25 @@ const SITE_FALLBACK = 'https://glizzy.store';
 
 const {
   title = 'Glizzy Store',
-  description = 'Glizzy?',
+  /*
+   * The DESCRIPTION, not the headline. `Glizzy?` is still the h2 on the
+   * homepage and should stay — as a question in 100pt type it is the joke
+   * landing. As a meta description it was the whole of what the site told a
+   * machine about itself, and the measured result was that an agent asked what
+   * glizzy.store is went and found an article about the slang word instead and
+   * answered most of the question from its own memory.
+   *
+   * So this is near-verbatim from the "...What Now?" panel, which is the copy
+   * that already does this job for a reader. It leads with "ceramic" on
+   * purpose: that single word is what separates this shop from the food and
+   * from the slang, and it is the first thing a summariser keeps.
+   *
+   * Set as the LAYOUT DEFAULT rather than on index.astro, so it is also the
+   * fallback for any page added later that forgets to write one. Pages with
+   * something better to say still override it.
+   */
+  description =
+    'Old Vinton Glizzys: ceramic keepsakes built to last eons longer than any meat-based frankfurter. Hand-built, fired, and stored in Vinton, VA.',
   ogImage,
   jsonLdNodes = [],
   scripts = true,
