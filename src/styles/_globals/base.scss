@@ -138,6 +138,31 @@ p  { margin: 0 0 10px; }
   padding: 1rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/*
+ * The privacy link wraps the whole claim, so it is three lines of small type
+ * rather than a word — and the UA's underline plus its default link colour
+ * turned the site's quietest sentence into the loudest thing in the footer.
+ *
+ * Mustard on EVERY state, `:visited` included. The default visited colour is
+ * what actually shipped in the screenshot that prompted this: a lavender that
+ * belongs to no palette here. Naming all five states is the only way to hold a
+ * link's colour still, because `:visited` is set by the UA sheet and inherits
+ * from nothing.
+ *
+ * The rule sits on the anchor inside `.site-note__text` rather than on the
+ * paragraph, so the mustard cannot leak onto the claim if the link is ever
+ * unwrapped from it.
+ */
+.site-note__text a,
+.site-note__text a:link,
+.site-note__text a:visited,
+.site-note__text a:hover,
+.site-note__text a:focus,
+.site-note__text a:active {
+  color: var(--mustard);
+  text-decoration: none;
+}
+
 .site-note__text {
   /*
    * `ch` for the measure — the limit that matters for a line of small type is
