@@ -20,6 +20,7 @@
  */
 import type { APIRoute } from 'astro';
 import { fetchShopifyProducts, formatPrice } from '../lib/fetchShopifyProducts';
+import { CONTENT_PAGES } from '../lib/contentPages';
 
 const absolute = (site: URL | undefined, path: string) =>
   new URL(path, site ?? 'https://glizzy.store/').href;
@@ -61,8 +62,7 @@ export const GET: APIRoute = async ({ site }) => {
     '',
     '## Pages',
     '',
-    bullet('Home', abs('/'), 'The glizzy itself, what it is made of, and how to get one.'),
-    bullet('Colophon', abs('/colophon/'), 'Typefaces, tools and hosting, and who writes the site.'),
+    ...CONTENT_PAGES.map((page) => bullet(page.label, abs(page.path), page.what)),
   ];
 
   /*

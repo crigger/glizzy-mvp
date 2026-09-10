@@ -1,0 +1,90 @@
+---
+/**
+ * The shell for a page that is mostly words: /about, /contact, /privacy.
+ *
+ * The colophon's clothes — one WindowPanel, the fixed mark, `scripts={false}` —
+ * with type set for paragraphs rather than for a list of credits. The pages
+ * that use it have to carry real prose, because a trust page that says almost
+ * nothing is the thing a verifier reads as a stub.
+ *
+ * `scripts={false}` is passed by each PAGE rather than here, since this
+ * component sits inside the Layout rather than around it. It is load-bearing
+ * wherever it appears: it drops the three.js dog AND the four-screen
+ * `body.has-dog` height the dog assumes, and without it a prose page opens onto
+ * three empty screens before anyone reads a word.
+ */
+import WindowPanel from './WindowPanel.astro';
+
+interface Props {
+  /** The `<h1>`, and the gold title bar's label. */
+  heading: string;
+}
+
+const { heading } = Astro.props;
+---
+
+<main class="prose-page">
+  <section class="prose-page__slot" aria-labelledby="prose-title">
+    <WindowPanel title={heading}>
+      <div class="prose-page__body">
+        <h1 class="prose-page__title f-sequoia" id="prose-title">{heading}</h1>
+        <slot />
+        <a class="shop-button shop-button--quiet prose-page__back" href="/">Back</a>
+      </div>
+    </WindowPanel>
+  </section>
+</main>
+
+<style>
+/* Same slot geometry as /colophon — one panel, centred, with room above it for
+   the fixed mark in the corner. */
+.prose-page {
+  display: flex;
+  justify-content: center;
+  padding: clamp(5rem, 14vh, 9rem) 1rem 4rem;
+}
+
+.prose-page__slot {
+  width: min(44rem, 100%);
+}
+
+.prose-page__body {
+  padding: 1.5rem;
+}
+
+.prose-page__title {
+  font-size: clamp(1.8rem, 6vmin, 2.6rem);
+  line-height: 1.05;
+  margin: 0 0 1rem;
+}
+
+.prose-page__body :global(h2) {
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  margin: 1.75rem 0 0.4rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.prose-page__body :global(p),
+.prose-page__body :global(li) {
+  line-height: 1.6;
+  margin: 0 0 0.75rem;
+  max-width: 62ch;
+}
+
+.prose-page__body :global(ul) {
+  margin: 0 0 0.75rem;
+  padding-left: 1.1em;
+}
+
+.prose-page__body :global(a) {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.prose-page__back {
+  display: inline-block;
+  margin-top: 1.25rem;
+}
+</style>

@@ -13,6 +13,7 @@
  * field Google would happily display and it is not ours to make up.
  */
 import type { ShopProduct, ShopVariant } from './fetchShopifyProducts';
+import { CONTENT_PAGES } from './contentPages';
 
 /**
  * Shopify hands back `"3.0"`. Money is written with two decimals, and while
@@ -190,5 +191,17 @@ export function websiteNode(site: URL | undefined, description: string) {
     inLanguage: 'en-US',
     publisher: { '@id': organizationId(site) },
     author: { '@id': authorId(site) },
+    /*
+     * The site's own table of contents, for a reader that parses rather than
+     * one that clicks. The footer is a privacy line and a Colophon link, so
+     * this and the head's `<link rel>` block are how /about, /contact and
+     * /privacy are reachable at all.
+     */
+    hasPart: CONTENT_PAGES.filter((page) => page.path !== '/').map((page) => ({
+      '@type': 'SiteNavigationElement',
+      name: page.label,
+      description: page.what,
+      url: new URL(page.path, base).href,
+    })),
   };
 }

@@ -1,0 +1,43 @@
+---
+/**
+ * How to reach a person, and what happens to what you send.
+ *
+ * This site publishes no email address, so this page invents none — a contact
+ * page naming a mailbox that does not exist is worse than one with only a form.
+ * The form is real, posts to this origin, and the page states the part people
+ * do not expect: the address is also subscribed to the shop's mailing list.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import ProsePage from '../components/ProsePage.astro';
+import ContactBlock from '../components/ContactBlock.astro';
+
+const description =
+  'Send a message to Glizzy Store. The form goes to a person, and your address is also added to the shop mailing list.';
+---
+
+<Layout title="Contact — Glizzy Store" description={description} scripts={false}>
+  <SiteIcon />
+  <ProsePage heading="Contact">
+    <p>
+      The form below is the way in. It is read by a person, usually within a few days. There is no
+      queue, no ticket number and no auto-reply behind it.
+    </p>
+
+    <h2>Worth writing about</h2>
+    <ul>
+      <li>An order, or a question about one.</li>
+      <li>Something on this site that is wrong. Corrections are welcome.</li>
+      <li>A question about the object itself — what it is made of, how big it is, how it ships.</li>
+    </ul>
+
+    <h2>What happens to it</h2>
+    <p>
+      Your name, email address and message are stored by Netlify, which hosts this site, and read
+      from there. Your email address is <strong>also added to the shop's mailing list</strong> as a
+      subscribed customer in Shopify. That is worth knowing before you send it, and the
+      <a href="/privacy/">privacy page</a> sets out the whole of it.
+    </p>
+  </ProsePage>
+  <ContactBlock />
+</Layout>

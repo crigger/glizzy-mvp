@@ -27,11 +27,18 @@
  * exactly the case the card exists for: labels, rules and typed text are
  * readable copy, and readable copy never sits on the glass over a moving dog.
  *
- * Unlike vinton.land's, this one is NOT wired to a Shopify subscribe function.
- * That site creates a subscribed customer on every submission through
- * `netlify/functions/shopify-subscribe.mjs`; doing the same here would need
- * SHOPIFY_CLIENT_ID / SHOPIFY_CLIENT_SECRET in this site's Netlify env, so it
- * is a deliberate omission rather than a missing piece.
+ * IT IS WIRED TO THE SHOPIFY SUBSCRIBE FUNCTION, and this comment used to say
+ * the opposite. `netlify/functions/shopify-subscribe.mjs` is deployed here and
+ * this site's Netlify environment has SHOPIFY_CLIENT_ID and
+ * SHOPIFY_CLIENT_SECRET set — verified 2026-09-09 — so every submission creates
+ * a Shopify customer with email marketing consent SUBSCRIBED. The note below
+ * survived from before that was wired up and was still describing a deliberate
+ * omission that had since been undone.
+ *
+ * That matters more than a stale comment usually does: /privacy has to state
+ * what happens to a submitted address, and believing this paragraph would have
+ * put a false statement about personal data on a page whose whole job is being
+ * true about it.
  */
 import WindowPanel from './WindowPanel.astro';
 ---

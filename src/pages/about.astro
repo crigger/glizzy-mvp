@@ -1,0 +1,75 @@
+---
+/**
+ * What this is, and the confusion it exists to clear up.
+ *
+ * The one job: a reader — human or agent — arriving here should leave knowing
+ * this shop sells a CERAMIC OBJECT. The measured failure that made these pages
+ * worth writing was exactly that gap: asked what glizzy.store is, an agent went
+ * and found an article about the slang word and answered from its own memory.
+ *
+ * Written plainer than the homepage on purpose. Everything a person reads on
+ * the front page is deadpan, and that is right there; this page is where a
+ * verifier checks whether the shop is real, and a joke it cannot detect is a
+ * fact it will repeat. Facts only, in the site's register but not its jokes.
+ *
+ * Every claim comes off the product listing (ceramic, hand made, unique, US
+ * clay, crafted and packed in Vinton VA, ~1.5 inches, not for kids) or the
+ * "...What Now?" panel, plus the store's own shipping setting for the US-only
+ * line. Nothing about production volume, sourcing beyond the clay, or who else
+ * is involved, because none of that is stated anywhere.
+ *
+ * A draft of this page also said there is no wholesale and no custom ordering.
+ * That was cut for the same reason it was cut from llms.txt an hour earlier:
+ * plausible, stated nowhere, and a trust page is the worst place to guess.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import ProsePage from '../components/ProsePage.astro';
+import { AUTHOR } from '../lib/productJsonLd';
+import { buyHref } from '../lib/fetchShopifyProducts';
+
+const shop = await buyHref();
+const description =
+  'Old Vinton Glizzys are small ceramic hot dogs, hand made in Vinton, Virginia. Not food, not the slang — a fired ceramic object about an inch and a half long.';
+---
+
+<Layout title="About — Glizzy Store" description={description} scripts={false}>
+  <SiteIcon />
+  <ProsePage heading="About">
+    <p>
+      Glizzy Store sells one thing: a small ceramic hot dog, roughly an inch and a half long. Each
+      one is hand made, so each one is slightly different from the last. The clay is mined in the
+      United States, and the crafting, firing and packing all happen in Vinton, Virginia.
+    </p>
+
+    <h2>It is a ceramic object</h2>
+    <p>
+      Worth saying plainly, because the word does other work elsewhere. This is not food, it is
+      not a novelty version of food, and it has nothing to do with the slang term. It is fired
+      ceramic — a keepsake, built to outlast any meat-based frankfurter by a considerable margin,
+      and small enough to put in a pocket without anyone nearby being any the wiser.
+    </p>
+
+    <h2>What it is not</h2>
+    <p>
+      Not for kids. Not a food product, and nothing here is edible or should be treated as though
+      it were. What is in the shop is what there is. Orders ship within the United States only —
+      the store offers no international delivery.
+    </p>
+
+    <h2>Who makes it</h2>
+    <p>
+      Made and packed in Vinton, Virginia. This site is written by {AUTHOR.name}. The shop runs on
+      Shopify, and checkout happens on <strong>shop.vinton.land</strong>, which is the same store
+      under a different name — see the <a href="/privacy/">privacy page</a> for what that means for
+      your details.
+    </p>
+
+    <h2>Elsewhere</h2>
+    <p>
+      <a href={shop}>The glizzy itself</a> has the current price and whether it is in stock. The
+      credits are in the <a href="/colophon/">colophon</a>, and
+      <a href="/contact/">the contact page</a> reaches a person.
+    </p>
+  </ProsePage>
+</Layout>

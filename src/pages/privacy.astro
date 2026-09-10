@@ -1,0 +1,84 @@
+---
+/**
+ * What this site collects, which is almost nothing, and the one thing that
+ * surprises people.
+ *
+ * THE PART THAT MATTERS is the contact form. A submission does not just sit in
+ * Netlify's dashboard: `netlify/functions/shopify-subscribe.mjs` runs after
+ * Netlify accepts it and creates a Shopify customer with email marketing
+ * consent SUBSCRIBED. That function is deployed here and this site's Netlify
+ * environment has SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET set, so it is
+ * live rather than dormant — checked 2026-09-09, not assumed.
+ *
+ * Note ContactBlock.astro's header comment still says this site is NOT wired to
+ * that function. It is stale; the function and the credentials are both here.
+ * Believing it would have put a false statement about personal data on this
+ * page, which is the whole reason the env was checked rather than the comment.
+ *
+ * The single-origin claim is measured rather than asserted: the only external
+ * origins in the built HTML are the XML and schema.org NAMESPACES, which are
+ * identifiers and never fetched, plus a handful of outbound credit links.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import ProsePage from '../components/ProsePage.astro';
+
+const description =
+  'What Glizzy Store collects, which is almost nothing — and what happens to your address if you send the form.';
+---
+
+<Layout title="Privacy — Glizzy Store" description={description} scripts={false}>
+  <SiteIcon />
+  <ProsePage heading="Privacy">
+    <p>
+      This is a static site. The pages were built ahead of time and are served as files. There is
+      no account to make, no session, no login, and no profile of you anywhere in it.
+    </p>
+
+    <h2>Reading the site</h2>
+    <p>
+      No analytics, no tracking pixels, no advertising, and no cookies set for tracking. The
+      typefaces, the scripts and the images all come from this domain, so reading a page contacts
+      nobody else. Netlify hosts the site and, like any web host, keeps ordinary server logs of
+      requests made to it — that is infrastructure rather than something this site chooses to
+      collect, and none of it is used to build a picture of you.
+    </p>
+
+    <h2>The shop</h2>
+    <p>
+      The shop reaches Shopify at the moment you add something to a cart, and not before. Your
+      cart lives in your own browser's storage on this domain; it holds a cart identifier, which
+      is a credential, so it is never put in a link or shared between devices. Checkout is
+      Shopify's and happens on <strong>shop.vinton.land</strong> — the same store under a
+      different name, which is why the address changes at the checkout button. What Shopify
+      collects there, payment details included, is Shopify's to describe, and this site never sees
+      a card number.
+    </p>
+
+    <h2>The contact form</h2>
+    <p>
+      Sending the form gives up three things: your name, your email address and your message. They
+      are stored by Netlify and read by a person.
+    </p>
+    <p>
+      One more thing happens, and it is the reason this page exists.
+      <strong>Your email address is also added to the shop's mailing list</strong>, as a customer
+      in Shopify with email marketing consent set to subscribed. So writing in with a question also
+      signs you up to hear from the shop. If that is not what you wanted, every message the shop
+      sends carries an unsubscribe link, and asking through the form works too.
+    </p>
+    <p>
+      Messages are kept because they are correspondence, not data collection. Ask and yours will be
+      deleted.
+    </p>
+
+    <h2>Anything else</h2>
+    <p>
+      This page describes what the site does today, and it is written to be checkable rather than
+      reassuring — if something here does not match what you observe, that is worth saying on
+      <a href="/contact/">the contact page</a>. How the site is built is in the
+      <a href="/colophon/">colophon</a>, and what the shop actually sells is on
+      <a href="/about/">the about page</a>.
+    </p>
+  </ProsePage>
+</Layout>

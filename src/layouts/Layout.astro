@@ -11,6 +11,7 @@
  */
 import '../styles/main.scss';
 import { authorNode, organizationNode, websiteNode } from '../lib/productJsonLd';
+import { CONTENT_PAGES } from '../lib/contentPages';
 import CartDrawer from '../components/shop/CartDrawer.astro';
 import SiteNote from '../components/SiteNote.astro';
 
@@ -171,7 +172,25 @@ const ogImageUrl = new URL(ogImage ?? '/og.jpg', Astro.site ?? SITE_FALLBACK).hr
     <meta property="og:image" content={ogImageUrl} />
     <meta name="twitter:card" content="summary_large_image" />
 
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {/*
+      Registered link relations for the trust pages, so a client that never
+      parses the JSON-LD still finds them. `author`, `help` and `privacy-policy`
+      are real relations — the first two from the HTML standard, the third from
+      the IANA registry — not invented markup, and the targets are real pages in
+      the sitemap and named in llms.txt, which makes this a declaration rather
+      than cloaking. The trailing slashes are not cosmetic: without them every
+      one of these is a 301.
+    */}
+    {CONTENT_PAGES.filter((page) => page.rel).map((page) => (
+      <link rel={page.rel} href={new URL(page.path, Astro.site ?? SITE_FALLBACK).href} />
+    ))}
+    <link
+      rel="alternate"
+      type="text/plain"
+      href={new URL('/llms.txt', Astro.site ?? SITE_FALLBACK).href}
+      title="llms.txt"
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
 
   <body class:list={{ 'has-dog': scripts }}>
