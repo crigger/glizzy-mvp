@@ -10,6 +10,7 @@
  * straight through to the built page.
  */
 import '../styles/main.scss';
+import { authorNode, organizationNode, websiteNode } from '../lib/productJsonLd';
 import CartDrawer from '../components/shop/CartDrawer.astro';
 import SiteNote from '../components/SiteNote.astro';
 
@@ -68,9 +69,26 @@ const {
  * One `<script type="application/ld+json">` per document rather than several:
  * a single `@graph` is how the nodes get to reference each other by `@id`.
  */
-const jsonLd = jsonLdNodes.length
-  ? { '@context': 'https://schema.org', '@graph': jsonLdNodes }
-  : null;
+/*
+ * The site-wide nodes go on EVERY page, with whatever the page passes appended.
+ *
+ * Until 2026-09-09 the graph was whatever a page happened to pass, so only the
+ * homepage and the product page carried anything, and no route named a WebSite
+ * or an author at all. A trust check landing on /colophon had nothing to read.
+ *
+ * Pages still pass `organizationNode` themselves in a couple of places; the
+ * duplicate is harmless — two nodes with the same `@id` are one node to any
+ * JSON-LD parser, which is the whole point of `@id`.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    websiteNode(Astro.site, description),
+    organizationNode(Astro.site),
+    authorNode(Astro.site),
+    ...jsonLdNodes,
+  ],
+};
 
 /*
  * The canonical url for this page, and the base every other absolute url in

@@ -1,0 +1,114 @@
+---
+/**
+ * The page a wrong URL lands on. There was none until 2026-09-09, which meant
+ * Netlify served its own generic one — a dead end with no route back into the
+ * site, for a person and for a crawler that arrived on a stale link alike.
+ *
+ * It wears the colophon's clothes: `scripts={false}`, the fixed mark, one
+ * WindowPanel. `scripts={false}` is doing real work here and is not a
+ * micro-optimisation — it drops the three.js dog AND the four-screen
+ * `body.has-dog` height that the dog assumes, and without it this page would
+ * open onto three empty screens before anyone saw the words.
+ *
+ * `noindex` because a 404 is not a page anyone should arrive at from a search
+ * result. It stays out of the sitemap for free: the hand-rolled sitemap
+ * integration in astro.config.mjs skips any page whose HTML carries the
+ * noindex meta.
+ *
+ * The links are the point — recovery is the whole job of this page.
+ */
+import Layout from '../layouts/Layout.astro';
+import SiteIcon from '../components/SiteIcon.astro';
+import WindowPanel from '../components/WindowPanel.astro';
+import { buyHref } from '../lib/fetchShopifyProducts';
+
+/*
+ * The one product, via the same helper every CTA on the site uses — so this
+ * link cannot rot differently from the others, and the day a second product
+ * exists it warns in the build rather than quietly sending everyone to
+ * whichever one Shopify listed first. See the note on buyHref().
+ */
+const shop = await buyHref();
+---
+
+<Layout
+  title="Not found — Glizzy Store"
+  description="That page is not here. The glizzy is."
+  scripts={false}
+  noindex
+>
+  <SiteIcon />
+
+  <main class="notfound">
+    <section class="notfound__slot" aria-labelledby="notfound-title">
+      <WindowPanel title="404">
+        <div class="notfound__body">
+          <h1 class="notfound__title f-sequoia" id="notfound-title">Not found</h1>
+          <p class="notfound__text f-bricolage">
+            That page is not here. The glizzy is.
+          </p>
+
+          <ul class="notfound__ways f-bricolage">
+            <li><a href="/">Home</a></li>
+            <li><a href={shop}>The glizzy</a></li>
+            <li><a href="/colophon/">Colophon</a></li>
+          </ul>
+
+          <a class="shop-button shop-button--quiet notfound__back" href="/">Back</a>
+        </div>
+      </WindowPanel>
+    </section>
+  </main>
+</Layout>
+
+<style>
+/* Same slot geometry as /colophon — one panel, centred, with room above it for
+   the fixed mark in the corner. */
+.notfound {
+  display: flex;
+  justify-content: center;
+  padding: clamp(5rem, 14vh, 9rem) 1rem 4rem;
+}
+
+.notfound__slot {
+  width: min(38rem, 100%);
+}
+
+.notfound__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.notfound__title {
+  font-size: clamp(2rem, 7vmin, 3rem);
+  line-height: 1;
+  margin: 0;
+}
+
+.notfound__text {
+  margin: 0;
+}
+
+.notfound__ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notfound__ways a {
+  color: inherit;
+  text-underline-offset: .3em;
+}
+
+.notfound__back {
+  align-self: center;
+  margin-top: .5rem;
+}
+</style>

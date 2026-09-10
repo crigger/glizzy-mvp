@@ -171,3 +171,24 @@ export function breadcrumbNode(product: ShopProduct, site: URL | undefined) {
     ],
   };
 }
+
+/**
+ * The site itself, so the graph has a subject rather than a loose Organization.
+ *
+ * There was no `WebSite` node on any page until 2026-09-09, though the comment
+ * above `organizationNode` had referred to `WebSite.publisher` since the port —
+ * an edge that pointed at nothing because no node existed to carry it.
+ */
+export function websiteNode(site: URL | undefined, description: string) {
+  const base = origin(site);
+  return {
+    '@type': 'WebSite',
+    '@id': `${base}#website`,
+    name: 'Glizzy Store',
+    url: base,
+    description,
+    inLanguage: 'en-US',
+    publisher: { '@id': organizationId(site) },
+    author: { '@id': authorId(site) },
+  };
+}
