@@ -19,6 +19,18 @@ it is not built, not served, and can go once nobody wants to diff against it.
 - **Build:** `npm run build` → `dist/`
 - **Preview:** `npm run preview`
 
+**`astro dev` is a DAEMON, and `pkill` does not stop it.** Killing the npm
+process leaves the server running; the next `npm run dev` reattaches to it and
+prints a normal-looking banner. A stale scoped `<style>` then survives every
+"restart" you think you did — `.notfound__slot`'s `min-height` was edited,
+saved, and served stale for four rebuilds while `ProsePage.astro`'s edit in the
+same minute came through fine. **`npx astro dev stop`** is what stops it, and
+`astro dev status` / `astro dev logs` are the other two.
+
+The tell, and the thing to check FIRST when an edit does not take: build it and
+grep `dist/`. If the built CSS is right and the dev server disagrees, the CSS
+is not the problem.
+
 Build settings live in **`netlify.toml`**, not the Netlify UI, and `NODE_VERSION
 = "22"` is one of them: Astro 7 needs Node ≥ 22.12 and Netlify's image defaults
 to 18, which does not fail — it prints a wall of `EBADENGINE` warnings and
@@ -526,12 +538,40 @@ Two rules that are easy to break:
   `cursor: grab` and `touch-action: none` as well as being what
   glizzy-windows.js keys off. A static panel must never have it: the bar would
   claim to be draggable and would swallow a swipe over a strip nothing can drag.
+- **`.window-content__inner` is a SHARED wrapper, so style its children and not
+  its subtree.** It is the bone card inside every panel on the site, and its
+  `h2`/`p` rules were descendant rules — so they also reached, and won
+  properties on, every paragraph and label on /about, /contact and /privacy,
+  plus `.interlude__line`, `.contact__title`, `.colophon__label`,
+  `.thanks__note` and `.notfound__text`. Both rules are (0,1,1), so a
+  component's own `.block__el` rule could not outrank them and only won the
+  properties they do not declare: the trust pages read in weight 500 with
+  `text-wrap: balance` on running prose. They are `>` rules now. Anything
+  nested that genuinely IS panel copy is named back into the selector.
 - **A panel with no `title` gets `.window--untitled`, which turns the keyline
   navy.** The gold keyline exists to be continuous with the gold BAR — that is
   crest.red's trick, bar and border the same colour so they read as one drawn
   box. With no bar there is nothing to continue and a gold rectangle shouts over
   its own contents. Written `.window.window--untitled` so it cannot lose a
   specificity tie to `.window`.
+
+### Every `section` is nearly a screen tall, including the ones that should not be
+
+`base.scss` gives every `section` `min-height: calc(100svh - 96px - 24px)`,
+which is right for the homepage — those sections ARE screens — and wrong for
+any page that is one short panel. A panel inside such a section stretches to it
+(`section:first-child` is `display: flex`, so the panel is a flex item and the
+default `align-items: stretch` does the rest) and the leftover is empty dot
+screen under the bone card.
+
+`.thanks__slot` and `.colophon__slot` carry `min-height: 0` for this and say
+so. `.notfound__slot` did not: measured 2026-09-10, its panel was **684px
+around a 316px card, 368px of empty glass**. `.prose-page__slot` did not
+either, and is only saved by carrying more copy than the floor.
+
+**Any new single-panel route needs that line.** The healthy number is 61px of
+slack — the chrome bar plus the card's inset — and `.window` minus
+`.window-content__inner` is how to check it.
 
 ### One gutter
 
@@ -706,6 +746,26 @@ utility classes — there is no mapping from heading level to face.
 The `.otf`/`.ttf` originals live in **`assets/fonts/`, outside `public/`**, so
 they are kept but never shipped. 700KB of them used to be in the deploy.
 
+**`body` is `system-ui` and must stay that way. Sequoia has no lowercase.**
+Putting the site's text face on `body` is the obvious fix for the paragraph
+below and it is wrong: Sequoia is a UNICASE face, nothing in the stack
+transforms case, and setting it as the inherited default turned the five
+GlizzyWindow paragraphs into all-caps display copy. Magnolia is a display face
+too. **Bricolage is the only face here that can hold a paragraph.**
+
+So `.f-*` really is opt-in, and the cost is real: anything with no class
+renders in the VISITOR'S OS UI FONT. Measured on 2026-09-10, that was 71
+elements — every paragraph and label on /about, /contact and /privacy, the
+credits on /colophon, the note on /thanks, and five paragraphs on the homepage.
+The prose kit carries `f-bricolage` explicitly for exactly this reason.
+**Anything added later that carries running text needs a face named on it.**
+Nothing above will supply one and nothing will warn you.
+
+While there: **Bricolage is instanced to `font-weight: 400 500`**, so a UA bold
+— an `<h2>`, a `<strong>` — asks for 700, lands off the end of the axis, and
+may be SYNTHESIZED. Same faux-bold that smeared Magnolia on /thanks for weeks.
+Declare 500.
+
 ## Checking a change
 
 `scripts/shoot.mjs` (from vinton.land) screenshots a local route at several
@@ -715,6 +775,23 @@ Two things here are nondeterministic and will always differ between captures:
 the **3D canvas spins on a wall clock**, and the drawn path length depends on
 when ScrollTrigger's scrub settled. Hide `#hero-stage` and let the page sit for
 ~2s after each scroll before comparing.
+
+**Before changing anything typographic, take a baseline.**
+`npm run sweep:type -- .shots/before.json`, then re-run with
+`--diff .shots/before.json`. It reads computed size, weight, family, tracking,
+leading and colour off every element with its own text, on every public route,
+at four widths, and diffs by signature count so a renumbered-but-unchanged
+element does not register. `npm run check:contrast` prints the ink/ground
+matrix, which is worth reading before styling anything on the bone card —
+navy is the ONLY body-safe ink on it, and mustard is invisible.
+
+**Neither is a substitute for looking.** A sweep reporting "font-family
+changed, size and colour identical" says nothing about whether the page still
+looks right; a face swap is the entire visual change. That is how the unicase
+bug above shipped past a 288-signature diff that read as reassuring.
+
+Both tools and the reasoning behind the pass they came from are in
+`docs/design-system-port.md`, alongside vinton.land's source document.
 
 ## The shop
 

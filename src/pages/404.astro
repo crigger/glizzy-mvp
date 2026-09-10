@@ -15,20 +15,16 @@
  * integration in astro.config.mjs skips any page whose HTML carries the
  * noindex meta.
  *
- * The links are the point — recovery is the whole job of this page.
+ * ONE WAY OUT, not a menu. This carried a line of copy, three links (Home, The
+ * glizzy, Colophon) and a quiet Back pill, on the reasoning that recovery is
+ * the whole job of the page and more routes out is more recovery. In front of
+ * it that reads as a site map on a dead end: four things to choose between
+ * when the only thing anyone wants is to not be here. Adam's call, 2026-09-10
+ * — the name of the problem and the standard blue pill home, nothing else.
  */
 import Layout from '../layouts/Layout.astro';
 import SiteIcon from '../components/SiteIcon.astro';
 import WindowPanel from '../components/WindowPanel.astro';
-import { buyHref } from '../lib/fetchShopifyProducts';
-
-/*
- * The one product, via the same helper every CTA on the site uses — so this
- * link cannot rot differently from the others, and the day a second product
- * exists it warns in the build rather than quietly sending everyone to
- * whichever one Shopify listed first. See the note on buyHref().
- */
-const shop = await buyHref();
 ---
 
 <Layout
@@ -44,17 +40,13 @@ const shop = await buyHref();
       <WindowPanel title="404">
         <div class="notfound__body">
           <h1 class="notfound__title f-sequoia" id="notfound-title">Not found</h1>
-          <p class="notfound__text f-bricolage">
-            That page is not here. The glizzy is.
-          </p>
-
-          <ul class="notfound__ways f-bricolage">
-            <li><a href="/">Home</a></li>
-            <li><a href={shop}>The glizzy</a></li>
-            <li><a href="/colophon/">Colophon</a></li>
-          </ul>
-
-          <a class="shop-button shop-button--quiet notfound__back" href="/">Back</a>
+          {/*
+            `.shop-button` with no modifier is the site's standard CTA: the blue
+            pill, navy on `--cta`, full width. The `--quiet` variant that used to
+            be here is the mustard outline, which is the SECONDARY treatment —
+            fine beside a primary action and wrong as the only one on a page.
+          */}
+          <a class="shop-button notfound__home" href="/">Home</a>
         </div>
       </WindowPanel>
     </section>
@@ -72,6 +64,14 @@ const shop = await buyHref();
 
 .notfound__slot {
   width: min(38rem, 100%);
+  /*
+   * `section` defaults to nearly a viewport tall in base.scss, which is right
+   * for the homepage and wrong for a page that is one short panel. Without
+   * this the panel stretched to 684px around 316px of card and left 368px of
+   * empty dot screen under it. `.thanks__slot` and `.colophon__slot` already
+   * carry the same line; this one was missed.
+   */
+  min-height: 0;
 }
 
 .notfound__body {
@@ -88,27 +88,7 @@ const shop = await buyHref();
   margin: 0;
 }
 
-.notfound__text {
-  margin: 0;
-}
-
-.notfound__ways {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  justify-content: center;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.notfound__ways a {
-  color: inherit;
-  text-underline-offset: .3em;
-}
-
-.notfound__back {
-  align-self: center;
+.notfound__home {
   margin-top: .5rem;
 }
 </style>

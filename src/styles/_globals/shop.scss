@@ -57,6 +57,17 @@
   text-decoration: none;
   width: 100%;
   /*
+   * Stated for the same reason `line-height` below is: <a> and <button> do NOT
+   * agree without it. A <button> centres its label by UA default; an <a> is
+   * just an inline-block that inherits whatever the page is aligned to. Every
+   * pill on the site happened to sit in centred context, so this never showed
+   * — until the Home CTA landed on /about, /contact, /privacy and /colophon,
+   * where the copy is left-aligned and a full-width pill read with its label
+   * jammed against the left edge. Measured before the change: those four were
+   * `start`, every other button on the site was already `center`.
+   */
+  text-align: center;
+  /*
    * Stated, because <a> and <button> do NOT agree without it. A link inherits
    * the body's 1.6; a button takes the UA's `line-height: normal`, so with
    * identical padding the two came out 53px and 42px. Every pill on the site

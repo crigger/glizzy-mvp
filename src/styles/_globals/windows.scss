@@ -342,8 +342,41 @@ section.glizzy-window {
   margin-bottom: 1rem;
 }
 .window-content__logo svg { width: 100%; height: 100%; display: block; }
-.window-content__inner h2 { font-size: 1.4rem; margin: 0; line-height: 1; }
-.window-content__inner p  { 
+/*
+ * The panel's OWN copy — the heading and paragraphs a window puts straight on
+ * the card. Tight leading, a little extra letter and word spacing, and
+ * `text-wrap: balance`: this is display micro-copy, two or three lines of it,
+ * and it is set to sit as a block rather than to be read at length.
+ *
+ * THE CHILD COMBINATOR IS LOAD-BEARING. These were descendant rules, and
+ * `.window-content__inner` is the bone card inside EVERY panel on the site —
+ * so they also reached, and won properties on, eight elements belonging to
+ * other components: every paragraph and label on /about, /contact and
+ * /privacy, plus `.interlude__line`, `.contact__title`, `.colophon__label`,
+ * `.thanks__note` and `.notfound__text`. Both rules are (0,1,1), so a
+ * component's own `.block__el` rule at (0,1,0) could not outrank them and only
+ * won the properties these two do not declare. The trust pages were reading in
+ * weight 500 with `text-wrap: balance` on running prose, and neither page ever
+ * asked for either.
+ *
+ * `>` is the narrowing rather than a specificity bump on the other side,
+ * because the rule is genuinely about the card's own children: everything the
+ * rule is FOR is a direct child, and everything it was reaching by accident is
+ * nested one level down inside its own component's wrapper. Verified that way
+ * before the change, not after. See docs/design-system-port.md.
+ */
+.window-content__inner > h2 { font-size: 1.4rem; margin: 0; line-height: 1; }
+/*
+ * `.thanks__note` is opted back in by name. It IS the panel's own copy — a
+ * couple of lines of display text on the card, which is what this rule is for
+ * — it just sits one level down inside the page's own wrapper, so the child
+ * combinator above drops it. Named here rather than restated on it, because
+ * there is one way panel copy is set and this is it. Anything nested that
+ * wants this look joins the list; anything that wants to be READ at length
+ * does not, and that is the whole distinction the `>` draws.
+ */
+.window-content__inner > p,
+.window-content__inner .thanks__note {
   font-size: 1rem;
   margin: 0;
   letter-spacing: .01em;

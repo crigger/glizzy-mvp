@@ -32,11 +32,27 @@ import SiteIcon from '../components/SiteIcon.astro';
 import WindowPanel from '../components/WindowPanel.astro';
 import { AUTHOR } from '../lib/productJsonLd';
 
+/**
+ * Every credit renders the same two lines: the NAME, then who or where it came
+ * from. `by` is a person, a studio or a place; with an `href` the attribution
+ * links, and without one it is plain text. An item with only an `href` puts the
+ * hostname on the second line, which is the shape for a tool that is its own
+ * credit.
+ *
+ * There is no third line. The `note` field ("the dog", "headless, Storefront
+ * API", "hosting, forms, the certificate") is gone — vinton.land dropped its
+ * copy of it on 2026-09-10 and this follows. Note that the REASON does not
+ * port: over there the note was faded on a ground with only one body-safe ink,
+ * so `opacity` walked it under AA. Here it measured 6.25 and was fine. It went
+ * because a credit list wants one shape, not because it was unreadable.
+ *
+ * `by` also absorbed the two notes that were really attributions — Studio 228
+ * is IN Vinton, which is a "where it came from" and belongs on that line.
+ */
 interface Credit {
   name: string;
   by?: string;
   href?: string;
-  note?: string;
 }
 interface Section {
   label: string;
@@ -44,17 +60,6 @@ interface Section {
 }
 
 const sections: Section[] = [
-  /*
-   * First, because "who is behind this" is the question a trust check asks
-   * before any of the others. A NAME, NOT A LINK: the `by` branch below renders
-   * an unlinked credit, while an item with an `href` and no `by` renders as
-   * "name — hostname", which is the shape for a tool with a homepage and the
-   * wrong shape for a person.
-   */
-  {
-    label: 'This site',
-    items: [{ name: 'Glizzy Store', by: AUTHOR.name }],
-  },
   {
     label: 'Type',
     items: [
@@ -69,17 +74,31 @@ const sections: Section[] = [
   },
   {
     label: 'Thanks to',
-    items: [{ name: 'Studio 228', note: 'Vinton, Virginia' }],
+    items: [{ name: 'Studio 228', by: 'Vinton, Virginia' }],
   },
   {
     label: 'Built with',
     items: [
       { name: 'Astro', href: 'https://astro.build' },
-      { name: 'three.js', href: 'https://threejs.org', note: 'the dog' },
+      { name: 'three.js', href: 'https://threejs.org' },
       { name: 'GSAP', href: 'https://gsap.com' },
-      { name: 'Shopify', note: 'headless, Storefront API' },
-      { name: 'Netlify', note: 'hosting, forms, the certificate' },
+      { name: 'Shopify', href: 'https://shopify.com' },
+      { name: 'Netlify', href: 'https://netlify.com' },
     ],
+  },
+  /*
+   * A NAME, NOT A LINK, and in the NAME slot — the author is the biggest credit
+   * on the page, not the small line under an empty one. "Who is behind this" is
+   * the question a trust check asks before any of the others, and an agent went
+   * to a web search for it rather than find it here.
+   *
+   * LAST rather than first, which is where it sat until 2026-09-10. Opening a
+   * credits page by crediting yourself reads as a byline; closing with it reads
+   * as a signature, and the page is a list of other people either way.
+   */
+  {
+    label: 'Created by',
+    items: [{ name: AUTHOR.name }],
   },
 ];
 ---
@@ -101,31 +120,27 @@ const sections: Section[] = [
             sections.map((section) => (
               <section class="colophon__section">
                 <h2 class="colophon__label f-sequoia">{section.label}</h2>
-                <ul class="colophon__list">
+                {/*
+                  `f-bricolage` because `.f-*` is opt-in and `body` is
+                  `system-ui` — see the note in fonts.scss. Without it every
+                  credit on this page renders in the visitor's OS UI font, which
+                  is how it shipped until 2026-09-10.
+                */}
+                <ul class="colophon__list f-bricolage">
                   {section.items.map((item) => (
                     <li class="colophon__item">
                       <span class="colophon__name">{item.name}</span>
-                      {item.by && (
+                      {(item.by || item.href) && (
                         <span class="colophon__by">
-                          {' by '}
                           {item.href ? (
                             <a href={item.href} rel="noopener noreferrer" target="_blank">
-                              {item.by}
+                              {item.by ?? new URL(item.href).hostname.replace(/^www\./, '')}
                             </a>
                           ) : (
                             item.by
                           )}
                         </span>
                       )}
-                      {!item.by && item.href && (
-                        <span class="colophon__by">
-                          {' — '}
-                          <a href={item.href} rel="noopener noreferrer" target="_blank">
-                            {new URL(item.href).hostname.replace(/^www\./, '')}
-                          </a>
-                        </span>
-                      )}
-                      {item.note && <span class="colophon__note">{item.note}</span>}
                     </li>
                   ))}
                 </ul>
@@ -133,7 +148,8 @@ const sections: Section[] = [
             ))
           }
 
-          <a class="shop-button shop-button--quiet colophon__back" href="/">Back</a>
+          {/* The standard blue pill, same as /404 and the prose pages. */}
+          <a class="shop-button colophon__home" href="/">Home</a>
         </div>
       </WindowPanel>
     </section>

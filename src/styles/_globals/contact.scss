@@ -304,6 +304,15 @@
 .colophon__body .colophon__label {
   font-size: 0.7rem;
   letter-spacing: 0.18em;
+  /*
+   * Same 0.18em and the same `/1` as `.window-title` — that IS the chrome
+   * bar's voice, and a label set solid is half of it. It used to arrive here
+   * from `.window-content__inner h2`, a rule about a different component that
+   * reached this one through the shared bone card; narrowing that rule to the
+   * card's direct children took the leading with it and pushed the mustard
+   * rule 7px down the page. Declared where it belongs now.
+   */
+  line-height: 1;
   text-transform: uppercase;
   font-weight: 400;
   margin: 0;
@@ -316,34 +325,47 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.35rem 1.5rem;
+  /* Row gap is 0.75em, up from 0.35rem: every entry is two lines now, and at
+   * the old value the attribution under one name sat closer to the name below
+   * it than to its own. */
+  gap: 0.75em 1.5rem;
 }
 @media (min-width: 40rem) {
   .colophon__list { grid-template-columns: 1fr 1fr; }
 }
-.colophon__item {
-  font-size: 0.95rem;
-  line-height: 1.35;
-  font-weight: 500;
-}
-.colophon__name { font-weight: 700; }
-.colophon__by a { color: inherit; text-underline-offset: 2px; }
 /*
- * The note sits on its own line under the name rather than in parentheses
- * after it: half of these are two words ("the dog", "Vinton, Virginia") and a
- * parenthesis makes them read as an aside rather than as the fact they are.
+ * Name over attribution — a column, not a run of inline spans.
+ *
+ * It was inline, with the template writing a literal ` by ` or ` — ` between
+ * the two. That form has to punctuate itself to stay legible, and the
+ * punctuation had to differ by kind: a person got "by", a tool with a homepage
+ * got an em dash and a hostname. Stacked, neither is needed — position says
+ * which is which — so the template has one branch instead of three. It also
+ * means a long studio name wraps under its own credit rather than re-flowing
+ * the entry. Ported from vinton.land, 2026-09-10.
  */
-.colophon__note {
-  display: block;
-  font-size: 0.8rem;
-  opacity: 0.7;
+.colophon__item {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
 }
-.colophon__back {
-  width: auto;
+/*
+ * 500, not 700. The list is `f-bricolage` now, and Bricolage is instanced to
+ * `font-weight: 400 500` (fonts.scss) — a 700 lands off the end of the axis
+ * and the browser may synthesize it. 500 is a weight the file draws.
+ */
+.colophon__name { font-size: 0.95rem; font-weight: 500; }
+.colophon__by { font-size: 0.8rem; }
+.colophon__by a { color: inherit; text-underline-offset: 2px; }
+.colophon__home {
   /* Clear of the last credit block — it is a way out of the page, not the
    * next line of the list (Adam, 2026-08-29). */
   margin-top: 2.75rem;
-  align-self: flex-start;
-  color: var(--bg-bottom);
-  box-shadow: inset 0 0 0 2px currentColor;
+  /*
+   * Nothing else. This carried `width: auto`, `align-self: flex-start` and a
+   * navy `color` + inset box-shadow, which together rebuilt `--quiet` in a
+   * third colour — an auto-width navy outline that matched no other button on
+   * the site. It is the standard blue pill now, so the component's own
+   * `background`, `color` and `width: 100%` are the whole of it.
+   */
 }

@@ -55,6 +55,27 @@ body {
    */
   text-wrap: pretty;
 
+  /*
+   * THE DEFAULT FACE STAYS system-ui, AND IT IS NOT AN OVERSIGHT.
+   *
+   * Sequoia is the obvious thing to put here, and it is wrong: it is a UNICASE
+   * face. Setting it as the inherited default was tried on 2026-09-10 and it
+   * turned the five GlizzyWindow paragraphs — which carry no `.f-*` class —
+   * into all-caps display copy, because nothing in the stack transforms case
+   * and Sequoia simply has no lowercase to draw. Magnolia is a display face
+   * too. The only face here that can carry a paragraph is Bricolage.
+   *
+   * So there is no site-wide default worth having, and `.f-*` really is
+   * opt-in. The cost of that is real and worth knowing: anything that does not
+   * carry a class renders in the VISITOR'S OS UI FONT. Measured with
+   * `npm run sweep:type` on 2026-09-10, that was 71 elements — every paragraph
+   * and label on /about, /contact and /privacy, the credits on /colophon, the
+   * note on /thanks, and the five window paragraphs on the homepage.
+   *
+   * The prose kit was given `.f-bricolage` explicitly for exactly this reason.
+   * Anything else added later that carries running text needs a face named on
+   * it; nothing above will do it, and nothing will warn you.
+   */
   font: 16px/1.6 system-ui, -apple-system, sans-serif;
   background: transparent;
   position: relative;

@@ -26,10 +26,24 @@ const { heading } = Astro.props;
 <main class="prose-page">
   <section class="prose-page__slot" aria-labelledby="prose-title">
     <WindowPanel title={heading}>
-      <div class="prose-page__body">
+      {/*
+        `f-bricolage` is not decoration, it is the only face here that can hold
+        a paragraph. `body` is `system-ui` on purpose (see base.scss) and `.f-*`
+        is opt-in, so without this the trust pages render in whatever UI font
+        the visitor's OS supplies. Sequoia and Magnolia are both display faces
+        and neither is a substitute — Sequoia has no lowercase at all.
+      */}
+      <div class="prose-page__body f-bricolage">
         <h1 class="prose-page__title f-sequoia" id="prose-title">{heading}</h1>
         <slot />
-        <a class="shop-button shop-button--quiet prose-page__back" href="/">Back</a>
+        {/*
+          The standard CTA, same as /404 and /colophon: `.shop-button` with no
+          modifier is the blue pill. It was `--quiet`, the mustard outline —
+          which is the SECONDARY treatment, right beside a primary action and
+          wrong as the only action on a page, and it is the only one on all
+          three of these. Adam's call, 2026-09-10.
+        */}
+        <a class="shop-button prose-page__home" href="/">Home</a>
       </div>
     </WindowPanel>
   </section>
@@ -46,6 +60,14 @@ const { heading } = Astro.props;
 
 .prose-page__slot {
   width: min(44rem, 100%);
+  /*
+   * `section` defaults to nearly a viewport tall in base.scss. A no-op on
+   * these three today — all of them carry more copy than that — but it is the
+   * floor that left 368px of empty dot screen under /404's card, and a prose
+   * page that ever gets short would take it the same way. `.thanks__slot` and
+   * `.colophon__slot` carry the same line.
+   */
+  min-height: 0;
 }
 
 .prose-page__body {
@@ -58,14 +80,59 @@ const { heading } = Astro.props;
   margin: 0 0 1rem;
 }
 
+/*
+ * The section label, in the chrome bar's voice — the same small tracked
+ * uppercase as `.window-title` and `.colophon__label`.
+ *
+ * `line-height` used to arrive from `.window-content__inner h2`, a rule about
+ * the window panels that reached in here through the shared bone card. That
+ * rule is scoped to the card's direct children now, so this declares its own.
+ * 1.2 rather than the `1` the other two labels use, and rather than the 1.6 it
+ * inherits from `body`: those two are structurally single-line, this one is
+ * whatever a future page writes. Costs 2.56px against how it shipped.
+ *
+ * THE OPACITY IS FINE HERE, and the sister site's rule that says otherwise
+ * does not apply. On vinton.land's one bright ground the only body-safe ink
+ * measures 6.10, so fading it drops it under AA and hierarchy has to come from
+ * size and weight instead. This card is bone with navy on it, which measures
+ * 13.39 — at 0.7 it is still 6.25, and it stays AA-safe down to 0.6. Run
+ * `npm run check:contrast` before touching it; do not port a conclusion that
+ * was reached against a different palette.
+ */
 .prose-page__body :global(h2) {
   font-size: 0.8rem;
+  /*
+   * 500, not the UA's bold. Bricolage is instanced to `font-weight: 400 500`
+   * (fonts.scss), so a 700 lands outside the declared range and the browser is
+   * free to SYNTHESIZE one — the same faux-bold that smeared Magnolia on
+   * /thanks for weeks. 500 is a weight the file actually draws.
+   */
+  font-weight: 500;
   letter-spacing: 0.06em;
+  line-height: 1.2;
   margin: 1.75rem 0 0.4rem;
   opacity: 0.7;
   text-transform: uppercase;
 }
 
+/* Same reason as the label above: the UA's 700 is off the end of the axis. */
+.prose-page__body :global(strong) { font-weight: 500; }
+
+/*
+ * Running prose, and it now gets to be running prose.
+ *
+ * These paragraphs sit inside a WindowPanel, so `.window-content__inner p`
+ * used to reach them too — same (0,1,1) specificity, so it won every property
+ * this rule does not name. That put the trust pages in weight 500 with
+ * `letter-spacing: .01em`, `word-spacing: .05em` and `text-wrap: balance`,
+ * none of which this page asked for and the last of which is for two-line
+ * display copy, not for six paragraphs of it. See the child-combinator note in
+ * windows.scss.
+ *
+ * `62ch` is a measure in the ems of the step it holds, which is the point: the
+ * column tracks the face and the size rather than sitting at some fixed rem
+ * that drifts away from them.
+ */
 .prose-page__body :global(p),
 .prose-page__body :global(li) {
   line-height: 1.6;
@@ -83,8 +150,7 @@ const { heading } = Astro.props;
   text-underline-offset: 0.2em;
 }
 
-.prose-page__back {
-  display: inline-block;
+.prose-page__home {
   margin-top: 1.25rem;
 }
 </style>

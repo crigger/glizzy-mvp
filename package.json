@@ -7,7 +7,9 @@
     "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "dev:lan": "ASTRO_TELEMETRY_DISABLED=1 astro dev --host",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build && node scripts/check-no-comments.mjs",
-    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview"
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "sweep:type": "node scripts/type-sweep.mjs",
+    "check:contrast": "node scripts/token-contrast.mjs"
   },
   "dependencies": {
     "astro": "^7.2.6",
