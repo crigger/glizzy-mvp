@@ -503,7 +503,13 @@ const sitemap = (site) => ({
       );
       await writeFile(
         new URL('./robots.txt', dir),
-        `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
+        // llms.txt is named here because robots.txt is the file every crawler
+        // already fetches, which makes it the cheapest possible pointer to the
+        // one file written for agents. Nothing is disallowed and no crawler is
+        // singled out.
+        `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n\n` +
+        `# For agents: ${origin}/llms.txt is this site in one file, including when\n` +
+        `# to use it and when not to.\n`
       );
       logger.info(`sitemap.xml with ${urls.length} url(s), and robots.txt`);
     },
