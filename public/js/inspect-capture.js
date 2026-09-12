@@ -64,6 +64,9 @@
     // enough to produce them, so they arrived as three phantom edits on the
     // very first no-edit capture.
     { match: '.window-chrome, .window-chrome *', attrs: ['style'] },
+    // The process cards' trigger is the panel itself now (no badge, no bar),
+    // so GSAP's user-select / touch-action / cursor stamps land here.
+    { match: '.js-glizzy-window .window-wrapper-inner', attrs: ['style'] },
     // The dev debug panel. `updateDebug()` rewrites its readout on every scroll
     // frame, and `applyAspectPreset()` rewrites every slider on a resize. It is
     // display:none and nobody edits it — filter the lot, text included.

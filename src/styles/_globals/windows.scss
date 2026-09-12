@@ -235,43 +235,23 @@ section.glizzy-window {
  * Mobile-first: the base rule says nothing, and this adds them.
  */
 @media (min-width: 768px) {
-  .window-chrome.js-drag-handle,
-  .window-num.js-drag-handle {
+  .window-chrome.js-drag-handle {
     cursor: grab;
     touch-action: none;
   }
-  .window-wrapper-inner:active .window-chrome.js-drag-handle,
-  .window-wrapper-inner:active .window-num.js-drag-handle { cursor: grabbing; }
+  .window-wrapper-inner:active .window-chrome.js-drag-handle { cursor: grabbing; }
+}
+/*
+ * The process cards have no handle at all since the number badge went
+ * (2026-09-12): the whole panel is grabbed. Cursor only, and only for a fine
+ * pointer — glizzy-windows.js enables the drag under the same query, and
+ * `touch-action: none` on a whole card is the bug CLAUDE.md describes.
+ */
+@media (min-width: 768px) and (pointer: fine) {
+  .js-glizzy-window .window-wrapper-inner { cursor: grab; }
+  .js-glizzy-window .window-wrapper-inner:active { cursor: grabbing; }
 }
 
-/*
- * The process cards' number badge — what remains of the chrome stripe
- * (Adam, 2026-08-30): a bare digit in a thick ring of the page's navy,
- * pinned to the card's top-right the way the site icon is pinned to the
- * page's. The ring is what makes it kin to the mark; the grid centring is
- * what keeps a lone "4" from listing to one side inside it.
- */
-.window-num {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 1;
-  /* The site icon's own size token — the coin and the mark are the same
-   * object at two altitudes, so they share one dial (Adam, 2026-08-30). */
-  width: var(--corner-size);
-  height: var(--corner-size);
-  display: grid;
-  place-items: center;
-  font-size: 1.5rem;
-  /* Bricolage, like the card's body copy — Sequoia's brush numeral fought
-   * the geometric ring (compared side by side, 2026-08-30). */
-  font-weight: 500;
-  color: var(--bg-top);
-  border: 2px solid var(--bg-top);
-  border-radius: 50%;
-  user-select: none;
-  -webkit-user-select: none;
-}
 .window-title {
   font: 11px/1 ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.18em;
@@ -336,12 +316,33 @@ section.glizzy-window {
 
 /* The mark at the top of the card. (Centred for an hour on 2026-08-29;
  * left-aligned is the call.) */
+/*
+ * The step's drawing: big, and on the card's left edge (2026-09-12; it was
+ * an 8rem thumbnail). The marks are not one shape — the hand is 870x1042
+ * where the others are near-square — so HEIGHT is the set dimension and each
+ * drawing takes the width its own aspect gives it. The cap is in svh as well
+ * as rem because the panel is content-height and pinned in a viewport: a
+ * drawing has to leave room under it for the heading and the copy on a short
+ * phone. Measured at 390x844: 203px of drawing, panels 489–555px, nothing
+ * scrolling inside a card.
+ */
 .window-content__logo {
-  width: 8rem;
-  height: auto;
+  width: 100%;
   margin-bottom: 1rem;
 }
-.window-content__logo svg { width: 100%; height: 100%; display: block; }
+.window-content__logo svg {
+  /*
+   * Height is the set dimension and width follows the drawing's own aspect,
+   * so the box hugs the drawing and sits LEFT, on the same edge as the heading
+   * and the copy. `width: 100%` with a height cap would keep the box full
+   * width and the SVG's default `xMidYMid` would centre the drawing in it —
+   * that is how it read for an hour on 2026-09-12 and it was wrong.
+   */
+  height: min(16rem, 24svh);
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
 /*
  * The panel's OWN copy — the heading and paragraphs a window puts straight on
  * the card. Tight leading, a little extra letter and word spacing, and
@@ -392,22 +393,3 @@ section.glizzy-window {
 
 
 
-/* ───── step markers ─────────────────────────────────────────────────────── */
-
-.window-hint {
-  position: absolute;
-  top: 100%;
-  margin-top: 0.35rem;
-  color: var(--mustard);
-  /* Same size and same bob as the hero hint — see hero.scss, which owns the
-     keyframes. They are the same gesture, so they should read as one thing. */
-  font-size: clamp(2.5rem, 7vw, 4.5rem);
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-  animation: scroll-hint-bob 2.4s ease-in-out infinite;
-}
-
-/* Tucked into the corner facing the next window along. */
-.glizzy-window--left  .window-hint { right: 0.25rem; }
-.glizzy-window--right .window-hint { left: 0.25rem; }

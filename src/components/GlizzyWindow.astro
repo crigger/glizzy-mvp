@@ -19,8 +19,9 @@
  * The `js-` classes are the contract with glizzy-windows.js. `data-window-idx`
  * is what it stamps drag state against.
  *
- * The chrome bar is gone (2026-08-30): the corner number badge is the label
- * AND the grab handle now. The PDP's art window keeps its bar.
+ * The chrome bar is gone (2026-08-30) and so is the number badge that stood
+ * in for it (2026-09-12). Nothing on the card is a label; the whole panel is
+ * the grab handle. The PDP's art window keeps its bar.
  *
  * It used to carry + / − (maximize and restore) and the panel used to have
  * bottom-corner resize handles. Both are gone, and both were the same mistake:
@@ -36,11 +37,8 @@ interface Props {
   index: number;
   side: 'left' | 'right';
   heading: string;
-  /** The last step points at nothing that follows, so it omits the arrow. */
-  hint?: boolean;
 }
-const { index, side, heading, hint = true } = Astro.props;
-const label = String(index + 1);   // bare digit — the corner badge lost its leading zero with the stripe (Adam, 2026-08-30)
+const { index, side, heading } = Astro.props;
 ---
 
 <section
@@ -51,14 +49,11 @@ const label = String(index + 1);   // bare digit — the corner badge lost its l
     <div class="window-wrapper-inner">
       <WindowPanel>
         {/*
-          The number badge replaced the chrome stripe (Adam, 2026-08-30): a
-          bare digit in a thick navy ring, top-right of the card — the same
-          corner the site icon holds on the page, so the two rhyme. It is ALSO
-          the drag handle now: `js-drag-handle` is the only thing
-          glizzy-windows.js looks for, and it finds it here as readily as it
-          found the bar. Decorative text, so `aria-hidden`.
+          No label of any kind. The chrome stripe went on 2026-08-30 and the
+          number badge that replaced it went on 2026-09-12. With no
+          `js-drag-handle` inside, glizzy-windows.js makes the whole panel the
+          grab handle.
         */}
-        <span class="window-num js-drag-handle f-bricolage" aria-hidden="true">{label}</span>
         {/* Each step brings its own drawing via the `mark` slot (Adam's
             marker set, traced 2026-08-29); the shared zigzag remains the
             fallback for a window that hasn't been drawn yet. */}
@@ -67,20 +62,6 @@ const label = String(index + 1);   // bare digit — the corner badge lost its l
         <slot />
       </WindowPanel>
 
-      {/*
-        A step marker, under the panel and tucked into the corner nearest the
-        NEXT window: a left-anchored panel points down-right, a right-anchored
-        one points down-left, so the arrows zigzag the way the sections do.
-
-        Bricolage because it is the only face here with a real U+2193 — see
-        HeroSection. Decorative, so `aria-hidden`. The LAST step passes
-        `hint={false}`: there is no next window for it to point at.
-
-        It lives inside the drag target but is absolutely positioned, so it
-        rides along when the window is thrown WITHOUT growing the target's
-        border box — which is what Draggable measures its arena from.
-      */}
-      {hint && <span class="window-hint f-bricolage" aria-hidden="true">↓</span>}
     </div>
   </div>
 </section>

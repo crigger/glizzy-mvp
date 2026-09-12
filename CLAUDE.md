@@ -597,7 +597,7 @@ Bricolage       yes         —          —          —         yes
 Sequoia is 162 glyphs and Magnolia 203 — Latin, punctuation, digits, nothing
 else. **Anything else renders in whatever the OS supplies**, which differs per
 platform and matches nothing on the page. So every arrow here is Bricolage's
-`↓`: the hero scroll hint and the process step markers.
+`↓`: the hero scroll hint. (The process-step arrows under the windows were removed on 2026-09-11.)
 
 If a mark is needed in Sequoia or Magnolia context, draw it — `WindowMark.astro`
 is the precedent. There is nothing in those faces to match.

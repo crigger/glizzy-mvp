@@ -2,8 +2,10 @@
 // Per section: GSAP Draggable on .window-wrapper-inner, bounded by the sticky
 // .window-bounds-inner. ScrollTrigger watches the section so we can disable +
 // reset the drag position when it leaves view, and re-enable on enter.
-// The chrome bar is the whole interface: a label you can grab. There is nothing
-// to press and nothing to resize.
+// The whole panel is the interface: a card you can grab. There is nothing to
+// press and nothing to resize. (There used to be a chrome bar, then a number
+// badge, as the handle; both are gone, and `.js-drag-handle` is kept as the
+// opt-in for any panel that wants a smaller one.)
 //
 // Two things used to let the window be thrown off the screen, and both are
 // fixed here:
@@ -29,7 +31,15 @@
  * so rotating a tablet or dragging a window across 768 is handled rather than
  * leaving a half-live Draggable behind.
  */
-const canDrag = window.matchMedia('(min-width: 768px)');
+/*
+ * `pointer: fine` as well, since the whole panel became the handle. GSAP
+ * stamps `touch-action: none` onto the trigger while a drag is enabled, and
+ * on a touch tablet above 768 that would make a card the size of half the
+ * screen dead to scrolling — the exact bug the old wrapper-wide
+ * `touch-action: none` was (see CLAUDE.md). A finger gets a scrolling page;
+ * a mouse gets a draggable window.
+ */
+const canDrag = window.matchMedia('(min-width: 768px) and (pointer: fine)');
 
 document.querySelectorAll('.js-glizzy-window').forEach((section) => {
   const target  = section.querySelector('.window-wrapper-inner');
@@ -69,7 +79,7 @@ document.querySelectorAll('.js-glizzy-window').forEach((section) => {
 
   let drag;
   [drag] = Draggable.create(target, {
-    trigger: handle,            // drag only via the chrome bar (so + / − buttons still click)
+    trigger: handle || target,  // a panel with no handle inside is grabbed anywhere
     onPress() { this.applyBounds(arena()); },
     type: 'x,y',
     inertia: true,              // throw on release with momentum decay (InertiaPlugin)
