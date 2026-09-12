@@ -67,6 +67,9 @@
     // The process cards' trigger is the panel itself now (no badge, no bar),
     // so GSAP's user-select / touch-action / cursor stamps land here.
     { match: '.js-glizzy-window .window-wrapper-inner', attrs: ['style'] },
+    // acquire-squiggle.js tweens `--wave-grow` on the wave's inline style
+    // as the button scrolls in; captures keep catching it mid-draw.
+    { match: '.btn-acquire__wave', attrs: ['style'] },
     // The dev debug panel. `updateDebug()` rewrites its readout on every scroll
     // frame, and `applyAspectPreset()` rewrites every slider on a resize. It is
     // display:none and nobody edits it — filter the lot, text included.

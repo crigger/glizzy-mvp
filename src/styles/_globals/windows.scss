@@ -317,14 +317,9 @@ section.glizzy-window {
 /* The mark at the top of the card. (Centred for an hour on 2026-08-29;
  * left-aligned is the call.) */
 /*
- * The step's drawing: big, and on the card's left edge (2026-09-12; it was
- * an 8rem thumbnail). The marks are not one shape — the hand is 870x1042
- * where the others are near-square — so HEIGHT is the set dimension and each
- * drawing takes the width its own aspect gives it. The cap is in svh as well
- * as rem because the panel is content-height and pinned in a viewport: a
- * drawing has to leave room under it for the heading and the copy on a short
- * phone. Measured at 390x844: 203px of drawing, panels 489–555px, nothing
- * scrolling inside a card.
+ * The step's drawing, the full width of the card (2026-09-12; it was an 8rem
+ * thumbnail). The marks are not one shape — the hand is 870x1042 where the
+ * others are near-square — so the cards are not one height either.
  */
 .window-content__logo {
   width: 100%;
@@ -332,15 +327,12 @@ section.glizzy-window {
 }
 .window-content__logo svg {
   /*
-   * Height is the set dimension and width follows the drawing's own aspect,
-   * so the box hugs the drawing and sits LEFT, on the same edge as the heading
-   * and the copy. `width: 100%` with a height cap would keep the box full
-   * width and the SVG's default `xMidYMid` would centre the drawing in it —
-   * that is how it read for an hour on 2026-09-12 and it was wrong.
+   * The full width of the card, height from the drawing's own aspect. The
+   * height cap that was here (16rem / 24svh) came off in a DevTools capture
+   * on 2026-09-12; with the box full width there is nothing to align.
    */
-  height: min(16rem, 24svh);
-  width: auto;
-  max-width: 100%;
+  width: 100%;
+  height: auto;
   display: block;
 }
 /*
