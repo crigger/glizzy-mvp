@@ -326,6 +326,7 @@ section.glizzy-window {
   margin-bottom: 1rem;
 }
 .window-content__logo svg {
+  aspect-ratio: 1 / 1;
   /*
    * The full width of the card, height from the drawing's own aspect. The
    * height cap that was here (16rem / 24svh) came off in a DevTools capture
