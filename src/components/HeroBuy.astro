@@ -1,0 +1,97 @@
+---
+/**
+ * The buy button in the hero: the PRICE is the call to action. One press puts
+ * the dog in the cart and opens the drawer — no product page in between.
+ *
+ * The label is only the price, because "Acquire" is already on the page five
+ * times and the number is the one thing none of those buttons say. What it
+ * DOES is spelled out for assistive tech in the visually-hidden span, since
+ * "$120" on its own is not an action.
+ *
+ * Built at deploy time from the first available variant, like the product
+ * page — so its idea of stock is as old as the last build. The click is the
+ * first moment the truth is available, and a sold-out answer is spent on
+ * saying so rather than on a retry that cannot work (same doctrine as
+ * shop-card.js).
+ *
+ * Renders NOTHING with no catalogue (a dev build without credentials) rather
+ * than a button with no price on it.
+ */
+import { primaryProduct, formatPrice } from '../lib/fetchShopifyProducts';
+
+const product = await primaryProduct();
+const variant = product
+  ? (product.variants.find((v) => v.availableForSale) ?? product.variants[0])
+  : null;
+---
+
+{
+  product && variant && (
+    <div class="hero__buy">
+      {/*
+        `shop-button` for the pill (it is a <button>, and that class carries
+        the button reset the `.btn-acquire` link does not). `data-href` is the
+        product page: where the click goes if there is no cart on the page.
+      */}
+      {/* Above the pill — see .hero__buy-note in hero.scss for why. */}
+      <p class="hero__buy-note f-bricolage" id="hero-buy-note" role="status" aria-live="polite"></p>
+      <button
+        class="shop-button hero__buy-btn"
+        id="hero-buy"
+        type="button"
+        data-variant-id={variant.id}
+        data-href={`/shop/${product.handle}/`}
+        disabled={!variant.availableForSale}
+      >
+        <span class="visually-hidden">Add to cart, </span>
+        <span class="hero__buy-price">{variant.availableForSale ? formatPrice(variant.price) : 'Sold out'}</span>
+      </button>
+    </div>
+  )
+}
+
+<script>
+  /*
+   * Same shape as the card's handler in public/js/shop-card.js, and for the
+   * same reasons: `window.GlizzyCart` is cart.js's published API, and the
+   * fallback when it is absent is the product page rather than a dead button.
+   */
+  const add = document.getElementById('hero-buy') as HTMLButtonElement | null;
+  const note = document.getElementById('hero-buy-note');
+  const price = add?.querySelector<HTMLElement>('.hero__buy-price');
+  const say = (message: string) => { if (note) note.textContent = message; };
+
+  type Cart = { add: (variantId: string, quantity: number) => Promise<unknown> };
+  let busy = false;
+
+  if (add && price) {
+    add.addEventListener('click', () => {
+      const cart = (window as unknown as { GlizzyCart?: Cart }).GlizzyCart;
+      if (!cart) {
+        window.location.href = add.dataset.href!;
+        return;
+      }
+      if (busy || add.disabled) return;
+      busy = true;
+
+      const label = price.textContent;
+      price.textContent = 'Adding…';
+      say('');
+
+      cart
+        .add(add.dataset.variantId!, 1)
+        .then(() => { price.textContent = label; })
+        .catch((err: { soldOut?: boolean } | null) => {
+          if (err && err.soldOut) {
+            price.textContent = 'Sold out';
+            add.disabled = true;
+            say('That one just sold out.');
+            return;
+          }
+          price.textContent = label;
+          say("That didn't go through. Try again in a moment.");
+        })
+        .then(() => { busy = false; });
+    });
+  }
+</script>

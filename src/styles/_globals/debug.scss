@@ -66,3 +66,34 @@
   background: var(--dog-color);
 }
 #debug-panel .tab-content.hidden { display: none; }
+
+/* The HERO tab: selects, section labels, and the CSS readout. */
+#debug-panel label select {
+  flex: 1;
+  font: inherit;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border: 0;
+  border-radius: 4px;
+  padding: 3px 4px;
+}
+#debug-panel .subhead {
+  margin: 8px 0 4px;
+  opacity: 0.6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+#debug-panel .action-btn--quiet {
+  background: rgba(255,255,255,0.12);
+}
+#debug-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  font: 10px/1.4 monospace;
+  color: #fff;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  resize: vertical;
+}

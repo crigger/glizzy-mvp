@@ -451,14 +451,21 @@ export function formatPrice(money: ShopMoney): string {
  * a build would make five identical Storefront round trips, and they would race
  * rather than share.
  */
-let buyHrefPromise: Promise<string> | null = null;
+let primaryProductPromise: Promise<ShopProduct | null> | null = null;
 
-export function buyHref(): Promise<string> {
-  buyHrefPromise ??= (async () => {
+/**
+ * THE product — the one every CTA sells. `null` with no catalogue (a dev
+ * build with no credentials) or an empty one.
+ *
+ * Split out of `buyHref()` so the hero's buy button, which needs the variant
+ * and the price rather than a URL, shares the one memoised fetch instead of
+ * making its own. The multi-product warning lives here because this is the
+ * choice it is warning about.
+ */
+export function primaryProduct(): Promise<ShopProduct | null> {
+  primaryProductPromise ??= (async () => {
     const products = await fetchShopifyProducts();
-    // No catalogue at all — a dev build with no credentials. Home is the only
-    // page guaranteed to exist; `/shop/` no longer does.
-    if (!products || products.length === 0) return '/';
+    if (!products || products.length === 0) return null;
     if (products.length > 1) {
       console.warn(
         `[buyHref] ${products.length} products in the catalogue, but the shop index ` +
@@ -466,7 +473,14 @@ export function buyHref(): Promise<string> {
           `"${products[0].handle}". See the note in fetchShopifyProducts.ts.`
       );
     }
-    return `/shop/${products[0].handle}/`;
+    return products[0];
   })();
-  return buyHrefPromise;
+  return primaryProductPromise;
+}
+
+export async function buyHref(): Promise<string> {
+  const product = await primaryProduct();
+  // No catalogue at all — home is the only page guaranteed to exist; `/shop/`
+  // no longer does.
+  return product ? `/shop/${product.handle}/` : '/';
 }

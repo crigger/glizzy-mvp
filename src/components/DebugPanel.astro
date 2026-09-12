@@ -31,6 +31,7 @@
     <div class="tabs">
       <button class="tab active" data-tab="svg">SVG</button>
       <button class="tab" data-tab="3d">3D</button>
+      <button class="tab" data-tab="hero">HERO</button>
     </div>
 
     <div class="tab-content" data-tab="svg">
@@ -123,5 +124,181 @@
       <button id="reroll-lump" class="action-btn">reroll lump pattern</button>
       <button id="reset-drag"  class="action-btn">reset drag tilt</button>
     </div>
+
+    {/*
+      The hero's ground — the dot screen and the veil over it. Each control
+      names the `--hb-*` custom property it drives (see hero.scss) and the unit
+      it is written in; the script below is generic over them. The values in
+      this markup are placeholders — the script reads the real defaults off
+      the stylesheet at load, because they differ per width.
+    */}
+    <div class="tab-content hidden" data-tab="hero">
+      <div class="subhead">dots</div>
+      <label><span>dot colour</span>
+        <input id="ctrl-hb-dot-color" type="color" value="#30a2ff" data-hb="dot-color"></label>
+      <label><span>dot radius (px)</span>
+        <input type="range" min="0.25" max="8" step="0.25" value="1.5" data-hb="dot-r" data-unit="px">
+        <output>1.5</output></label>
+      <label><span>edge softness (px)</span>
+        <input type="range" min="0" max="3" step="0.1" value="0" data-hb="dot-soft" data-unit="px">
+        <output>0</output></label>
+      <label><span>pitch (px)</span>
+        <input type="range" min="4" max="96" step="1" value="10" data-hb="pitch" data-unit="px">
+        <output>10</output></label>
+      <label><span>offset x (px)</span>
+        <input type="range" min="0" max="96" step="0.5" value="0" data-hb="dot-x" data-unit="px">
+        <output>0</output></label>
+      <label><span>offset y (px)</span>
+        <input type="range" min="0" max="96" step="0.5" value="0" data-hb="dot-y" data-unit="px">
+        <output>0</output></label>
+      <label><span>dot opacity</span>
+        <input type="range" min="0" max="1" step="0.02" value="1" data-hb="dot-alpha">
+        <output>1</output></label>
+
+      <div class="subhead">veil (mask on the dots)</div>
+      <label><span>shape</span>
+        <select data-hb="shape">
+          <option value="circle" selected>circle</option>
+          <option value="ellipse">ellipse</option>
+        </select></label>
+      <label><span>extent</span>
+        <select data-hb="extent">
+          <option value="closest-side">closest-side</option>
+          <option value="closest-corner">closest-corner</option>
+          <option value="farthest-side">farthest-side</option>
+          <option value="farthest-corner" selected>farthest-corner</option>
+        </select></label>
+      <label><span>centre x (%)</span>
+        <input type="range" min="0" max="100" step="1" value="50" data-hb="cx" data-unit="%">
+        <output>50</output></label>
+      <label><span>centre y (%)</span>
+        <input type="range" min="0" max="100" step="1" value="50" data-hb="cy" data-unit="%">
+        <output>50</output></label>
+      <label><span>clear until (%)</span>
+        <input type="range" min="0" max="150" step="1" value="15" data-hb="in" data-unit="%">
+        <output>15</output></label>
+      <label><span>opaque from (%)</span>
+        <input type="range" min="0" max="200" step="1" value="75" data-hb="out" data-unit="%">
+        <output>75</output></label>
+
+      <div class="subhead">box</div>
+      <label><span>extend top (px)</span>
+        <input type="range" min="-200" max="400" step="4" value="0" data-hb="ext-top" data-unit="px">
+        <output>0</output></label>
+      <label><span>extend bottom (px)</span>
+        <input type="range" min="-200" max="400" step="4" value="0" data-hb="ext-bottom" data-unit="px">
+        <output>0</output></label>
+
+      <button id="hb-copy"  class="action-btn">copy CSS</button>
+      <button id="hb-reset" class="action-btn action-btn--quiet">reset to stylesheet</button>
+      <textarea id="hb-css" readonly rows="6" spellcheck="false" aria-label="hero background CSS"></textarea>
+    </div>
   </div>
 </div>
+
+{/*
+  Wiring for the HERO tab. Lives here rather than in glizzy-path.js because it
+  is a dev affordance for a stylesheet, not for the dog — and because this
+  component renders under `import.meta.env.DEV` only, so the script ships with
+  it and nowhere else.
+
+  Values go INLINE on the opening hero as `--hb-*` custom properties, which
+  beats the defaults in hero.scss by being inline. They are kept in
+  sessionStorage so a reload while tuning does not lose them, and gone with
+  the tab so a verdict never outlives the visit. "copy CSS" emits a block in
+  the shape of the one in hero.scss, to be pasted over it.
+
+  `?debug` on the URL unhides the panel; without it the panel is `display:
+  none` as it always has been and is unhidden from devtools.
+*/}
+<script>
+  const panel = document.getElementById('debug-panel');
+  const hero = document.querySelector<HTMLElement>('.hero-section:not(.hero-section--closing)');
+  const KEY = 'hero-bg-tune';
+
+  if (panel && new URLSearchParams(location.search).has('debug')) {
+    panel.style.display = 'block';
+  }
+
+  if (hero && panel) {
+    const controls = Array.from(
+      panel.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-hb]'),
+    );
+    /*
+     * Defaults come from the STYLESHEET, not this markup: the dot values
+     * differ per width (hero.scss has a 768px breakpoint), and a slider
+     * showing the desktop number on a phone would lie. Read before any inline
+     * value is applied, so this is the cascade's own answer. A colour input
+     * only takes #rrggbb, so it keeps its markup value when the token resolves
+     * to something else (var(--cta) is display-p3 on a P3 screen).
+     */
+    const fromSheet = (c: HTMLInputElement | HTMLSelectElement) => {
+      const v = getComputedStyle(hero).getPropertyValue('--hb-' + c.dataset.hb).trim();
+      if (!v) return c.value;
+      if (c instanceof HTMLInputElement && c.type === 'color') return /^#[0-9a-f]{6}$/i.test(v) ? v : c.value;
+      return c.dataset.unit ? v.replace(c.dataset.unit, '') : v;
+    };
+    const defaults = new Map(controls.map((c) => [c, fromSheet(c)]));
+    for (const c of controls) {
+      c.value = defaults.get(c)!;
+      const out = c.parentElement?.querySelector('output');
+      if (out) out.textContent = c.value;
+    }
+
+    const cssValue = (c: HTMLInputElement | HTMLSelectElement) => c.value + (c.dataset.unit ?? '');
+
+    const apply = (c: HTMLInputElement | HTMLSelectElement) => {
+      hero.style.setProperty('--hb-' + c.dataset.hb, cssValue(c));
+      const out = c.parentElement?.querySelector('output');
+      if (out) out.textContent = c.value;
+    };
+
+    const persist = () => {
+      const state: Record<string, string> = {};
+      for (const c of controls) if (c.value !== defaults.get(c)) state[c.dataset.hb!] = c.value;
+      try { sessionStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+    };
+
+    const css = () =>
+      '.hero-section {\n' +
+      controls.map((c) => `  --hb-${c.dataset.hb}: ${cssValue(c)};`).join('\n') +
+      '\n}\n';
+
+    const render = () => {
+      const box = document.getElementById('hb-css') as HTMLTextAreaElement | null;
+      if (box) box.value = css();
+    };
+
+    for (const c of controls) {
+      c.addEventListener('input', () => { apply(c); persist(); render(); });
+    }
+
+    // Restore a session's tweaks.
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(KEY) ?? '{}') as Record<string, string>;
+      for (const c of controls) {
+        if (c.dataset.hb! in saved) { c.value = saved[c.dataset.hb!]; apply(c); }
+      }
+    } catch {}
+    render();
+
+    document.getElementById('hb-reset')?.addEventListener('click', () => {
+      for (const c of controls) {
+        c.value = defaults.get(c)!;
+        hero.style.removeProperty('--hb-' + c.dataset.hb);
+        const out = c.parentElement?.querySelector('output');
+        if (out) out.textContent = c.value;
+      }
+      try { sessionStorage.removeItem(KEY); } catch {}
+      render();
+    });
+
+    document.getElementById('hb-copy')?.addEventListener('click', () => {
+      const text = css();
+      // glizzy-path.js's copyText handles the plain-HTTP (LAN dev) fallback.
+      const w = window as unknown as { copyText?: (t: string) => void };
+      if (w.copyText) w.copyText(text);
+      else navigator.clipboard?.writeText(text).catch(() => {});
+    });
+  }
+</script>

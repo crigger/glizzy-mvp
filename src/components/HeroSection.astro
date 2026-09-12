@@ -22,6 +22,7 @@ interface Props {
   closing?: boolean;
 }
 const { closing = false } = Astro.props;
+import HeroBuy from './HeroBuy.astro';
 ---
 
 {/*
@@ -72,6 +73,13 @@ const { closing = false } = Astro.props;
       reader already knows, and it is not a control.
     */}
     {!closing && <span class="hero__scroll-hint f-bricolage" aria-hidden="true">↓</span>}
+
+    {/*
+      The price, as the buy button, in the bottom-left corner — the scroll
+      hint's opposite number. Opening hero only: the closing masthead is
+      aria-hidden, and a button inside an aria-hidden box is a trap.
+    */}
+    {!closing && <HeroBuy />}
   </div>
   <div class="hero-canvas-wrap">
     {!closing && <canvas id="hero-stage" aria-label="3D rotating hot dog"></canvas>}

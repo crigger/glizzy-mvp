@@ -145,6 +145,135 @@
   min-height: calc(80svh - 96px - 24px);
 }
 
+/*
+ * The hero's ground: a dot screen with a dark veil over it, both behind the
+ * spinning dog. The OPENING hero only — the closing one is the sign-off, and
+ * the drawn dog ends there.
+ *
+ * It was `position: fixed` at 100dvh for an afternoon (2026-09-11), running
+ * the whole page the way vinton.land's hero does. It tanked the frame rate:
+ * a viewport-sized tiled layer under the glass panels means every window's
+ * `backdrop-filter` re-blurs it on every scroll frame, and that is on top of
+ * the drawn dog being re-dashed. Absolute and hero-sized, it is off screen
+ * before any of that starts. Do not fix it again.
+ *
+ * Two absolutely positioned pseudo-elements at `z-index: -1`. Neither
+ * `.hero-section` nor `main` creates a stacking context (no z-index on
+ * either, and that is load-bearing for the pinned mini dog — see
+ * .hero-canvas-wrap above), so -1 resolves against the ROOT: painted over the
+ * page gradient on `html`, and under everything at 0 — the drawn dog in
+ * #glizzy, the wordmark, the canvas. If one of those ancestors ever gains a
+ * z-index these two layers jump above the drawn dog.
+ *
+ * ONE pseudo-element, not two. It was a dot screen with a second layer over
+ * it painting the page colour from transparent at the centre to opaque at the
+ * edge — and that seamed. The page's ground is a GRADIENT (`--bg-top` to
+ * `--bg-bottom`, fixed to the viewport, in base.scss), so whatever single
+ * colour the veil painted, it was wrong at one end of the box: a hard line
+ * across the page at 100dvh where the veil stopped and the real ground showed.
+ * Two colours were tried and both seamed, because the problem was painting a
+ * ground at all.
+ *
+ * So the veil is a MASK on the dots. `mask-image` fades the dot screen itself
+ * out toward the edge, and nothing is painted underneath — the page gradient
+ * shows through exactly as it is. There is no ground colour to get wrong.
+ *
+ * `::before` is the dot screen: one radial-gradient stop tiled by
+ * `background-size` — the same construction as the window panels' texture,
+ * and the same reason: a tile rasterizes once. `--hb-dot-soft` is a ramp to
+ * transparent for anti-aliasing; at 0 the dot has a hard edge.
+ *
+ * `mask-image` unprefixed only — `-webkit-mask-image` is added at build time
+ * from `cssTarget`, and writing it by hand recreates the pair the minifier
+ * collapses. See the note on backdrop-filter in CLAUDE.md.
+ *
+ * Every `--hb-*` value is a knob. The HERO tab of the dev debug panel
+ * (DebugPanel.astro) writes them inline on the section and copies the result
+ * as a block to paste over this one. Tuned 2026-09-11.
+ */
+.hero-section {
+  --hb-dot-color: var(--cta);
+  /*
+   * Dot and pitch are per width, mobile first: a 10px pitch on a phone reads
+   * as a grid of beads, and a 4px pitch on a desktop is a flat tint. The
+   * breakpoint is the site's one (where --page-gutter changes) rather than a
+   * viewport-scaled value, because a fractional `background-size` tile lands
+   * each dot on a different sub-pixel and they render unevenly — the same
+   * rounding problem the window hatch had.
+   */
+  --hb-dot-r: 0.5px;
+  --hb-dot-soft: 0px;
+  --hb-pitch: 4px;
+  --hb-dot-x: 0px;
+  --hb-dot-y: 0px;
+  --hb-dot-alpha: 1;
+
+  /*
+   * The fade must COMPLETE inside the box, or the box's edge cuts through
+   * visible dots and draws a line across the page. On a phone a circle to
+   * the farthest corner does that on its own — the bottom edge is nearly as
+   * far from the centre as the corner is. On a desktop it is not even close
+   * (measured at 1860x1215: the corner is 1110px out, the bottom edge 607),
+   * so the desktop mask is an ellipse to the farthest SIDE, gone at 100%:
+   * finished exactly at every edge of the box, whatever its shape.
+   */
+  --hb-shape: circle;
+  --hb-extent: farthest-corner;
+  --hb-cx: 50%;
+  --hb-cy: 50%;
+  --hb-in: 15%;
+  --hb-out: 75%;
+
+  /* Extend the box past the first screen, above the top or below the fold. */
+  --hb-ext-top: 0px;
+  --hb-ext-bottom: 0px;
+}
+@media (min-width: 768px) {
+  .hero-section {
+    --hb-dot-r: 1.5px;
+    --hb-pitch: 10px;
+    --hb-shape: ellipse;
+    --hb-extent: farthest-side;
+    --hb-in: 35%;
+    --hb-out: 100%;
+  }
+}
+
+.hero-section:not(.hero-section--closing)::before {
+  content: '';
+  position: absolute;
+  /*
+   * The box is the FIRST SCREEN, not the hero: edge to edge and 100dvh from
+   * the top of the document. The hero sits inside main's gutter and top
+   * padding, so the pseudo-element backs out of both — the top matches
+   * main's own padding in base.scss and must move with it. Absolute rather
+   * than fixed on purpose; see the note above.
+   */
+  top: calc(-1 * (env(safe-area-inset-top, 0px) + 24px + var(--hb-ext-top)));
+  left: calc(-1 * var(--page-gutter));
+  right: calc(-1 * var(--page-gutter));
+  height: calc(100dvh + var(--hb-ext-top) + var(--hb-ext-bottom));
+  z-index: -1;
+  pointer-events: none;
+
+  background-image: radial-gradient(
+    circle at center,
+    var(--hb-dot-color) var(--hb-dot-r),
+    transparent calc(var(--hb-dot-r) + var(--hb-dot-soft))
+  );
+  /* `background` shorthand would reset these — keep them as longhands. */
+  background-size: var(--hb-pitch) var(--hb-pitch);
+  background-position: var(--hb-dot-x) var(--hb-dot-y);
+  opacity: var(--hb-dot-alpha);
+
+  /* The veil: solid dots until --hb-in, gone by --hb-out. */
+  mask-image: radial-gradient(
+    var(--hb-shape) var(--hb-extent) at var(--hb-cx) var(--hb-cy),
+    #000 var(--hb-in),
+    transparent var(--hb-out)
+  );
+}
+
 .hero-section--closing {
   padding-bottom: 4rem;
   min-height: calc(60svh - 96px - 24px);
@@ -221,21 +350,118 @@
  * the arrow comes out at the subtitle's clamped size. That has already caught
  * one element in this masthead.
  */
+/*
+ * The bottom line of the hero: the buy button and the scroll hint share it.
+ * ONE value, read by both, so they cannot drift apart. On a phone the line
+ * hangs 6.5rem below the masthead — under STORE, bottom of the first screen;
+ * from 768 it is the masthead's own bottom edge.
+ */
+.hero-section { --hero-foot: -6.5rem; }
+@media (min-width: 768px) {
+  .hero-section { --hero-foot: 0px; }
+}
+
 .hero__masthead .hero__scroll-hint {
   color: var(--mustard);
   font-size: clamp(2.5rem, 7vw, 4.5rem);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0;
+  margin: 0;
   /*
-   * The negative bottom margin is what drops it toward the fold. The masthead
-   * is `justify-content: flex-end`, so its last child sits ON the container's
-   * bottom edge — adding TOP margin would only push STORE up, not the arrow
-   * down. Pulling the bottom margin negative lets the glyph hang past that edge
-   * and past the masthead's own 2rem inset.
+   * On a PHONE: on the shared foot line, and centred on the drawn dog's stub
+   * in the section below. glizzy-path.js puts that stub's centreline at
+   * `innerWidth - halfStroke`, and the stroke is half the viewport, so the
+   * stub is centred at 75vw. The masthead starts one gutter in from the
+   * viewport's edge, hence the subtraction. `translate` rather than
+   * `transform` for the centring, because `transform` is what the bob
+   * animates and would overwrite it every frame.
+   *
+   * On the pill's BASELINE, not its bottom edge. The pill's text baseline
+   * sits 1.06rem above the pill's bottom (13.6px padding plus the descent
+   * inside a 1.6 line at 16px), and the arrow's own baseline sits 0.17em
+   * above ITS box bottom (a line-height of 1 around Bricolage's metrics).
+   * Measured after: baselines 760.6 / 760.9 at 390.
+   *
+   * From 768 it is the bottom-RIGHT corner, as it always was — the stub is
+   * a screen and a half down on a desktop and there is nothing to point at.
    */
-  margin: 0.6em 0 -1.25rem;
+  position: absolute;
+  left: calc(75vw - var(--page-gutter));
+  bottom: calc(var(--hero-foot) + 1.06rem - 0.17em);
+  translate: -50% 0;
   animation: scroll-hint-bob 2.4s ease-in-out infinite;
+}
+@media (min-width: 768px) {
+  .hero__masthead .hero__scroll-hint {
+    left: auto;
+    right: 0;
+    bottom: 0;
+    translate: none;
+  }
+}
+
+/*
+ * The buy button: bottom-LEFT of the masthead, the scroll hint's opposite
+ * number, at every width. Absolute for the same reason the hint is absolute
+ * from 768 — the masthead is `justify-content: flex-end`, and anything in
+ * flow there would push STORE up rather than sit beside it.
+ *
+ * `.shop-button` is `width: 100%` for the product page; here it hugs the
+ * price. Sequoia has no lowercase, and a price is digits and a symbol, so the
+ * unicase face is exactly right for once.
+ *
+ * `bottom` matches the hint's negative margin (-1.25rem) rather than 0, so the
+ * two corners sit level on a phone; from 768 the hint is at bottom: 0 and so
+ * is this.
+ */
+.hero__masthead .hero__buy {
+  position: absolute;
+  left: 0;
+  /*
+   * On a phone the hint sits centred under STORE and hangs 1.25rem past the
+   * masthead; the pill goes BELOW it, bottom-left of the first screen, so the
+   * two are not fighting for the same line. From 768 the hint is in the
+   * bottom-right corner and this is its opposite number at bottom: 0.
+   */
+  bottom: var(--hero-foot);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+/*
+ * The SAME pill as the Acquire button under it — `.shop-button` already
+ * matches `.btn-acquire` in face, tracking, padding and radius, so the only
+ * override is the width the product page needs and this does not.
+ */
+.hero__masthead .hero__buy-btn {
+  width: auto;
+}
+/*
+ * `.hero__masthead span` above is a descendant rule at (0,1,1) that sizes
+ * EVERY span in the masthead to the subtitle's clamp — it has already caught
+ * two elements in here, and the price span is the third. Measured before
+ * this: the pill rendered 371x101 at 1440, the price at 72px. (0,2,1) so it
+ * cannot lose.
+ */
+.hero__masthead .hero__buy-btn span {
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+/*
+ * The live region, ABOVE the pill in the column so the pill's own bottom is
+ * what `bottom` anchors — a reserved line under it would float the pill a
+ * line above where it was put.
+ */
+.hero__masthead .hero__buy-note {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  color: var(--mustard);
 }
 
 /*
@@ -298,16 +524,9 @@
   /* The hero comes back up: 0 reproduces the original top:0 / bottom:2rem. */
   .hero-section { --hero-drop: 0px; }
 
-  .hero__masthead .hero__scroll-hint {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    margin: 0;
-  }
 }
 
 /* A nudge, not a bounce — it should read as a suggestion you can ignore. */
-/* Shared with the process-step arrows in windows.scss. */
 @keyframes scroll-hint-bob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(0.35em); }
@@ -318,6 +537,5 @@
  * still shows — it is the MOTION that is the hint's decoration, not the mark.
  */
 @media (prefers-reduced-motion: reduce) {
-  .hero__masthead .hero__scroll-hint,
-  .window-hint { animation: none; }
+  .hero__masthead .hero__scroll-hint { animation: none; }
 }

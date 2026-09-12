@@ -1,19 +1,14 @@
 ---
 /**
- * The question again, and the way in.
+ * The question again. It used to carry an Acquire button under it; that went
+ * on 2026-09-11 when the hero got its own buy button (HeroBuy.astro) — two
+ * calls to action a screen apart were one too many, and the price is the
+ * better one.
  */
-import AcquireButton from './AcquireButton.astro';
-
-interface Props {
-  href?: string;
-}
-/* Undefined on purpose: AcquireButton resolves it — see buyHref(). */
-const { href } = Astro.props;
 ---
 
 <section class="intro-cta">
   <div class="intro-cta__inner">
     <h2 class="intro-cta__q f-magnolia">Glizzy?</h2>
-    <AcquireButton href={href} />
   </div>
 </section>
